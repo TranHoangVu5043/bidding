@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" spacing="15.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
+    <padding><Insets bottom="20" left="20" right="20" top="20" /></padding>
+    <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="TRANG ĐĂNG NHẬP" />
+    <TextField maxWidth="200" prefHeight="39.0" prefWidth="177.0" promptText="Tên đăng nhập" />
+    <PasswordField maxWidth="200" prefHeight="42.0" prefWidth="177.0" promptText="Mật khẩu" />
+    <Button prefWidth="100" style="-fx-background-color: #2196F3; -fx-text-fill: white;" text="Đăng nhập" />
+</VBox>
