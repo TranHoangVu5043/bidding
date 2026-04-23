@@ -1,13 +1,12 @@
 package Server;
 
-/**
- * Hello world!
- *
- */
-public class ServerApp
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World! 3" );
+import Server.networking.ServerConnection;
+
+public class ServerApp {
+    public static void main(String[] args)  throws Exception {
+        ServerConnection server = ServerConnection.getInstance();
+
+        server.init(8080);
+        server.start();
     }
 }
