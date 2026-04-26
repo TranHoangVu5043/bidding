@@ -1,5 +1,0 @@
-Server\networking\ServerConnection.class
-Server\ServerApp.class
-Client\ClientApp.class
-Client\networking\ClientConnection.class
-Server\networking\Database.class
