@@ -2,8 +2,9 @@ package Server.model;
 
 public class Seller extends User {
     private String storeName;
-    public Seller(String id, String username, String password, String email, String storeName) {
-        super(id, username, password, email, "SELLER");
+    public Seller(int id, String username, String password, String email, String storeName, double balance) {
+        super(id, username, password, email, "SELLER", balance);
+
         this.storeName = storeName;
     }
 

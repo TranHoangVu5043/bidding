@@ -1,10 +1,9 @@
 package Server.model;
 
 public class Bidder extends User{
-    private double balance;
-    public Bidder(String id, String username, String password, String email) {
-        super(id, username, password, email, "BIDDER");
-        this.balance = 0.0;
+
+    public Bidder(int id, String username, String password, String email, double balance) {
+        super(id, username, password, email, "BIDDER", balance);
     }
     @Override
     public void displayInfo() {

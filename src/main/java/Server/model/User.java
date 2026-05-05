@@ -1,18 +1,25 @@
 package Server.model;
 
-public abstract class User extends Entity {
+public class User {
 
+    private int id;
     private String username;
     private String password;
     private String email;
     private String role;
+    private double balance;
 
-    public User(String id, String username, String password, String email, String role) {
-        super(id);
+    public User(int id, String username, String password, String email, String role, double balance) {
+
         this.username = username;
         this.password = password;
         this.email = email;
         this.role = role;
+        this.balance = balance;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getUsername() {
@@ -43,6 +50,11 @@ public abstract class User extends Entity {
         return role;
     }
 
-    @Override
-    public abstract void displayInfo();
+    public double getBalance() {
+        return balance;
+    }
+
+    public void displayInfo() {
+        System.out.println("[" + role + "] Username: " + getUsername() + ", Email: " + getEmail());
+    };
 }
