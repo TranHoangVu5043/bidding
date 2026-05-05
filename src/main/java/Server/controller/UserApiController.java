@@ -6,7 +6,7 @@ public class UserApiController {
     private final UserService userService = new UserService();
     private final Gson gson = new Gson();
     //Xu li dang nhap
-    public String handlgLogin(String jsonRequest){
+    public String handleLogin(String jsonRequest){
         try{
             //Giai ma JSON nhan tu Client
             User loginData=gson.fromJson(jsonRequest,User.class);
