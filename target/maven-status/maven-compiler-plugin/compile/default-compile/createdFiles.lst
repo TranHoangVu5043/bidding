@@ -1,5 +1,3 @@
-Server\networking\ServerConnection.class
-Server\ServerApp.class
-Client\ClientApp.class
-Client\networking\ClientConnection.class
-Server\networking\Database.class
+Server\model\Seller.class
+Server\model\Entity.class
+Server\model\User.class
