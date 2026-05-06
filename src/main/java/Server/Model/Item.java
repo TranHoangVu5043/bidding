@@ -94,37 +94,33 @@ public abstract class Item {
         this.status = status;
     }
 
-    public Item(String id, String name, String description, double startingPrice, double currentPrice, LocalDateTime
-            startTime, LocalDateTime endTime, String sellerId, String idHighestBidder, String status) {
+    public Item(String id, String name, String description, double startingPrice, LocalDateTime endTime) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.startingPrice = startingPrice;
-        this.currentPrice = currentPrice;
-        this.startTime = startTime;
+        this.currentPrice = startingPrice;
+        this.startTime = LocalDateTime.now();
         this.endTime = endTime;
-        this.idHighestBidder = idHighestBidder;
-        this.status = status;
-        this.sellerId = sellerId;
     }
 
-    public synchronized boolean placeBid(double amount, String bidderId) {
-        if (amount <= currentPrice) {
-            System.out.println("The bid amount must be greater than the current price.");
-            return false;
-        }
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(startTime)){
-            System.out.println("The auction has not started yet.");
-            return false;
-        }
-        if (now.isAfter(endTime)) {
-            System.out.println("The auction has ended.");
-            this.status = "FINISHED";
-            return false;
-        }
-        this.currentPrice = amount;
-        this.idHighestBidder = bidderId;
-        return true;
-    }
+//    public synchronized boolean placeBid(double amount, String bidderId) {
+//        if (amount <= currentPrice) {
+//            System.out.println("The bid amount must be greater than the current price.");
+//            return false;
+//        }
+//        LocalDateTime now = LocalDateTime.now();
+//        if (now.isBefore(startTime)){
+//            System.out.println("The auction has not started yet.");
+//            return false;
+//        }
+//        if (now.isAfter(endTime)) {
+//            System.out.println("The auction has ended.");
+//            this.status = "FINISHED";
+//            return false;
+//        }
+//        this.currentPrice = amount;
+//        this.idHighestBidder = bidderId;
+//        return true;
+//    }
 }
