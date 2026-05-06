@@ -1,6 +1,7 @@
 package Server.controller;
 import Server.model.ApiResponse;
 import Server.model.User;
+import Server.service.UserService;
 import com.google.gson.Gson;
 public class UserApiController {
     private final UserService userService = new UserService();
@@ -21,7 +22,7 @@ public class UserApiController {
     public String handleRegister(String jsonRequest) {
         try {
             User newUser = gson.fromJson(jsonRequest, User.class);
-            userService.register(newUser.getUsername(), newUser.getPassword());
+            userService.register(newUser.getUsername() , newUser.getPassword(),newUser.getEmail());
             return gson.toJson(new ApiResponse(201, "Đăng ký tài khoản thành công!", null));
         } catch (Exception e) {
             return gson.toJson(new ApiResponse(400, "Đăng ký thất bại: " + e.getMessage(), null));

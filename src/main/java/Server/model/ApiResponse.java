@@ -7,9 +7,6 @@ public class ApiResponse<T> implements Serializable {
     private String message;  // Thông báo đi kèm (Ví dụ: "Đăng nhập thành công")
     private T data;          // Dữ liệu thực tế (Payload)
 
-    // Constructor không tham số (Bắt buộc để Gson/Jackson hoạt động tốt)
-    public ApiResponse() {}
-
     // Constructor đầy đủ
     public ApiResponse(int status, String message, T data) {
         this.status = status;
