@@ -1,4 +1,4 @@
-package Server.controller.repsonseObjects;
+package Server.controller.responseObjects;
 
 import java.io.Serializable;
 

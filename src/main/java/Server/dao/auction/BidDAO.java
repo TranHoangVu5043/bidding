@@ -1,7 +1,11 @@
 package Server.dao.auction;
 
+import Server.model.Bid;
+
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BidDAO {
 
@@ -49,30 +53,9 @@ public class BidDAO {
     }
 
     public List<Bid> getBiddersByAuction(int auctionId) {
+        return null;
+    }
 
-        String sql = """
-        SELECT * FROM bids
-        WHERE auction_id = ?
-        ORDER BY amount DESC, created_at DESC
-    """;
-
-        List<Bid> bids = new ArrayList<>();
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, auctionId);
-
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                bids.add(mapRow(rs));
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return bids;
+    private Bid mapRow(ResultSet rs) {
     }
 }
