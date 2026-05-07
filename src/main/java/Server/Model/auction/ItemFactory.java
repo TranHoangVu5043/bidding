@@ -1,4 +1,8 @@
-package Server.Model;
+package Server.model.auction;
+
+import Server.model.auction.items.Art;
+import Server.model.auction.items.Electronics;
+import Server.model.auction.items.Vehicle;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +29,7 @@ public class ItemFactory {
                                 LocalDateTime end, String artist, String material, String cert) {
         return new Art(id, name, desc, price, end, artist, material, cert);
     }
-    public static Vehicle createVehicle(String id, String name, String desc, double price,  LocalDateTime end,
+    public static Vehicle createVehicle(String id, String name, String desc, double price, LocalDateTime end,
                                         String manuFacturer, String fuelType, String licensePlate){
         return new Vehicle(id, name, desc, price, end, manuFacturer, fuelType, licensePlate);
     }

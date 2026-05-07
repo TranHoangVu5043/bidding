@@ -20,7 +20,7 @@ public class DataSourceFactory {
         dataSource.setApplicationName("BiddingApp");
     }
 
-    private DataSourceFactory() {} // prevent instantiation
+    private DataSourceFactory() {}
 
     public static DataSource getDataSource() {
         return dataSource;

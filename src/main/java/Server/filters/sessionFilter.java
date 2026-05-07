@@ -1,6 +1,6 @@
 package Server.filters;
 
-import Server.service.UserService;
+import Server.service.users.UserService;
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;
 

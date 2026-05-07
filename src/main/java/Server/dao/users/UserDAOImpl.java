@@ -1,6 +1,6 @@
-package Server.dao.Users;
+package Server.dao.users;
 
-import Server.model.User;
+import Server.model.users.User;
 
 import javax.sql.DataSource;
 

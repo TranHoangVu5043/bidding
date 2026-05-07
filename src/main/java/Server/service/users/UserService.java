@@ -1,10 +1,9 @@
-package Server.service;
+package Server.service.users;
 
-import Server.dao.Users.UserDAO;
-import Server.model.User;
+import Server.dao.users.UserDAO;
+import Server.model.users.User;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

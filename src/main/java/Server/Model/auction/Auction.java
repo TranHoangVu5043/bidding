@@ -1,10 +1,12 @@
-package Server.Model;
+package Server.model.auction;
+
+import Server.model.auction.items.Item;
 
 import java.time.LocalDateTime;
 
 public class Auction {
     private String auctionId;
-    private Item item; // Chứa đối tượng Item (Electronics, Art...)
+    private Item item;
     private AuctionStatus status;
     private double currentPrice;
     private String leadingBidderId;
@@ -14,7 +16,7 @@ public class Auction {
     public Auction(String auctionId, Item item, LocalDateTime startTime, LocalDateTime endTime) {
         this.auctionId = auctionId;
         this.item = item;
-        this.status = AuctionStatus.OPEN; // Mặc định khi tạo là OPEN
+        this.status = AuctionStatus.OPEN;
         this.currentPrice = item.getStartingPrice();
         this.startTime = startTime;
         this.endTime = endTime;

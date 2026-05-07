@@ -1,4 +1,4 @@
-package Server.model;
+package Server.model.users;
 
 public class Bidder extends User{
 
