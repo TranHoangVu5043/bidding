@@ -24,7 +24,11 @@ public class Auction {
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(startTime)) status = AuctionStatus.OPEN;
         else if (now.isAfter(startTime) && now.isBefore(endTime)) status = AuctionStatus.RUNNING;
-        else if (now.isAfter(endTime) && status == AuctionStatus.RUNNING) status = AuctionStatus.FINISHED;
+        else if (now.isAfter(endTime)){
+            if (status != AuctionStatus.PAID && status != AuctionStatus.CANCELED) {
+                status = AuctionStatus.FINISHED;
+            }
+        }
     }
 
     public AuctionStatus getStatus() {
@@ -37,6 +41,13 @@ public class Auction {
 
     public Item getItem() {
         return item;
+    }
+    public synchronized boolean placeBid(double amount, String bidderId){
+        updateStatus();
+        if(status != AuctionStatus.RUNNING){
+            return false;
+        }
+        return true;
     }
 }
 

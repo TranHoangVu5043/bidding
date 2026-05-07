@@ -103,24 +103,4 @@ public abstract class Item {
         this.startTime = LocalDateTime.now();
         this.endTime = endTime;
     }
-
-//    public synchronized boolean placeBid(double amount, String bidderId) {
-//        if (amount <= currentPrice) {
-//            System.out.println("The bid amount must be greater than the current price.");
-//            return false;
-//        }
-//        LocalDateTime now = LocalDateTime.now();
-//        if (now.isBefore(startTime)){
-//            System.out.println("The auction has not started yet.");
-//            return false;
-//        }
-//        if (now.isAfter(endTime)) {
-//            System.out.println("The auction has ended.");
-//            this.status = "FINISHED";
-//            return false;
-//        }
-//        this.currentPrice = amount;
-//        this.idHighestBidder = bidderId;
-//        return true;
-//    }
 }
