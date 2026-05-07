@@ -54,32 +54,32 @@ public class AuctionDAO {
         }
     }
 
-    // 🔒 used in bidding transaction
-    public Auction findByIdForUpdate(Connection conn, int id) {
-        String sql = "SELECT * FROM auctions WHERE id = ? FOR UPDATE";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) return mapRow(rs);
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        throw new RuntimeException("Auction not found");
-    }
-
-    public void updateCurrentPrice(Connection conn, int id, double price) {
+    public void updateCurrentPrice(int id, double price) {
         String sql = "UPDATE auctions SET current_price = ? WHERE id = ?";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setDouble(1, price);
             stmt.setInt(2, id);
-            stmt.executeUpdate();
+            stmt.executeQuery();
+
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log("update auction price failed", e);
+        }
+    }
+
+    public void deleteAuction(int id) {
+        String sql = "DELETE FROM auctions WHERE id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            stmt.executeQuery();
+
+        } catch (SQLException e) {
+            log("delete auction failed", e);
         }
     }
 
@@ -90,6 +90,7 @@ public class AuctionDAO {
                 rs.getInt("owner_id"),
                 rs.getDouble("starting_price"),
                 rs.getDouble("current_price"),
+                rs.getTimestamp("start_time").toLocalDateTime(),
                 rs.getTimestamp("end_time").toLocalDateTime(),
                 rs.getString("status")
         );
