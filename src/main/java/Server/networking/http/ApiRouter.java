@@ -26,7 +26,7 @@ public class ApiRouter implements HttpHandler {
 
         String key = req.getMethod() + ":" + req.getPath();
 
-        Handler handler = routes.get(key);
+            Handler handler = routes.get(key);
 
         if (handler == null) {
             res.send(404, "Route not found");

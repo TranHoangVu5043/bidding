@@ -2,6 +2,7 @@ package Server.service.auction;
 
 import Server.dao.auction.AuctionDAO;
 import Server.dao.auction.BidDAO;
+import Server.dao.users.UserDAO;
 import Server.model.auction.Auction;
 
 import javax.sql.DataSource;
@@ -28,7 +29,7 @@ public class BiddingService {
             conn.setAutoCommit(false);
 
             try {
-                double balance = userDAO.findUserByToken(conn, userId);
+                double balance = userDAO.findUserById(userId);
                 Auction auction = auctionDAO.findById(auctionId);
 
                 if (!auction.getStatus().equals("ACTIVE")) {

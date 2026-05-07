@@ -69,12 +69,7 @@ public class UserApiController {
 
             User user = userService.authenticate(token);
 
-            ApiResponse<User> response =
-                    new ApiResponse<>(
-                            200,
-                            "Đăng nhập thành công!",
-                            user
-                    );
+            ApiResponse<User> response = new ApiResponse<>(200, "Đăng nhập thành công!", user);
 
             res.sendJson(200, gson.toJson(response));
 
