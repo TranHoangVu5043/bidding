@@ -48,5 +48,31 @@ public class BidDAO {
         return null;
     }
 
-    public
+    public List<Bid> getBiddersByAuction(int auctionId) {
+
+        String sql = """
+        SELECT * FROM bids
+        WHERE auction_id = ?
+        ORDER BY amount DESC, created_at DESC
+    """;
+
+        List<Bid> bids = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, auctionId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                bids.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return bids;
+    }
 }
