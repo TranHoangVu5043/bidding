@@ -70,7 +70,7 @@ public class AuctionDAO {
     }
 
     public void deleteAuction(int id) {
-        String sql = "DELETE FROM auctions WHERE id = ?";
+        String sql = "DELETE FROM auctions WHERE id = ? FROM UPDATE";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
