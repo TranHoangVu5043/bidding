@@ -1,79 +1,81 @@
 package Server.controller;
 
-import Server.model.ApiResponse;
+import Server.controller.responseObjects.ApiResponse;
+import Server.networking.http.RequestWrapper;
+import Server.networking.http.ResponseWrapper;
 import Server.model.users.User;
 import Server.service.users.UserService;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
+import com.google.gson.Gson;
 
-public class UserApiController implements HttpHandler {
+public class UserApiController {
 
     private final UserService userService;
+    private final Gson gson;
 
     public UserApiController(UserService userService) {
         this.userService = userService;
+        this.gson = new Gson();
     }
 
-    public String handleLogin(String jsonRequest) {
+    // ===== LOGIN =====
+
+    public void login(RequestWrapper req, ResponseWrapper res) {
+
         try {
 
-            User loginData = gson.fromJson(jsonRequest, User.class);
+            User loginData = gson.fromJson(req.getBody(), User.class);
 
             String token = userService.login(loginData.getUsername(), loginData.getPassword());
-            return gson.toJson(new ApiResponse(200, "Đăng nhập thành công !", token));
+
+            ApiResponse<String> response = new ApiResponse<>(200, "Đăng nhập thành công!", token);
+
+            res.sendJson(200, gson.toJson(response));
+
         } catch (Exception e) {
 
-            return gson.toJson(new ApiResponse(401, "Lỗi: " + e.getMessage(), null));
+            res.error(401, "Lỗi: " + e.getMessage());
         }
     }
 
-    public String handleRegister(String jsonRequest) {
+    // ===== REGISTER =====
+
+    public void register(RequestWrapper req, ResponseWrapper res) {
+
         try {
-            User newUser = gson.fromJson(jsonRequest, User.class);
-            userService.register(newUser.getUsername(), newUser.getPassword());
-            return gson.toJson(new ApiResponse(201, "Đăng ký tài khoản thành công!", null));
+
+            User newUser = gson.fromJson(req.getBody(), User.class);
+
+            userService.register(newUser.getUsername(), newUser.getPassword(), newUser.getEmail());
+
+            ApiResponse<String> response = new ApiResponse<>(201, "Đăng ký thành công!", null);
+
+            res.sendJson(201, gson.toJson(response));
+
         } catch (Exception e) {
-            return gson.toJson(new ApiResponse(400, "Đăng ký thất bại: " + e.getMessage(), null));
+            res.error(401, "Loi dang ky");
         }
     }
 
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
+    // ===== LOGIN WITH TOKEN =====
 
-        //exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+    public void loginWithToken(RequestWrapper req, ResponseWrapper res) {
 
-        String method = exchange.getRequestMethod();
-        String path = exchange.getRequestURI().getPath();
-        String response = "";
+        try {
 
-        // Chỉ xử lý nếu là phương thức POST (cho Login/Register)
-        if ("POST".equalsIgnoreCase(method)) {
-            // Đọc dữ liệu JSON từ gói tin HTTP gửi đến
-            String jsonBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            User loginData = gson.fromJson(req.getBody(), User.class);
 
-            // Logic điều hướng (Routing)
-            if (path.endsWith("/login")) {
-                response = controller.handleLogin(jsonBody);
-            } else if (path.endsWith("/register")) {
-                response = controller.handleRegister(jsonBody);
-            } else if (path.endsWith("/loginwtoken")) {
-                // response = controller.handleLoginWithToken(jsonBody);
-            }
-        } else {
-            response = "{\"status\":405, \"message\":\"Method Not Allowed\"}";
+            String token = userService.login(loginData.getUsername(), loginData.getPassword());
+
+            User user = userService.authenticate(token);
+
+            ApiResponse<User> response = new ApiResponse<>(200, "Đăng nhập thành công!", user);
+
+            res.sendJson(200, gson.toJson(response));
+
+        } catch (Exception e) {
+
+            res.error(400, "Lỗi: " + e.getMessage());
         }
-
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(200, responseBytes.length);
-
-        OutputStream os = exchange.getResponseBody();
-        os.write(responseBytes);
-        os.close();
     }
 }

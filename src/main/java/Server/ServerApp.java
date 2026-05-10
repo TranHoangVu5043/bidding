@@ -1,34 +1,67 @@
 package Server;
 
 
+import Server.controller.UserApiController;
+import Server.dao.auction.AuctionDAO;
+import Server.dao.auction.BidDAO;
+import Server.dao.auction.ItemDAO;
+import Server.dao.users.UserDAO;
 import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
+import Server.networking.http.ApiRouter;
+import Server.service.users.UserService;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
 public class ServerApp {
     public static void main(String[] args)  throws Exception {
-        DataSource ds = DataSourceFactory.getDataSource();
-
+        DataSource dataSource = DataSourceFactory.getDataSource();
 
         ServerConnection server = ServerConnection.getInstance();
 
         server.init(8080);
         server.start();
 
-        /*try (Connection conn = ds.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT 1");
-             ResultSet rs = stmt.executeQuery()) {
+        //* DAOS
 
-            if (rs.next()) {
-                System.out.println("DB responded: " + rs.getInt(1));
-            }
-        }*/
+        UserDAO userDAO =
+                new UserDAO(dataSource);
+
+        ItemDAO itemDAO =
+                new ItemDAO(dataSource);
+
+        AuctionDAO auctionDAO =
+                new AuctionDAO(dataSource);
+
+        BidDAO bidDAO =
+                new BidDAO(dataSource);
+
+        //SERVICES
+
+        UserService userService = new UserService(userDAO);
+
+        // ROUTER
+
+        ApiRouter router = new ApiRouter();
+
+        UserApiController userController =
+                new UserApiController(userService);
+
+        router.register(
+                "POST",
+                "/api/users/login",
+                userController::login
+        );
+
+        router.register(
+                "POST",
+                "/api/users/register",
+                userController::register
+        );
+
+        router.register(
+                "POST",
+                "/api/users/loginwtoken",
+                userController::loginWithToken
+        );
     }
 }

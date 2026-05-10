@@ -1,44 +1,110 @@
 package Server.model.auction;
 
-import Server.model.auction.items.Item;
-
 import java.time.LocalDateTime;
 
 public class Auction {
-    private String auctionId;
-    private Item item;
-    private AuctionStatus status;
+
+    private int id;
+    private int itemId;
+    private int ownerId;
+
+    private double startingPrice;
     private double currentPrice;
-    private String leadingBidderId;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public Auction(String auctionId, Item item, LocalDateTime startTime, LocalDateTime endTime) {
-        this.auctionId = auctionId;
-        this.item = item;
-        this.status = AuctionStatus.OPEN;
-        this.currentPrice = item.getStartingPrice();
+    private String status;
+
+    public Auction(int id,
+                   int itemId,
+                   int ownerId,
+                   double startingPrice,
+                   double currentPrice,
+                   LocalDateTime startTime,
+                   LocalDateTime endTime,
+                   String status) {
+
+        this.id = id;
+        this.itemId = itemId;
+        this.ownerId = ownerId;
+        this.startingPrice = startingPrice;
+        this.currentPrice = currentPrice;
         this.startTime = startTime;
         this.endTime = endTime;
-    }
-
-    public void updateStatus() {
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(startTime)) status = AuctionStatus.OPEN;
-        else if (now.isAfter(startTime) && now.isBefore(endTime)) status = AuctionStatus.RUNNING;
-        else if (now.isAfter(endTime) && status == AuctionStatus.RUNNING) status = AuctionStatus.FINISHED;
-    }
-
-    public AuctionStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(AuctionStatus status) {
         this.status = status;
     }
 
-    public Item getItem() {
-        return item;
+    public int getId() {
+        return id;
+    }
+
+    public int getItemId() {
+        return itemId;
+    }
+
+    public int getOwnerId() {
+        return ownerId;
+    }
+
+    public double getStartingPrice() {
+        return startingPrice;
+    }
+
+    public double getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
+    }
+
+    public void setOwnerId(int ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public void setStartingPrice(double startingPrice) {
+        this.startingPrice = startingPrice;
+    }
+
+    public void setCurrentPrice(double currentPrice) {
+        this.currentPrice = currentPrice;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+
+    public boolean isActive() {
+        return "ACTIVE".equals(status);
+    }
+
+    public boolean hasEnded() {
+        return endTime.isBefore(LocalDateTime.now());
     }
 }
-

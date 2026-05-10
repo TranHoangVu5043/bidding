@@ -1,7 +1,8 @@
 package Client.networking;
 
+import Server.controller.UserApiController;
 import com.google.gson.Gson;
-import Server.model.ApiResponse; // Dùng chung model với Server để đồng bộ
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,7 +34,7 @@ public class NetworkClient {
     /**
      * Hàm dùng chung để gửi dữ liệu lên Server
      */
-    public ApiResponse post(String endpoint, Object data) {
+    public UserApiController.ApiResponse post(String endpoint, Object data) {
         try {
             String jsonStr = gson.toJson(data);
 
@@ -46,12 +47,12 @@ public class NetworkClient {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             // Ép kiểu JSON nhận được về ApiResponse
-            return gson.fromJson(response.body(), ApiResponse.class);
+            return gson.fromJson(response.body(), UserApiController.ApiResponse.class);
 
         } catch (java.net.ConnectException e) {
-            return new ApiResponse(503, "Lỗi: Không thể kết nối tới Server. Hãy kiểm tra xem Server đã bật chưa!", null);
+            return new UserApiController.ApiResponse(503, "Lỗi: Không thể kết nối tới Server. Hãy kiểm tra xem Server đã bật chưa!", null);
         } catch (Exception e) {
-            return new ApiResponse(500, "Lỗi kết nối: " + e.getMessage(), null);
+            return new UserApiController.ApiResponse(500, "Lỗi kết nối: " + e.getMessage(), null);
         }
     }
 }
