@@ -2,35 +2,33 @@ package Server.model.auction;
 
 import Server.model.auction.items.Art;
 import Server.model.auction.items.Electronics;
+import Server.model.auction.items.Item;
 import Server.model.auction.items.Vehicle;
 
-import java.time.LocalDateTime;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ItemFactory {
-    //    public static Item createItem(String type, String id, String name, String desc, double price, LocalDateTime end, String extraInfo, ) {
-//        switch (type.toUpperCase()) {
-//            case "ELECTRONICS":
-//                return new Electronics(id, name, desc, price, end, extraInfo);
-//            case "ART":
-//                return new Art(id, name, desc, price, end, extraInfo);
-//            case "VEHICLE":
-//                // Giả sử extraInfo của Vehicle là loại động cơ
-//                return new Vehicle(id, name, desc, price, end, extraInfo);
-//            default:
-//                throw new IllegalArgumentException("Loại sản phẩm không hợp lệ!");
-//        }
-    // }
-    public static Electronics createElectronics(String id, String name, String desc, double price,
-                                                LocalDateTime end, String warranty, double weight) {
-        return new Electronics(id, name, desc, price, end, warranty, weight);
-    }
-
-    public static Art createArt(String id, String name, String desc, double price,
-                                LocalDateTime end, String artist, String material, String cert) {
-        return new Art(id, name, desc, price, end, artist, material, cert);
-    }
-    public static Vehicle createVehicle(String id, String name, String desc, double price, LocalDateTime end,
-                                        String manuFacturer, String fuelType, String licensePlate){
-        return new Vehicle(id, name, desc, price, end, manuFacturer, fuelType, licensePlate);
+    public static Item createItem(String category, String id, String name, String desc, int ownerId, String condition, ResultSet rs) throws SQLException {
+        return switch (category.toUpperCase()) {
+            case "ELECTRONICS" -> new Electronics(
+                    id, name, desc, ownerId, category, condition,
+                    rs.getString("warranty_period"),
+                    rs.getDouble("weight")
+            );
+            case "ART" -> new Art(
+                    id, name, desc, ownerId, category, condition,
+                    rs.getString("artist"),
+                    rs.getString("material"),
+                    rs.getString("certificate")
+            );
+            case "VEHICLE" -> new Vehicle(
+                    id, name, desc, ownerId, category, condition,
+                    rs.getString("manuFacturer"),
+                    rs.getString("fuelType"),
+                    rs.getString("license_plate")
+            );
+            default -> throw new IllegalArgumentException("Unknown category: " + category);
+        };
     }
 }
