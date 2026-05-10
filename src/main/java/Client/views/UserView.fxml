@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane prefHeight="900.0" prefWidth="900.0" style="-fx-background-color: #F4F7F9;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" prefHeight="65.0" spacing="20.0" style="-fx-background-color: white; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0;">
+            <padding><Insets left="20" right="20" /></padding>
+            <children>
+                <Label style="-fx-font-weight: bold; -fx-font-size: 20;" text="AUCTION" textFill="#0066CC" />
+                <TextField maxWidth="400.0" promptText="Search" style="-fx-background-radius: 20;" HBox.hgrow="ALWAYS" />
+                <Region HBox.hgrow="ALWAYS" />
+                <HBox alignment="CENTER" prefHeight="64.0" prefWidth="104.0" spacing="15.0">
+                    <children>
+                        <Label style="-fx-font-size: 18;" text="🔔" />
+                        <Circle fill="#E0E0E0" radius="16.0" stroke="#CCCCCC" />
+                  <Label />
+                        <VBox alignment="CENTER_LEFT" />
+                    </children>
+                </HBox>
+            </children>
+        </HBox>
+    </top>
+
+    <left>
+        <VBox alignment="TOP_CENTER" prefHeight="839.0" prefWidth="249.0" spacing="30.0" style="-fx-background-color: white; -fx-border-color: #E0E0E0; -fx-border-width: 0 1 0 0;">
+            <children>
+                <Button fx:id="btnDashBoard" alignment="CENTER_RIGHT" onAction="#handleDashBoard" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🏠 DashBoard" />
+            <Button fx:id="btnShop" alignment="TOP_LEFT" onAction="#handleShop" prefHeight="38.0" prefWidth="121.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🏪 Shop">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+            </Button>
+                <Button fx:id="btnAuction" alignment="CENTER" onAction="#handleAuction" prefHeight="38.0" prefWidth="122.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🔨 Auction">
+               <padding>
+                  <Insets right="30.0" />
+               </padding></Button>
+            <Button fx:id="btnWallet" onAction="#handleWallet" prefHeight="38.0" prefWidth="111.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="👛 Wallet ">
+               <padding>
+                  <Insets right="30.0" />
+               </padding>
+            </Button>
+            <Button fx:id="btnNotification" onAction="#handleNotification" style="-fx-background-color: transparent; -fx-font-size: 15;" text="🔔 Notification " />
+            <Button fx:id="btnSettings" onAction="#handleSettings" style="-fx-background-color: transparent; -fx-font-size: 17;" text="⚙ Settings">
+               <padding>
+                  <Insets right="20.0" />
+               </padding>
+            </Button>
+            <Pane prefHeight="297.0" prefWidth="168.0" />
+            <Button mnemonicParsing="false" prefHeight="25.0" prefWidth="118.0" style="-fx-background-color: #0066CC; -fx-cursor: hand; -fx-background-radius: 5;" text="🚪 Sign Out " textFill="#fffcfc">
+               <VBox.margin>
+                  <Insets left="40.0" />
+               </VBox.margin>
+            </Button>
+            </children>
+         <padding>
+            <Insets right="80.0" top="70.0" />
+         </padding>
+         <BorderPane.margin>
+            <Insets top="10.0" />
+         </BorderPane.margin>
+         <opaqueInsets>
+            <Insets left="20.0" />
+         </opaqueInsets>
+        </VBox>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" prefHeight="835.0" prefWidth="781.0" style="-fx-background-color: transparent;">
+            <content>
+                <VBox spacing="30.0" style="-fx-padding: 20;">
+                    <children>
+
+                        <VBox spacing="15.0">
+                            <children>
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="AUCTION FLOOR" />
+                                <FlowPane fx:id="auctionFlowPane" hgap="20.0" vgap="20.0">
+                                    <children>
+                                        <VBox prefWidth="220.0" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2); -fx-padding: 10;">
+                                            <children>
+                                                <Region prefHeight="140.0" style="-fx-background-color: #F9F9F9; -fx-background-radius: 5;" />
+                                                <Label fx:id="ProductNameLabel" style="-fx-font-weight: bold;" text="Product Name: " wrapText="true" />
+                                                <VBox fx:id="RemainiingTimeLable" spacing="5.0">
+                                                    <children>
+                                                        <Label fx:id="StartPriceLabel" prefHeight="16.0" prefWidth="205.0" style="-fx-font-size: 11; -fx-text-fill: #666;" text="Starting Price: " />
+                                                        <Label fx:id="CurrentPriceLabel" prefHeight="19.0" prefWidth="201.0" style="-fx-font-weight: bold; -fx-font-size: 13;" text="Current Price: " textFill="#D32F2F" />
+                                          <Label fx:id="RemainiingTimeLable" prefHeight="17.0" prefWidth="203.0" text="🕒 Remainiing Time :" textFill="#1262ed" />
+                                                    </children>
+                                                </VBox>
+                                                <Label fx:id="timeLabel" style="-fx-font-size: 11; -fx-text-fill: #0066CC;" />
+                                                <Button fx:id="btnAuction" maxWidth="Infinity" onAction="#handleAuction" style="-fx-background-color: #0066CC; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;" text="Auction " />
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </FlowPane>
+                            </children>
+                        </VBox>
+
+                    </children>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>
