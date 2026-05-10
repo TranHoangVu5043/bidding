@@ -21,7 +21,7 @@
    <left>
       <AnchorPane prefWidth="170.0" style="-fx-background-color: #2D3E50;" BorderPane.alignment="CENTER">
          <children>
-            <VBox fx:id="sideMenu" alignment="TOP_CENTER" spacing="25.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <VBox fx:id="sideMenu" alignment="TOP_CENTER" spacing="25.0" style="-fx-background-color: #1a3a5a; -fx-border-color: #E5E7EB; -fx-border-width: 0 1 0 0;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
                   <ImageView fx:id="imgAvatar" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
                      <VBox.margin>
@@ -39,15 +39,13 @@
                      </VBox.margin>
                   </Separator>
 
-                  <Button fx:id="btnDashboard" onAction="#showDashboard" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Dashboard">
-                     <font><Font size="10.5" /></font>
-                  </Button>
-                  <Button fx:id="btnSeller" onAction="#showSeller" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Sellers" />
-                  <Button fx:id="btnUser" onAction="#showUser" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Users" />
-                  <Button fx:id="btnRevenue" onAction="#showRevenue" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Revenue" />
-                  <Button fx:id="btnNotification" onAction="#showNotifications" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Notifications" />
-                  <Button fx:id="btnHistory" onAction="#showHistory" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="History" />
-                  <Button fx:id="btnSetting" onAction="#showSetting" prefHeight="28.0" prefWidth="145.0" style="-fx-background-radius: 4;" text="Settings" />
+                  <Button fx:id="btnDashboard" onAction="#showDashboard" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0;" text="Dashboard" textFill="WHITE" />
+                  <Button fx:id="btnSeller" onAction="#showSeller" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0;" text="Sellers" textFill="WHITE" />
+                  <Button fx:id="btnUser" onAction="#showUser" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-background-insets: 0; -fx-region-border: 0;" text="Users" textFill="#fff6f6" />
+                  <Button fx:id="btnRevenue" onAction="#showRevenue" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-border-image-insets: 0; -fx-border-width: 0;" text="Revenue" textFill="#fff3f3" />
+                  <Button fx:id="btnNotification" onAction="#showNotifications" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-border-image-insets: 0; hfx-border-width: 0;" text="Notifications" textFill="#fff5f5" />
+                  <Button fx:id="btnHistory" onAction="#showHistory" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-border-image-insets: 0; -fx-border-width: 0;" text="History" textFill="#fff6f6" />
+                  <Button fx:id="btnSetting" onAction="#showSetting" prefHeight="28.0" prefWidth="145.0" style="-fx-background-color: transparent; -fx-border-image-insets: 0; -fx-border-image-width: 0;" text="Settings" textFill="#fff8f8" />
 
                   <VBox VBox.vgrow="ALWAYS" />
                </children>

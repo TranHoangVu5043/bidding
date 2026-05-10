@@ -35,25 +35,25 @@
     </top>
 
     <left>
-        <VBox alignment="TOP_CENTER" prefHeight="839.0" prefWidth="249.0" spacing="30.0" style="-fx-background-color: white; -fx-border-color: #E0E0E0; -fx-border-width: 0 1 0 0;">
+        <VBox alignment="TOP_CENTER" prefHeight="839.0" prefWidth="249.0" spacing="30.0" style="-fx-background-color: #1a3a5a; -fx-border-color: #E0E0E0; -fx-border-width: 0 1 0 0;">
             <children>
-                <Button fx:id="btnDashBoard" alignment="CENTER_RIGHT" onAction="#handleDashBoard" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🏠 DashBoard" />
-            <Button fx:id="btnShop" alignment="TOP_LEFT" onAction="#handleShop" prefHeight="38.0" prefWidth="121.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🏪 Shop">
+                <Button fx:id="btnDashBoard" alignment="CENTER_RIGHT" onAction="#handleDashBoard" style="-fx-background-color: transparent; -fx-font-size: 16;" text="🏠 DashBoard" textFill="#fafafa" />
+            <Button fx:id="btnShop" alignment="TOP_LEFT" onAction="#handleShop" prefHeight="38.0" prefWidth="121.0" style="-fx-background-color: transparent; -fx-font-size: 16;" text="🏪 Shop" textFill="#fffafa">
                <opaqueInsets>
                   <Insets />
                </opaqueInsets>
             </Button>
-                <Button fx:id="btnAuction" alignment="CENTER" onAction="#handleAuction" prefHeight="38.0" prefWidth="122.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="🔨 Auction">
+                <Button fx:id="btnAuction" alignment="CENTER" onAction="#handleAuction" prefHeight="38.0" prefWidth="122.0" style="-fx-background-color: transparent; -fx-font-size: 16;" text="🔨 Auction" textFill="#fff6f6">
                <padding>
                   <Insets right="30.0" />
                </padding></Button>
-            <Button fx:id="btnWallet" onAction="#handleWallet" prefHeight="38.0" prefWidth="111.0" style="-fx-background-color: transparent; -fx-font-size: 17;" text="👛 Wallet ">
+            <Button fx:id="btnWallet" onAction="#handleWallet" prefHeight="38.0" prefWidth="111.0" style="-fx-background-color: transparent; -fx-font-size: 16;" text="👛 Wallet " textFill="#fff6f6">
                <padding>
                   <Insets right="30.0" />
                </padding>
             </Button>
-            <Button fx:id="btnNotification" onAction="#handleNotification" style="-fx-background-color: transparent; -fx-font-size: 15;" text="🔔 Notification " />
-            <Button fx:id="btnSettings" onAction="#handleSettings" style="-fx-background-color: transparent; -fx-font-size: 17;" text="⚙ Settings">
+            <Button fx:id="btnNotification" onAction="#handleNotification" style="-fx-background-color: transparent; -fx-font-size: 16;" text="🔔 Notification " textFill="#fffafa" />
+            <Button fx:id="btnSettings" onAction="#handleSettings" style="-fx-background-color: transparent; -fx-font-size: 16;" text="⚙ Settings" textFill="#fffafa">
                <padding>
                   <Insets right="20.0" />
                </padding>
