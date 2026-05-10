@@ -1,8 +1,5 @@
 package Server.model.auction.items;
 
-import java.time.LocalDateTime;
-import  Server.model.auction.items.Item;
-
 public class Electronics extends Item {
     private String warrantyPeriod;
     private double weight;

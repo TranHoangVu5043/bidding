@@ -1,8 +1,5 @@
 package Server.model.auction.items;
 
-import java.time.LocalDateTime;
-import  Server.model.auction.items.Item;
-
 public class Vehicle extends Item {
     private String manuFacturer; // hãng xe;
     private String fuelType; //loại nhiên liệu sử dụng

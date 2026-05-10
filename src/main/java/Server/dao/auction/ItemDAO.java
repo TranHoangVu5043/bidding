@@ -64,8 +64,33 @@ public class ItemDAO {
                 rs.getString("condition")
         );
     }
-
     private void log(String msg, Exception e) {
         System.err.println("[ERROR] " + msg + ": " + e.getMessage());
     }
+    public void update(Item item){
+        String sql = """
+                USER item
+                SET name = ?, description = ?, category = ?, condition = ?
+                WHERE id = ?
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)){
+
+
+        }catch (SQLException e){
+            log("Update failed", e);
+        }
+    }
+    public void delete(int id){
+        String sql = "DELETE FROM items WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)){
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        }catch (SQLException e){
+            log("delete item failed", e);
+        }
+
+    }
+
 }

@@ -1,4 +1,4 @@
-package Server.model;
+package Server.model.auction;
 
 import java.time.LocalDateTime;
 

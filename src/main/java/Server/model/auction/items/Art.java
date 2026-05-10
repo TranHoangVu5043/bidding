@@ -1,8 +1,5 @@
 package Server.model.auction.items;
 
-import java.time.LocalDateTime;
-import  Server.model.auction.items.Item;
-
 public class Art extends Item {
     private String artist;
     private String material;
