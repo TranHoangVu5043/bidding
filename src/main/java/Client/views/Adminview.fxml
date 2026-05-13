@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F0F2F5;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.AdminDashboardController">
+
+    <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->
+    <left>
+        <VBox prefWidth="210.0" spacing="4.0" style="-fx-background-color: #1a3a5a;">
+            <padding><Insets bottom="20" left="12" right="12" top="20" /></padding>
+            <children>
+
+                <!-- Logo -->
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label style="-fx-font-size: 22;" text="🔨" />
+                    <Label text="BIDMASTER" textFill="WHITE">
+                        <font><Font name="System Bold" size="16.0" /></font>
+                    </Label>
+                </HBox>
+
+                <Separator opacity="0.2">
+                    <VBox.margin><Insets bottom="10" top="10" /></VBox.margin>
+                </Separator>
+
+                <!-- Admin info -->
+                <VBox alignment="CENTER" spacing="5" style="-fx-background-color: rgba(255,255,255,0.07); -fx-background-radius: 10; -fx-padding: 14;">
+                    <Circle fill="#2ecc71" radius="28.0" stroke="#27ae60" strokeWidth="2" />
+                    <Label fx:id="welcomeLabel" style="-fx-font-weight: bold; -fx-font-size: 13;" text="Nguyen Van A" textFill="WHITE" />
+                    <Label style="-fx-font-size: 10; -fx-text-fill: #2ecc71;" text="● ADMINISTRATOR" />
+                    <VBox.margin><Insets bottom="6" /></VBox.margin>
+                </VBox>
+
+                <Separator opacity="0.2">
+                    <VBox.margin><Insets bottom="6" top="6" /></VBox.margin>
+                </Separator>
+
+                <!-- Nav buttons -->
+                <Button fx:id="btnHome" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleHome" style="-fx-background-color: #2ecc71; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🏠  Dashboard" textFill="WHITE" />
+
+                <Button fx:id="btnUsers" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleUsers" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="👥  Users" textFill="#CBD5E1" />
+
+                <Button fx:id="btnSellers" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSellers" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🏪  Sellers" textFill="#CBD5E1" />
+
+                <Button fx:id="btnInventory" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleInventory" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📦  Inventory" textFill="#CBD5E1" />
+
+                <Button fx:id="btnOrders" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleOrders" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🧾  Orders" textFill="#CBD5E1" />
+
+                <Button fx:id="btnAuctions" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAuctions" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🔨  Auctions" textFill="#CBD5E1" />
+
+                <Button fx:id="btnAnalytics" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAnalytics" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📊  Analytics" textFill="#CBD5E1" />
+
+                <Button fx:id="btnNotifications" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleNotifications" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🔔  Notifications" textFill="#CBD5E1" />
+
+                <Button fx:id="btnSettings" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSettings" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="⚙  Settings" textFill="#CBD5E1" />
+
+                <Region VBox.vgrow="ALWAYS" />
+                <Separator opacity="0.2" />
+
+                <Button fx:id="btnSignOut" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSignOut" style="-fx-background-color: #C0392B; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-padding: 10 14; -fx-cursor: hand;" text="🚪  Sign Out" textFill="WHITE">
+                    <VBox.margin><Insets top="6" /></VBox.margin>
+                </Button>
+
+            </children>
+        </VBox>
+    </left>
+
+    <!-- ═══════════════════ CENTER CONTENT ═══════════════════ -->
+    <center>
+        <VBox spacing="0">
+
+            <!-- Top bar -->
+            <HBox alignment="CENTER_LEFT" prefHeight="56" spacing="12" style="-fx-background-color: white;                          -fx-border-color: #E5E7EB; -fx-border-width: 0 0 1 0;                          -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 2);">
+                <padding><Insets left="20" right="20" /></padding>
+                <Label fx:id="lblPageTitle" style="-fx-font-weight: bold; -fx-font-size: 17;" text="Dashboard" />
+                <Region HBox.hgrow="ALWAYS" />
+                <HBox alignment="CENTER" spacing="8" style="-fx-background-color: #F0F4F8; -fx-background-radius: 20; -fx-padding: 6 14;">
+                    <Label style="-fx-font-size: 13; -fx-text-fill: #9CA3AF;" text="🔍" />
+                    <TextField fx:id="txtTopSearch" promptText="Tìm kiếm..." style="-fx-background-color: transparent; -fx-border-width: 0; -fx-pref-width: 200;" />
+                </HBox>
+                <StackPane>
+                    <Button onAction="#handleNotifications" prefHeight="36" prefWidth="36" style="-fx-background-color: #F0F4F8; -fx-background-radius: 20; -fx-cursor: hand;" text="🔔" />
+                    <Label fx:id="lblNotifBadge" style="-fx-background-color: #e74c3c; -fx-text-fill: white;                                   -fx-font-size: 9; -fx-font-weight: bold;                                   -fx-background-radius: 8; -fx-padding: 1 4;" text="5" translateX="3" translateY="-3" StackPane.alignment="TOP_RIGHT" />
+                </StackPane>
+            </HBox>
+
+            <!-- Tab pane (hidden tabs, switched by sidebar buttons) -->
+            <TabPane fx:id="mainTabPane" style="-fx-tab-min-width: 0; -fx-tab-max-width: 0; -fx-background-color: transparent;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+
+                <!-- ───── TAB: DASHBOARD ───── -->
+                <Tab fx:id="tabDashboard" text="">
+                    <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <content>
+                            <VBox spacing="20" style="-fx-padding: 22;">
+
+                                <!-- KPI cards -->
+                                <HBox spacing="15">
+                                    <VBox prefHeight="88" prefWidth="190" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Tổng doanh thu" />
+                                        <Label fx:id="lblTotalRevenue" style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #16A34A;" text="1,337,000,000 ₫" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #16A34A;" text="▲ 12% so với tháng trước" />
+                                    </VBox>
+                                    <VBox prefHeight="88" prefWidth="190" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Tổng người dùng" />
+                                        <Label fx:id="lblTotalUsers" style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #0066CC;" text="4,280" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #0066CC;" text="▲ 8% so với tháng trước" />
+                                    </VBox>
+                                    <VBox prefHeight="88" prefWidth="190" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Người bán" />
+                                        <Label fx:id="lblTotalSellers" style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #f97316;" text="312" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #f97316;" text="▲ 5% so với tháng trước" />
+                                    </VBox>
+                                    <VBox prefHeight="88" prefWidth="190" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Phiên đấu giá" />
+                                        <Label fx:id="lblTotalAuctions" style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #8B5CF6;" text="89 đang chạy" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #e74c3c;" text="▼ 2% so với tháng trước" />
+                                    </VBox>
+                                </HBox>
+
+                                <!-- Charts row -->
+                                <HBox spacing="15" VBox.vgrow="ALWAYS">
+                                    <VBox spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;" HBox.hgrow="ALWAYS">
+                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Doanh thu theo tháng" />
+                                        <LineChart fx:id="chartRevenue" prefHeight="220">
+                                            <xAxis><CategoryAxis /></xAxis>
+                                            <yAxis><NumberAxis /></yAxis>
+                                        </LineChart>
+                                    </VBox>
+                                    <VBox prefWidth="240" spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
+                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Phân bố người bán" />
+                                        <PieChart fx:id="chartSellers" prefHeight="220" prefWidth="220" />
+                                    </VBox>
+                                </HBox>
+
+                                <!-- Recent activity table -->
+                                <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Hoạt động gần đây" />
+                                    <TableView fx:id="tableActivity" prefHeight="180">
+                                        <columns>
+                                            <TableColumn fx:id="colActUser" prefWidth="160" text="Người dùng" />
+                                            <TableColumn fx:id="colActAction" prefWidth="260" text="Hành động" />
+                                            <TableColumn fx:id="colActTime" prefWidth="140" text="Thời gian" />
+                                            <TableColumn fx:id="colActStatus" prefWidth="110" text="Trạng thái" />
+                                        </columns>
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                        </columnResizePolicy>
+                                    </TableView>
+                                </VBox>
+
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </Tab>
+
+                <!-- ───── TAB: USERS ───── -->
+                <Tab fx:id="tabUsers" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="👥 Quản Lý Người Dùng" />
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <TextField fx:id="txtUserSearch" prefWidth="280" promptText="Tìm theo tên, email..." style="-fx-background-radius: 8; -fx-padding: 8;" />
+                            <ComboBox fx:id="cmbUserStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
+                            <ComboBox fx:id="cmbUserRole" prefWidth="130" promptText="Vai trò" style="-fx-background-radius: 8;" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button onAction="#handleExportUsers" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="📥 Xuất Excel" />
+                        </HBox>
+                        <TableView fx:id="tableUsers" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colUserId" prefWidth="80" text="ID" />
+                                <TableColumn fx:id="colUserName" prefWidth="160" text="Họ tên" />
+                                <TableColumn fx:id="colUserEmail" prefWidth="200" text="Email" />
+                                <TableColumn fx:id="colUserPhone" prefWidth="120" text="SĐT" />
+                                <TableColumn fx:id="colUserJoined" prefWidth="120" text="Ngày tham gia" />
+                                <TableColumn fx:id="colUserStatus" prefWidth="100" text="Trạng thái" />
+                                <TableColumn fx:id="colUserAction" prefWidth="120" text="Hành động" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: SELLERS ───── -->
+                <Tab fx:id="tabSellers" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🏪 Quản Lý Người Bán" />
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <TextField fx:id="txtSellerSearch" prefWidth="280" promptText="Tìm người bán..." style="-fx-background-radius: 8; -fx-padding: 8;" />
+                            <ComboBox fx:id="cmbSellerStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button onAction="#handleApproveSeller" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="✅ Duyệt người bán" />
+                        </HBox>
+                        <TableView fx:id="tableSellers" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colSellerId" prefWidth="70" text="ID" />
+                                <TableColumn fx:id="colSellerName" prefWidth="150" text="Tên shop" />
+                                <TableColumn fx:id="colSellerOwner" prefWidth="150" text="Chủ sở hữu" />
+                                <TableColumn fx:id="colSellerProducts" prefWidth="100" text="Sản phẩm" />
+                                <TableColumn fx:id="colSellerRevenue" prefWidth="130" text="Doanh thu" />
+                                <TableColumn fx:id="colSellerRating" prefWidth="90" text="Đánh giá" />
+                                <TableColumn fx:id="colSellerStatus" prefWidth="100" text="Trạng thái" />
+                                <TableColumn fx:id="colSellerAction" prefWidth="110" text="Hành động" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: INVENTORY ───── -->
+                <Tab fx:id="tabInventory" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="📦 Quản Lý Sản Phẩm" />
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <TextField fx:id="txtProductSearch" prefWidth="280" promptText="Tìm sản phẩm..." style="-fx-background-radius: 8; -fx-padding: 8;" />
+                            <ComboBox fx:id="cmbProductCategory" prefWidth="140" promptText="Danh mục" style="-fx-background-radius: 8;" />
+                            <ComboBox fx:id="cmbProductStatus" prefWidth="130" promptText="Trạng thái" style="-fx-background-radius: 8;" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button onAction="#handleAddProduct" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="+ Thêm sản phẩm" />
+                        </HBox>
+                        <TableView fx:id="tableProducts" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colProdId" prefWidth="70" text="ID" />
+                                <TableColumn fx:id="colProdName" prefWidth="200" text="Tên sản phẩm" />
+                                <TableColumn fx:id="colProdSeller" prefWidth="140" text="Người bán" />
+                                <TableColumn fx:id="colProdPrice" prefWidth="120" text="Giá" />
+                                <TableColumn fx:id="colProdStock" prefWidth="90" text="Tồn kho" />
+                                <TableColumn fx:id="colProdCategory" prefWidth="120" text="Danh mục" />
+                                <TableColumn fx:id="colProdStatus" prefWidth="100" text="Trạng thái" />
+                                <TableColumn fx:id="colProdAction" prefWidth="100" text="Xóa" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: ORDERS ───── -->
+                <Tab fx:id="tabOrders" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🧾 Quản Lý Đơn Hàng" />
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <TextField fx:id="txtOrderSearch" prefWidth="280" promptText="Tìm mã đơn, khách hàng..." style="-fx-background-radius: 8; -fx-padding: 8;" />
+                            <ComboBox fx:id="cmbOrderStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
+                            <ComboBox fx:id="cmbOrderDate" prefWidth="130" promptText="Thời gian" style="-fx-background-radius: 8;" />
+                            <Region HBox.hgrow="ALWAYS" />
+                        </HBox>
+                        <TableView fx:id="tableOrders" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colOrderId" prefWidth="110" text="Mã đơn" />
+                                <TableColumn fx:id="colOrderCustomer" prefWidth="150" text="Khách hàng" />
+                                <TableColumn fx:id="colOrderSeller" prefWidth="130" text="Người bán" />
+                                <TableColumn fx:id="colOrderDate" prefWidth="130" text="Ngày đặt" />
+                                <TableColumn fx:id="colOrderTotal" prefWidth="120" text="Tổng tiền" />
+                                <TableColumn fx:id="colOrderStatus" prefWidth="110" text="Trạng thái" />
+                                <TableColumn fx:id="colOrderAction" prefWidth="100" text="Chi tiết" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: AUCTIONS ───── -->
+                <Tab fx:id="tabAuctions" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🔨 Quản Lý Đấu Giá" />
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <TextField fx:id="txtAuctionSearch" prefWidth="280" promptText="Tìm phiên đấu giá..." style="-fx-background-radius: 8; -fx-padding: 8;" />
+                            <ComboBox fx:id="cmbAuctionStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button onAction="#handleCreateAuction" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="+ Tạo phiên" />
+                        </HBox>
+                        <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colAucId" prefWidth="80" text="ID" />
+                                <TableColumn fx:id="colAucProduct" prefWidth="200" text="Sản phẩm" />
+                                <TableColumn fx:id="colAucSeller" prefWidth="140" text="Người bán" />
+                                <TableColumn fx:id="colAucStart" prefWidth="130" text="Giá khởi điểm" />
+                                <TableColumn fx:id="colAucCurrent" prefWidth="130" text="Giá hiện tại" />
+                                <TableColumn fx:id="colAucEndTime" prefWidth="130" text="Kết thúc" />
+                                <TableColumn fx:id="colAucStatus" prefWidth="100" text="Trạng thái" />
+                                <TableColumn fx:id="colAucAction" prefWidth="90" text="Dừng" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: ANALYTICS ───── -->
+                <Tab fx:id="tabAnalytics" text="">
+                    <ScrollPane fitToWidth="true" style="-fx-background: transparent;">
+                        <content>
+                            <VBox spacing="18" style="-fx-padding: 22;">
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="📊 Phân Tích &amp; Báo Cáo" textFill="#100f0f" />
+
+                                <!-- Filter bar -->
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <ComboBox fx:id="cmbAnalyticsPeriod" prefWidth="180" promptText="Khoảng thời gian" style="-fx-background-radius: 8;" />
+                                    <Button onAction="#handleRefreshAnalytics" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                                    -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="🔄 Làm mới" />
+                                    <Region HBox.hgrow="ALWAYS" />
+                                </HBox>
+
+                                <HBox spacing="15">
+                                    <VBox spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;" HBox.hgrow="ALWAYS">
+                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Doanh thu theo tháng" />
+                                        <BarChart fx:id="chartMonthlyRevenue" prefHeight="230">
+                                            <xAxis><CategoryAxis /></xAxis>
+                                            <yAxis><NumberAxis /></yAxis>
+                                        </BarChart>
+                                    </VBox>
+                                    <VBox prefWidth="260" spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
+                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Người dùng mới theo tháng" textFill="#0d0d0d" />
+                                        <LineChart fx:id="chartNewUsers" prefHeight="230" prefWidth="240">
+                                            <xAxis><CategoryAxis /></xAxis>
+                                            <yAxis><NumberAxis /></yAxis>
+                                        </LineChart>
+                                    </VBox>
+                                </HBox>
+
+                                <!-- Top sellers table -->
+                                <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Top người bán" />
+                                    <TableView fx:id="tableTopSellers" prefHeight="180">
+                                        <columns>
+                                            <TableColumn fx:id="colTopRank" prefWidth="60" text="#" />
+                                            <TableColumn fx:id="colTopSeller" prefWidth="200" text="Người bán" />
+                                            <TableColumn fx:id="colTopOrders" prefWidth="120" text="Đơn hàng" />
+                                            <TableColumn fx:id="colTopRevenue" prefWidth="150" text="Doanh thu" />
+                                            <TableColumn fx:id="colTopRating" prefWidth="100" text="Đánh giá" />
+                                        </columns>
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                        </columnResizePolicy>
+                                    </TableView>
+                                </VBox>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </Tab>
+
+                <!-- ───── TAB: NOTIFICATIONS ───── -->
+                <Tab fx:id="tabNotifications" text="">
+                    <VBox spacing="15" style="-fx-padding: 22;">
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🔔 Thông Báo Hệ Thống" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button onAction="#handleSendNotification" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="📢 Gửi thông báo" />
+                        </HBox>
+                        <TableView fx:id="tableNotifications" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colNotifTime" prefWidth="150" text="Thời gian" />
+                                <TableColumn fx:id="colNotifType" prefWidth="120" text="Loại" />
+                                <TableColumn fx:id="colNotifTarget" prefWidth="150" text="Đối tượng" />
+                                <TableColumn fx:id="colNotifContent" prefWidth="300" text="Nội dung" />
+                                <TableColumn fx:id="colNotifStatus" prefWidth="110" text="Trạng thái" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </Tab>
+
+                <!-- ───── TAB: SETTINGS ───── -->
+                <Tab fx:id="tabSettings" text="">
+                    <ScrollPane fitToWidth="true" style="-fx-background: transparent;">
+                        <content>
+                            <VBox spacing="20" style="-fx-padding: 22; -fx-max-width: 640;">
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="⚙ Cài Đặt Hệ Thống" textFill="#181717" />
+
+                                <!-- Platform info -->
+                                <VBox spacing="12" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14;" text="Thông tin nền tảng" />
+                                    <Separator />
+                                    <HBox spacing="15">
+                                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                            <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Tên nền tảng" />
+                                            <TextField fx:id="txtPlatformName" style="-fx-background-radius: 8; -fx-padding: 9;" text="BidMaster" />
+                                        </VBox>
+                                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                            <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Email hỗ trợ" />
+                                            <TextField fx:id="txtSupportEmail" style="-fx-background-radius: 8; -fx-padding: 9;" text="support@bidmaster.vn" />
+                                        </VBox>
+                                    </HBox>
+                                    <VBox spacing="5">
+                                        <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Phí giao dịch (%)" />
+                                        <TextField fx:id="txtFeePercent" maxWidth="120" style="-fx-background-radius: 8; -fx-padding: 9;" text="2.5" />
+                                    </VBox>
+                                    <Button onAction="#handleSavePlatform" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                                    -fx-background-radius: 8; -fx-padding: 10 24; -fx-cursor: hand;" text="Lưu thay đổi" />
+                                </VBox>
+
+                                <!-- Security -->
+                                <VBox spacing="12" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14;" text="Bảo mật Admin" />
+                                    <Separator />
+                                    <VBox spacing="5">
+                                        <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Mật khẩu hiện tại" />
+                                        <PasswordField fx:id="txtAdminOldPw" style="-fx-background-radius: 8; -fx-padding: 9;" />
+                                    </VBox>
+                                    <HBox spacing="15">
+                                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                            <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Mật khẩu mới" />
+                                            <PasswordField fx:id="txtAdminNewPw" style="-fx-background-radius: 8; -fx-padding: 9;" />
+                                        </VBox>
+                                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                            <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Xác nhận" />
+                                            <PasswordField fx:id="txtAdminConfirmPw" style="-fx-background-radius: 8; -fx-padding: 9;" />
+                                        </VBox>
+                                    </HBox>
+                                    <Button onAction="#handleChangeAdminPw" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                                    -fx-background-radius: 8; -fx-padding: 10 24; -fx-cursor: hand;" text="Đổi mật khẩu" />
+                                </VBox>
+
+                                <!-- System status -->
+                                <VBox spacing="12" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14;" text="Trạng thái hệ thống" />
+                                    <Separator />
+                                    <HBox spacing="30">
+                                        <VBox alignment="CENTER" spacing="4">
+                                            <Label fx:id="lblConnections" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #16A34A;" text="133" />
+                                            <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="Kết nối" />
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="4">
+                                            <Label fx:id="lblCpuUsage" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #0066CC;" text="42%" />
+                                            <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="CPU" />
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="4">
+                                            <Label fx:id="lblMemUsage" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #f97316;" text="3.2 GB" />
+                                            <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="RAM" />
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="4">
+                                            <Label fx:id="lblUptime" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #8B5CF6;" text="99.9%" />
+                                            <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="Uptime" />
+                                        </VBox>
+                                    </HBox>
+                                </VBox>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </Tab>
+
+            </TabPane>
+        </VBox>
+    </center>
+
+</BorderPane>
