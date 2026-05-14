@@ -19,7 +19,6 @@ public class ServerApp {
         ServerConnection server = ServerConnection.getInstance();
 
         server.init(8080);
-        server.start();
 
         //* DAOS
 
@@ -63,5 +62,11 @@ public class ServerApp {
                 "/api/users/loginwtoken",
                 userController::loginWithToken
         );
+
+        server.getServer().createContext("/", router);
+
+        server.start();
+
+        System.out.println("registered");
     }
 }

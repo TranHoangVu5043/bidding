@@ -1,6 +1,8 @@
 package Server.model.users;
 
-public class User {
+import Server.model.Entity;
+
+public abstract class User implements Entity {
 
     private int id;
     private String username;
@@ -18,6 +20,7 @@ public class User {
         this.balance = balance;
     }
 
+    @Override
     public int getId() {
         return id;
     }
@@ -54,7 +57,6 @@ public class User {
         return balance;
     }
 
-    public void displayInfo() {
-        System.out.println("[" + role + "] Username: " + getUsername() + ", Email: " + getEmail());
-    };
+    @Override
+    public abstract void displayInfo();
 }

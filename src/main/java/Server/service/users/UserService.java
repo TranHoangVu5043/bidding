@@ -2,6 +2,8 @@ package Server.service.users;
 
 import Server.dao.users.UserDAO;
 import Server.model.users.User;
+import Server.model.users.UserFactory;
+import Server.model.users.records.UserRow;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
@@ -23,7 +25,8 @@ public class UserService {
 
         String hash = BCrypt.withDefaults().hashToString(12, password.toCharArray());
 
-        User user = new User(0, username, hash, email, "", 0);
+        UserRow userRow = new UserRow(0, username, hash, email, "", 0);
+        User user = UserFactory.createUser(userRow);
 
         userDAO.createUser(user);
 

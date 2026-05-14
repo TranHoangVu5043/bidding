@@ -29,11 +29,19 @@ public class Vehicle extends Item {
         this.licensePlate = licensePlate;
     }
 
-    public Vehicle(String id, String name, String description, int ownerId, String category, String condition,
+    public Vehicle(int id, String name, String description, int ownerId, String category, String condition,
                    String manuFacturer, String fuelType, String licensePlate){
         super(id, name, description, ownerId, category, condition);
         this.manuFacturer = manuFacturer;
         this.fuelType = fuelType;
         this.licensePlate = licensePlate;
+    }
+
+    @Override
+    public void displayInfo() {
+        System.out.println("[Vehicle] " + getName()
+                + " | Maker: " + manuFacturer
+                + " | Fuel: " + fuelType
+                + " | Plate: " + licensePlate);
     }
 }

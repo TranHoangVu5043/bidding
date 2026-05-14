@@ -1,4 +1,4 @@
-package application;
+package Client.controller;
 
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;

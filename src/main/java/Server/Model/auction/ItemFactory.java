@@ -9,7 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ItemFactory {
-    public static Item createItem(String category, String id, String name, String desc, int ownerId, String condition, ResultSet rs) throws SQLException {
+    public static Item createItem(String category, int id, String name, String desc, int ownerId, String condition, ResultSet rs) throws SQLException {
         return switch (category.toUpperCase()) {
             case "ELECTRONICS" -> new Electronics(
                     id, name, desc, ownerId, category, condition,

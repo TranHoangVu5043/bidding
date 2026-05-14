@@ -24,7 +24,7 @@ public class ItemService {
         return true;
     }
     public boolean updateItem(Item item){
-        if(itemDAO.findById(Integer.parseInt(item.getId())) == null){
+        if(itemDAO.findById(item.getId()) == null){
             System.err.println("Lỗi: Không tìm thấ sản phẩm");
             return false;
         }

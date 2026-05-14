@@ -1,6 +1,6 @@
 package Server.dao.auction;
 
-import Server.model.Bid;
+import Server.model.auction.Bid;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -53,9 +53,36 @@ public class BidDAO {
     }
 
     public List<Bid> getBiddersByAuction(int auctionId) {
-        return null;
+        List<Bid> bids = new ArrayList<>();
+
+        String sql = "SELECT * FROM bids WHERE auction_id = ?";
+
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setInt(1, auctionId);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                bids.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return bids;
     }
 
-    private Bid mapRow(ResultSet rs) {
+    private Bid mapRow(ResultSet rs) throws SQLException {
+        return new Bid(
+                rs.getInt("id"),
+                rs.getInt("auction_id"),
+                rs.getInt("user_id"),
+                rs.getDouble("amount"),
+                rs.getTimestamp("created_at").toLocalDateTime()
+        );
     }
 }
