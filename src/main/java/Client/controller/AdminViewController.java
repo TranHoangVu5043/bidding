@@ -1,4 +1,5 @@
-import Client.controller.ActivityLog;
+package Client.controller;
+
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;

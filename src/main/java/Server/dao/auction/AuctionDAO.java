@@ -62,7 +62,7 @@ public class AuctionDAO {
 
             stmt.setDouble(1, price);
             stmt.setInt(2, id);
-            stmt.executeQuery();
+            stmt.executeUpdate();
 
         } catch (SQLException e) {
             log("update auction price failed", e);
@@ -70,7 +70,7 @@ public class AuctionDAO {
     }
 
     public void deleteAuction(int id) {
-        String sql = "DELETE FROM auctions WHERE id = ? FROM UPDATE";
+        String sql = "DELETE FROM auctions WHERE id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

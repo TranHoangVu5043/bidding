@@ -23,7 +23,11 @@ public class ApiRouter implements HttpHandler {
 
         RequestWrapper req = new RequestWrapper(exchange);
         ResponseWrapper res = new ResponseWrapper(exchange);
-
+        System.out.println(
+                req.getMethod().toUpperCase()
+                        + ":"
+                        + req.getPath()
+        );
         String key = req.getMethod() + ":" + req.getPath();
 
             Handler handler = routes.get(key);

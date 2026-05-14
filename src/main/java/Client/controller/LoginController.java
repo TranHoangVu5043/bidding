@@ -1,7 +1,12 @@
+<<<<<<< HEAD
 import Client.controller.SceneUtil;
 import Client.networking.NetworkClient;
 import Server.controller.UserApiController;
 import Server.controller.responseObjects.ApiResponse;
+=======
+package Client.controller;
+
+>>>>>>> 57e6e6096046ec084e793dd0bf0cd7bc763d9994
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;

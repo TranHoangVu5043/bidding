@@ -1,6 +1,7 @@
 package Server.dao.auction;
 
 
+import Server.model.auction.ItemFactory;
 import Server.model.auction.items.Item;
 
 import javax.sql.DataSource;
@@ -54,31 +55,25 @@ public class ItemDAO {
         }
     }
 
-    private Item mapRow(ResultSet rs) throws SQLException {
-        return new Item(
-                rs.getInt("id"),
-                rs.getString("name"),
-                rs.getString("description"),
-                rs.getInt("owner_id"),
-                rs.getString("category"),
-                rs.getString("condition")
-        );
-    }
-    private void log(String msg, Exception e) {
-        System.err.println("[ERROR] " + msg + ": " + e.getMessage());
-    }
     public void update(Item item){
         String sql = """
-                USER item
+                UPDATE items
                 SET name = ?, description = ?, category = ?, condition = ?
                 WHERE id = ?
                 """;
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)){
 
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        }catch (SQLException e){
-            log("Update failed", e);
+            stmt.setString(1, item.getName());
+            stmt.setString(2, item.getDescription());
+            stmt.setString(3, item.getCategory());
+            stmt.setString(4, item.getCondition());
+            stmt.setInt(5, item.getId());
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            log("update item failed", e);
         }
     }
     public void delete(int id){
@@ -93,4 +88,19 @@ public class ItemDAO {
 
     }
 
+    private Item mapRow(ResultSet rs) throws SQLException {
+        return ItemFactory.createItem(
+                rs.getString("category"),
+                rs.getInt("id"),
+                rs.getString("name"),
+                rs.getString("description"),
+                rs.getInt("owner_id"),
+                rs.getString("condition"),
+                rs
+        );
+    }
+
+    private void log(String msg, Exception e) {
+        System.err.println("[ERROR] " + msg + ": " + e.getMessage());
+    }
 }

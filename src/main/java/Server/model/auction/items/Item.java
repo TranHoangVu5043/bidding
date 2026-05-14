@@ -1,8 +1,10 @@
 package Server.model.auction.items;
 
 
-public abstract class Item {
-    private String id;
+import Server.model.Entity;
+
+public abstract class Item implements Entity {
+    private int id;
     private String name;
     private String description;//mieu ta san pham
     private String condition;
@@ -10,10 +12,12 @@ public abstract class Item {
     private String category;
     private String status;
 
-    public String getId() {
+    @Override
+    public int getId() {
         return id;
     }
-    public void setId(String id) {
+
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -62,12 +66,16 @@ public abstract class Item {
         this.category = category;
     }
 
-    public Item(String id, String name, String description, int ownerId, String category, String condition) {
+    public Item(int id, String name, String description, int ownerId, String category, String condition) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.ownerId= ownerId;
-        this. category= category;
-        this. condition= condition;
+        this.category= category;
+        this.condition= condition;
+    }
+
+    public void displayInfo() {
+        System.out.println(id + " " + name);
     }
 }

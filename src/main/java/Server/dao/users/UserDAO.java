@@ -1,6 +1,8 @@
 package Server.dao.users;
 
 import Server.model.users.User;
+import Server.model.users.UserFactory;
+import Server.model.users.records.UserRow;
 
 import javax.sql.DataSource;
 
@@ -49,7 +51,7 @@ public class UserDAO {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -219,7 +221,7 @@ public class UserDAO {
     // ===== MAPPER =====
 
     private User mapRow(ResultSet rs) throws SQLException {
-        return new User(
+        UserRow row = new UserRow(
                 rs.getInt("id"),
                 rs.getString("username"),
                 rs.getString("password"),
@@ -227,6 +229,7 @@ public class UserDAO {
                 rs.getString("role"),
                 rs.getDouble("balance")
         );
+        return UserFactory.createUser(row);
     }
 
     private void log(String message, Exception e) {
