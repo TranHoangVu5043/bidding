@@ -1,8 +1,9 @@
 package Client.controller;
 import Client.controller.SceneUtil;
-import Client.networking.NetworkClient;
+import Client.networking.ApiClient;
+import Client.networking.ApiResponse;
 import Server.controller.UserApiController;
-import Server.controller.responseObjects.ApiResponse;
+import com.google.gson.Gson;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -45,21 +46,24 @@ public class LoginController {
         }
         try {
             LoginRequest data = new LoginRequest(user, pass);
-            ApiResponse res = NetworkClient.getInstance().post("/login", data);
+            ApiClient client = new ApiClient();
+            String responseJson = client.post("login",data);
+            Gson gson = new Gson();
+            ApiResponse res = gson.fromJson(responseJson,ApiResponse.class);
             if ( res !=null && res.getStatus() == 200) {
                 Object userObj = res.getData();
                 if (userObj != null) {
                     String userData = userObj.toString().toUpperCase();
                     if (userData.contains("ADMIN")) {
-                        SceneUtil.switchToScene("/Client/views/Admin.fxml", "Quản Trị Viên");
+                        SceneUtil.switchToScene(btnLogin,"/Client/views/Adminview.fxml", "Quản Trị Viên");
                     } else if (userData.contains("SELLER")) {
-                        SceneUtil.switchToScene("/Client/views/Sellerview.fxml", "Người Bán");
+                        SceneUtil.switchToScene(btnLogin,"/Client/views/Sellerview.fxml", "Người Bán");
                     } else {
-                        SceneUtil.switchToScene("/Client/views/Userview.fxml", "Người Dùng");
+                        SceneUtil.switchToScene(btnLogin,"/Client/views/Userview.fxml", "Người Dùng");
                     }
                 }else {
                     String msg = (res != null) ? res.getMessage() : "Lỗi kết nối";
-                    showAlert("Đăng nhập thất bạn ", msg);
+                    SceneUtil.showAlert("Đăng nhập thất bạn ", msg);
                 }
             }
         } catch (Exception e) {
