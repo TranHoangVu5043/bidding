@@ -24,7 +24,7 @@
             </ImageView>
          </children></AnchorPane>
 
-        <Pane layoutX="381.0" prefHeight="456.0" prefWidth="381.0" style="-fx-background-color: #30478C; -fx-background-radius: 0; -fx-border-radius: 0;">
+        <Pane layoutX="381.0" prefHeight="456.0" prefWidth="381.0" style="-fx-background-color: #1a3a5a; -fx-background-radius: 0; -fx-border-radius: 0;">
             <children>
                 <Label layoutX="140.0" layoutY="45.0" text="Hello!" textFill="WHITE">
                     <font>
