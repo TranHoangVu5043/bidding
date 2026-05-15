@@ -32,7 +32,7 @@ public class AuctionDAO {
         return null;
     }
 
-    public void create(Auction auction) {
+    public boolean create(Auction auction) {
         String sql = """
             INSERT INTO auctions(item_id, owner_id, starting_price, current_price, end_time)
             VALUES (?, ?, ?, ?, ?)
@@ -48,9 +48,11 @@ public class AuctionDAO {
             stmt.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));
 
             stmt.executeUpdate();
+            return true;
 
         } catch (SQLException e) {
             log("create auction failed", e);
+            return  false;
         }
     }
 
@@ -81,6 +83,21 @@ public class AuctionDAO {
         } catch (SQLException e) {
             log("delete auction failed", e);
         }
+    }
+    public boolean updateStatus(int auctionId, String status){
+        String sql = "UPDATE auction SET current status = ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, auctionId);
+
+            stmt.executeUpdate();
+            return true;
+
+        } catch (SQLException e) {
+            log("Lỗi cập nhật trạng thái đấu giá ID: " + auctionId, e);
+            return false;
+            }
     }
 
     private Auction mapRow(ResultSet rs) throws SQLException {
