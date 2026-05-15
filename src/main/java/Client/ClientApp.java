@@ -1,6 +1,6 @@
 package Client;
 
-import Client.networking.ClientConnection;
+//import Client.networking.ClientConnection;
 
 import java.io.IOException;
 
@@ -11,11 +11,11 @@ import java.io.IOException;
 public class ClientApp
 {
     public static void main( String[] args ) throws IOException, InterruptedException {
-        ClientConnection client = ClientConnection.getInstance();
+       // ClientConnection client = ClientConnection.getInstance();
 
         // 🔹 Test GET
         System.out.println("=== GET /auctions ===");
-        System.out.println(client.get("/auctions"));
+        //System.out.println(client.get("/auctions"));
 
         System.out.println("\n====================\n");
 
@@ -28,7 +28,7 @@ public class ClientApp
         """;
 
         System.out.println("=== POST /auth/login ===");
-        String loginResponse = client.post("/auth/login", loginJson);
-        System.out.println(loginResponse);
+        //String loginResponse = client.post("/auth/login", loginJson);
+        //System.out.println(loginResponse);
     }
 }

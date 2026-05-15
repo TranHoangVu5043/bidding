@@ -49,7 +49,7 @@ public class UserDAO {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setString(1,  String.valueOf(id));
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {

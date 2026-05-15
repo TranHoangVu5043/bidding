@@ -1,6 +1,6 @@
 package Server.dao.auction;
 
-import Server.model.Bid;
+
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -52,10 +52,10 @@ public class BidDAO {
         return null;
     }
 
-    public List<Bid> getBiddersByAuction(int auctionId) {
+    public List<Server.model.auction.Bid> getBiddersByAuction(int auctionId) {
         return null;
     }
 
-    private Bid mapRow(ResultSet rs) {
+    private Server.model.auction.Bid mapRow(ResultSet rs) {
     }
 }

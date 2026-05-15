@@ -1,6 +1,6 @@
 package Client.networking;
 
-import java.io.IOException;
+/*import java.io.IOException;
 import java.net.URI;
 import java.net.http.*;
 import java.net.http.HttpResponse.BodyHandlers;
@@ -71,4 +71,4 @@ public class ClientConnection {
     private String formatResponse(HttpResponse<String> res) {
         return "Status: " + res.statusCode() + "\nBody: " + res.body();
     }
-}
+}*/

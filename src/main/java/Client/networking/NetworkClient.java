@@ -1,6 +1,6 @@
 package Client.networking;
 
-import Server.controller.UserApiController;
+/*import Server.controller.UserApiController;
 import com.google.gson.Gson;
 
 import java.net.URI;
@@ -34,7 +34,7 @@ public class NetworkClient {
     /**
      * Hàm dùng chung để gửi dữ liệu lên Server
      */
-    public UserApiController.ApiResponse post(String endpoint, Object data) {
+    /*public UserApiController.ApiResponse post(String endpoint, Object data) {
         try {
             String jsonStr = gson.toJson(data);
 
@@ -55,4 +55,4 @@ public class NetworkClient {
             return new UserApiController.ApiResponse(500, "Lỗi kết nối: " + e.getMessage(), null);
         }
     }
-}
+}*/
