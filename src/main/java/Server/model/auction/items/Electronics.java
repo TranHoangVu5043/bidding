@@ -20,10 +20,17 @@ public class Electronics extends Item {
         this.weight = weight;
     }
 
-    public Electronics(String id, String name, String description, int ownerId, String category, String condition
+    public Electronics(int id, String name, String description, int ownerId, String category, String condition
             , String warrantyPeriod, double weight){
         super(id, name, description, ownerId, category, condition);
         this.warrantyPeriod = warrantyPeriod;
         this.weight = weight;
+    }
+
+    @Override
+    public void displayInfo() {
+        System.out.println("[Electronics] " + getName()
+                + " | Warranty: " + warrantyPeriod
+                + " | Weight: " + weight + "kg");
     }
 }

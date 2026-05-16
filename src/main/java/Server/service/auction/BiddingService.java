@@ -4,6 +4,7 @@ import Server.dao.auction.AuctionDAO;
 import Server.dao.auction.BidDAO;
 import Server.dao.users.UserDAO;
 import Server.model.auction.Auction;
+import Server.model.users.User;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -29,7 +30,7 @@ public class BiddingService {
             conn.setAutoCommit(false);
 
             try {
-                double balance = userDAO.findUserById(userId);
+                User user = userDAO.findById(userId);
                 Auction auction = auctionDAO.findById(auctionId);
 
                 if (!auction.getStatus().equals("ACTIVE")) {
@@ -44,11 +45,11 @@ public class BiddingService {
                     throw new RuntimeException("Bid too low");
                 }
 
-                if (balance < amount) {
+                if (user.getBalance() < amount) {
                     throw new RuntimeException("Insufficient balance");
                 }
 
-                userDAO.updateBalance(userId, balance - amount);
+                userDAO.updateBalance(userId, user.getBalance() - amount);
                 auctionDAO.updateCurrentPrice(auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
 

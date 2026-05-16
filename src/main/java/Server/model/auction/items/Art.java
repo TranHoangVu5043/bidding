@@ -29,11 +29,19 @@ public class Art extends Item {
         this.certificate = certificate;
     }
 
-    public Art(String id, String name, String description, int ownerId, String category, String condition,
+    public Art(int id, String name, String description, int ownerId, String category, String condition,
                String artist, String material, String certificate) {
         super(id, name, description, ownerId, category, condition);
         this.artist = artist;
         this.material = material;
         this.certificate = certificate;
+    }
+
+    @Override
+    public void displayInfo() {
+        System.out.println("[Art] " + getName()
+                + " | Artist: " + artist
+                + " | Material: " + material
+                + " | Certified: " + (certificate != null ? "Yes" : "No"));
     }
 }
