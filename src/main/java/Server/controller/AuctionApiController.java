@@ -73,7 +73,8 @@ public class AuctionApiController {
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
             List<Auction> auctions = auctionService.getAllAuctions();
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", auctions)));
+            List<AuctionDTO> dtos = auctions.stream().map(AuctionDTO::new).toList();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
         }
@@ -95,7 +96,7 @@ public class AuctionApiController {
                 return;
             }
 
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", auction)));
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction))));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
         }
@@ -140,6 +141,23 @@ public class AuctionApiController {
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Status refreshed", null)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
+    private static class AuctionDTO {
+        int id, itemId, ownerId;
+        double startingPrice, currentPrice;
+        String startTime, endTime, status;
+
+        AuctionDTO(Auction a) {
+            id = a.getId();
+            itemId = a.getItemId();
+            ownerId = a.getOwnerId();
+            startingPrice = a.getStartingPrice();
+            currentPrice = a.getCurrentPrice();
+            startTime = a.getStartTime() != null ? a.getStartTime().toString() : null;
+            endTime = a.getEndTime() != null ? a.getEndTime().toString() : null;
+            status = a.getStatus();
         }
     }
 

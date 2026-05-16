@@ -2,33 +2,32 @@ package Client;
 
 //import Client.networking.ClientConnection;
 
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+import java.io.File;
 import java.io.IOException;
 
 /**
  * Hello world!
  *
  */
-public class ClientApp
-{
-    public static void main( String[] args ) throws IOException, InterruptedException {
-       // ClientConnection client = ClientConnection.getInstance();
+public class ClientApp extends Application {
 
-        // 🔹 Test GET
-        System.out.println("=== GET /auctions ===");
-        //System.out.println(client.get("/auctions"));
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        File fxml = new File("src/main/java/Client/views/LoginView.fxml");
+        Parent root = FXMLLoader.load(fxml.toURI().toURL());
+        primaryStage.setTitle("Auction App");
+        primaryStage.setScene(new Scene(root));
+        primaryStage.setResizable(false);
+        primaryStage.show();
+    }
 
-        System.out.println("\n====================\n");
-
-        // 🔹 Test LOGIN
-        String loginJson = """
-        {
-          "username": "john",
-          "password": "123"
-        }
-        """;
-
-        System.out.println("=== POST /auth/login ===");
-        //String loginResponse = client.post("/auth/login", loginJson);
-        //System.out.println(loginResponse);
+    public static void main(String[] args) {
+        launch(args);
     }
 }

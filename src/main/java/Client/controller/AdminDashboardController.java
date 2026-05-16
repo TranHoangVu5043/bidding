@@ -1,5 +1,6 @@
 package Client.controller;
 
+import Client.model.ActivityLog;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -181,8 +182,8 @@ public class AdminDashboardController {
 
         // Thêm data mẫu trực tiếp
         ObservableList<ActivityLog> data = FXCollections.observableArrayList(
-                new ActivityLog("admin",   "Đăng nhập",     "2024-01-01 08:00"),
-                new ActivityLog("seller1", "Thêm sản phẩm", "2024-01-01 09:00")
+                new ActivityLog("admin",   "Đăng nhập",     "2024-01-01 08:00", "SUCCESS"),
+                new ActivityLog("seller1", "Thêm sản phẩm", "2024-01-01 09:00", "SUCCESS")
         );
         tableActivity.setItems(data);
     }

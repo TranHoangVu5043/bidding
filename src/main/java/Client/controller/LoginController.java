@@ -1,4 +1,8 @@
 package Client.controller;
+
+import Client.model.User;
+import Client.networking.ApiResponse;
+import Client.networking.endpoints.UserApi;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -10,69 +14,50 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.net.Socket;
 
 public class LoginController {
 
-    @FXML private Button btnLogin;
-    @FXML private PasswordField txtPassword;  // FIX: txtPassWord → txtPassword (khớp FXML)
-    @FXML private TextField txtUserName;
+    @FXML private Button        btnLogin;
+    @FXML private PasswordField txtPassword;
+    @FXML private TextField     txtUserName;
+
+    // JavaFX creates controllers via FXML — no constructor args.
+    // Each controller owns its API objects directly.
+    private final UserApi userApi = new UserApi();
 
     @FXML
-    /*void handleLogin(ActionEvent event) {
-        String user = txtUserName.getText().trim();
-        String pass = txtPassword.getText().trim();
+    void handleLogin(ActionEvent event) {
+        String username = txtUserName.getText().trim();
+        String password = txtPassword.getText().trim();
 
-        if (user.isEmpty() || pass.isEmpty()) {
+        if (username.isEmpty() || password.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
             return;
         }
 
-        try (Socket socket = new Socket("localhost", 1234);
-             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-             DataInputStream in = new DataInputStream(socket.getInputStream())) {
+        ApiResponse<String> response = userApi.login(username, password);
 
-            // FIX: chuẩn hóa protocol, bỏ khoảng trắng thừa quanh '|'
-            out.writeUTF("LOGIN|" + user + "|" + pass);
-            out.flush();
+        if (response.getStatus() == 200) {
+            // Fetch the logged-in user so we can navigate to the right view
+            ApiResponse<User> meResponse = userApi.getMe();
 
-            String response = in.readUTF().trim();
-
-            if (response.equalsIgnoreCase("SUCCESS_ADMIN")) {
-                navigateTo("Adminview.fxml", event);
-            } else if (response.equalsIgnoreCase("SUCCESS_SELLER")) {
-                navigateTo("SellerView.fxml", event);
-            } else if (response.equalsIgnoreCase("SUCCESS_USER")) {
-                navigateTo("UserView_.fxml", event);
+            if (meResponse.getStatus() == 200) {
+                String role = meResponse.getData().getRole();
+                switch (role.toUpperCase()) {
+                    case "ADMIN"  -> navigateTo("Adminview.fxml", event);
+                    case "SELLER" -> navigateTo("SellerView.fxml", event);
+                    default       -> navigateTo("UserView.fxml", event);
+                }
             } else {
-                // FIX: hiển thị Alert thay vì println
-                showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", "Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.");
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lấy thông tin người dùng.");
             }
-
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
-        }
-    }*/
-    void handleLogin(ActionEvent event) {
-        String user = txtUserName.getText().trim();
-        String pass = txtPassword.getText().trim();
-
-        if (user.equals("admin") && pass.equals("123")) {
-            navigateTo("Adminview.fxml", event);
-        } else if (user.equals("seller") && pass.equals("123")) {
-            navigateTo("SellerView.fxml", event);
-        } else if (user.equals("user") && pass.equals("123")) {
-            navigateTo("UserView.fxml", event);
         } else {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Sai tài khoản hoặc mật khẩu.");
+            showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", "Tài khoản hoặc mật khẩu không đúng.");
         }
     }
 
-    // FIX: handler thừa trong FXML (onAction="#showUserName" / "#showPassWord") — giữ trống, không cần xử lý gì
+    // Called when Enter is pressed in the username or password field
     @FXML void showUserName(ActionEvent event) { handleLogin(event); }
     @FXML void showPassWord(ActionEvent event) { handleLogin(event); }
 
@@ -84,7 +69,7 @@ public class LoginController {
             stage.setScene(new Scene(root));
             stage.show();
         } catch (Exception e) {
-            e.printStackTrace(); // thêm dòng này
+            e.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải màn hình: " + fxmlFile);
         }
     }

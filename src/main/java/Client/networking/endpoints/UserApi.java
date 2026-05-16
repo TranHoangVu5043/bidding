@@ -103,17 +103,13 @@ public class UserApi {
         }
     }
 
-    // ===== AUTHENTICATE =====
+    // ===== GET CURRENT USER =====
 
-    public ApiResponse<User> authenticate() {
+    public ApiResponse<User> getMe() {
 
         try {
 
-            String responseJson =
-                    apiClient.post(
-                            "/users/authenticate",
-                            new Object()
-                    );
+            String responseJson = apiClient.get("/users/me");
 
             return gson.fromJson(
                     responseJson,
@@ -123,12 +119,9 @@ public class UserApi {
 
         } catch (Exception e) {
 
-            ApiResponse<User> response =
-                    new ApiResponse<>();
-
+            ApiResponse<User> response = new ApiResponse<>();
             response.setStatus(500);
             response.setMessage(e.getMessage());
-
             return response;
         }
     }
