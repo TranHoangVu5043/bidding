@@ -1,4 +1,4 @@
-package Client.controller;
+package Server.Model.users;
 
 public class ActivityLog {
     private String user;

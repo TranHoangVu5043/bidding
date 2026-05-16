@@ -1,8 +1,6 @@
 package Client;
 
-import Client.networking.ApiResponse;
-import Client.networking.SessionManager;
-import Client.networking.endpoints.UserApi;
+//import Client.networking.ClientConnection;
 
 import java.io.IOException;
 
@@ -13,26 +11,24 @@ import java.io.IOException;
 public class ClientApp
 {
     public static void main( String[] args ) throws IOException, InterruptedException {
-        UserApi userApi = new UserApi();
+       // ClientConnection client = ClientConnection.getInstance();
 
-        ApiResponse<String> response =
-                userApi.login(
-                        "john",
-                        "123456"
-                );
+        // 🔹 Test GET
+        System.out.println("=== GET /auctions ===");
+        //System.out.println(client.get("/auctions"));
 
-        if (response.getStatus() == 200) {
+        System.out.println("\n====================\n");
 
-            System.out.println("Logged in!");
-
-            System.out.println(
-                    "Token: "
-                            + SessionManager.getToken()
-            );
-
-        } else {
-
-            System.out.println(response.getMessage());
+        // 🔹 Test LOGIN
+        String loginJson = """
+        {
+          "username": "john",
+          "password": "123"
         }
+        """;
+
+        System.out.println("=== POST /auth/login ===");
+        //String loginResponse = client.post("/auth/login", loginJson);
+        //System.out.println(loginResponse);
     }
 }
