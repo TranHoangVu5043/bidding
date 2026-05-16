@@ -31,50 +31,41 @@ public class BidDAO {
         }
     }
 
-    public Integer findHighestBidder(Connection conn, int auctionId) {
-        String sql = """
-            SELECT user_id FROM bids
-            WHERE auction_id = ?
-            ORDER BY amount DESC
-            LIMIT 1
-        """;
+    public List<Bid> getBidsByAuction(int auctionId) {
+        List<Bid> bids = new ArrayList<>();
+        String sql = "SELECT * FROM bids WHERE auction_id = ? ORDER BY amount DESC";
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, auctionId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) bids.add(mapRow(rs));
+
+        } catch (SQLException e) {
+            System.err.println("[ERROR] getBidsByAuction failed: " + e.getMessage());
+        }
+
+        return bids;
+    }
+
+    public Integer findHighestBidder(int auctionId) {
+        String sql = "SELECT user_id FROM bids WHERE auction_id = ? ORDER BY amount DESC LIMIT 1";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, auctionId);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) return rs.getInt("user_id");
 
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            System.err.println("[ERROR] findHighestBidder failed: " + e.getMessage());
         }
 
         return null;
     }
 
-    public List<Bid> getBiddersByAuction(int auctionId) {
-        List<Bid> bids = new ArrayList<>();
-
-        String sql = "SELECT * FROM bids WHERE auction_id = ?";
-
-        try (
-                Connection conn = dataSource.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
-            ps.setInt(1, auctionId);
-
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                bids.add(mapRow(rs));
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return bids;
-    }
 
     private Bid mapRow(ResultSet rs) throws SQLException {
         return new Bid(

@@ -64,7 +64,7 @@ public class UserDAO {
 
         return null;
     }
-    
+
     public User findByUsernameAndPassword(String username, String password) {
         String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
 
@@ -86,7 +86,7 @@ public class UserDAO {
         return null;
     }
 
-    
+
     public void createUser(User user) {
         String sql = """
         INSERT INTO users(username, password, email, role, balance)
@@ -109,7 +109,7 @@ public class UserDAO {
         }
     }
 
-    
+
     public void deleteUser(int id) {
         String sql = "DELETE FROM users WHERE id = ?";
 
@@ -125,7 +125,6 @@ public class UserDAO {
     }
 
     public void updateBalance(int userId, double newBalance) {
-
         String sql = "UPDATE users SET balance = ? WHERE id = ?";
 
         try (Connection conn = dataSource.getConnection();
@@ -133,13 +132,33 @@ public class UserDAO {
 
             stmt.setDouble(1, newBalance);
             stmt.setInt(2, userId);
-
             stmt.executeUpdate();
 
         } catch (SQLException e) {
             System.err.println("[ERROR] updateBalance failed: " + e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    /** Transaction-aware balance update — caller owns the connection. */
+    public void updateBalance(Connection conn, int userId, double newBalance) throws SQLException {
+        String sql = "UPDATE users SET balance = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDouble(1, newBalance);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
+    }
+
+    /** Read user inside an existing transaction. */
+    public User findById(Connection conn, int id) throws SQLException {
+        String sql = "SELECT * FROM users WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return mapRow(rs);
+        }
+        return null;
     }
     public boolean exists(String username) {
         String sql = "SELECT 1 FROM users WHERE username = ?";
@@ -161,7 +180,7 @@ public class UserDAO {
 
     // ===== SESSION METHODS =====
 
-    
+
     public void createSession(int userId, String token, LocalDateTime expiresAt) {
         String sql = "INSERT INTO sessions(user_id, token, expires_at) VALUES (?, ?, ?)";
 
@@ -178,7 +197,7 @@ public class UserDAO {
         }
     }
 
-    
+
     public User findUserByToken(String token) {
         String sql = """
             SELECT u.* FROM users u
@@ -203,7 +222,7 @@ public class UserDAO {
         return null;
     }
 
-    
+
     public void deleteSession(String token) {
         String sql = "DELETE FROM sessions WHERE token = ?";
 
@@ -227,7 +246,8 @@ public class UserDAO {
                 rs.getString("password"),
                 rs.getString("email"),
                 rs.getString("role"),
-                rs.getDouble("balance")
+                rs.getDouble("balance"),
+                rs.getString("store_name")
         );
         return UserFactory.createUser(row);
     }

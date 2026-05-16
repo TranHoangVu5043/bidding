@@ -1,6 +1,7 @@
 package Server.service.users;
 
 import Server.dao.users.UserDAO;
+import Server.dto.requests.UserRequestDTO;
 import Server.model.users.User;
 import Server.model.users.UserFactory;
 import Server.model.users.records.UserRow;
@@ -17,15 +18,15 @@ public class UserService {
         this.userDAO = userDAO;
     }
 
-    public boolean register(String username, String password, String email) {
+    public boolean register(UserRequestDTO req) {
 
-        if (userDAO.exists(username)) {
+        if (userDAO.exists(req.getUsername())) {
             return false;
         }
 
-        String hash = BCrypt.withDefaults().hashToString(12, password.toCharArray());
+        String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
 
-        UserRow userRow = new UserRow(0, username, hash, email, "", 0);
+        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), req.getRole(), 0, req.getStoreName());
         User user = UserFactory.createUser(userRow);
 
         userDAO.createUser(user);

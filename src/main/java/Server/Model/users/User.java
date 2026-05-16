@@ -12,7 +12,7 @@ public abstract class User implements Entity {
     private double balance;
 
     public User(int id, String username, String password, String email, String role, double balance) {
-
+        this.id = id;
         this.username = username;
         this.password = password;
         this.email = email;
@@ -36,6 +36,7 @@ public abstract class User implements Entity {
     public String getPassword() {
         return password;
     }
+
 
     public void setPassword(String password) {
         this.password = password;

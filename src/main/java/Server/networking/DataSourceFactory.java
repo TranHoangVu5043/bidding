@@ -18,6 +18,7 @@ public class DataSourceFactory {
 
         dataSource.setCurrentSchema("public");
         dataSource.setApplicationName("BiddingApp");
+        dataSource.setUrl("jdbc:postgresql://db.kxxbzrejmsoxjtpnjpdo.supabase.co:5432/postgres?sslmode=require");
     }
 
     private DataSourceFactory() {}

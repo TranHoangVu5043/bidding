@@ -1,5 +1,6 @@
 package Server.networking.http;
 
+import Server.model.users.User;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
@@ -26,6 +27,10 @@ public class RequestWrapper {
 
     public String getHeader(String name) {
         return exchange.getRequestHeaders().getFirst(name);
+    }
+
+    public User getUser() {
+        return (User) exchange.getAttribute("user");
     }
 
     public HttpExchange getExchange() {

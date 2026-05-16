@@ -6,5 +6,6 @@ public record UserRow(
         String password,
         String email,
         String role,
-        double balance
+        double balance,
+        String storeName
 ) {}

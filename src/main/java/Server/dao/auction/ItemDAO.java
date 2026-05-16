@@ -6,6 +6,8 @@ import Server.model.auction.items.Item;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ItemDAO {
 
@@ -31,6 +33,24 @@ public class ItemDAO {
         }
 
         return null;
+    }
+
+    public List<Item> findByOwnerId(int ownerId) {
+        String sql = "SELECT * FROM items WHERE owner_id = ?";
+        List<Item> items = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, ownerId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) items.add(mapRow(rs));
+
+        } catch (SQLException e) {
+            log("findByOwnerId failed", e);
+        }
+
+        return items;
     }
 
     public void create(Item item) {

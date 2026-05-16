@@ -41,7 +41,7 @@ public class ResponseWrapper {
     public void sendJson(int status, String json) {
 
         exchange.getResponseHeaders().set("Content-Type", "application/json");
-
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         send(status, json);
     }
 
