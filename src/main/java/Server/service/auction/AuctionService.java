@@ -70,6 +70,7 @@ public class AuctionService {
         if ("PAID".equals(current) || "CANCELED".equals(current)) return;
 
         LocalDateTime now = LocalDateTime.now();
+
         String newStatus;
         if (now.isBefore(auction.getStartTime())) {
             newStatus = "UPCOMING";
@@ -81,6 +82,10 @@ public class AuctionService {
 
         auctionDAO.updateStatus(auctionId, newStatus);
     }
+//    public List<Auction> getAllActiveAuctions(){
+//        List<Auction> list = auctionDAO.getActiveAuctions();
+//        return list;
+//    }
 
     /**
      * Marks the auction as FINISHED and returns the winner's user ID, or null if no bids.

@@ -173,6 +173,20 @@ public class AuctionDAO {
                 rs.getString("status")
         );
     }
+    public List<Auction> getActiveAuctions(){
+        List<Auction> list = new ArrayList<>();
+        String sql = "SELECT * FROM auctions WHERE status = 'ACTIVE' AND endtime > NOW() ";
+        try (Connection conn = dataSource.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();){
+            while (rs.next()){
+                list.add(mapRow(rs));
+            }
+        }catch (SQLException e){
+            log("Lấy danh sách thất bại" , e);
+        }
+        return list;
+    }
 
     private void log(String msg, Exception e) {
         System.err.println("[ERROR] " + msg + ": " + e.getMessage());
