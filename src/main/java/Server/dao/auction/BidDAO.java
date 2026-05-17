@@ -4,8 +4,10 @@ import Server.model.auction.Bid;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class BidDAO {
 
@@ -64,6 +66,17 @@ public class BidDAO {
         }
 
         return null;
+    }
+    public void updateEndtime(Connection conn, int auctionId, LocalDateTime newEndtime){
+        String sql = "UPDATE auctions SET end_Time = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            Timestamp new_Endtime = java.sql.Timestamp.valueOf(newEndtime);
+            stmt.setTimestamp(1, new_Endtime);
+            stmt.setInt(2, auctionId);
+            stmt.executeUpdate();
+        }catch (SQLException e){
+            throw new RuntimeException("Lỗi gia hạn phiên", e);
+        }
     }
 
 

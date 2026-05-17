@@ -54,6 +54,14 @@ public class BiddingService {
                 if (user.getBalance() < amount) {
                     throw new RuntimeException("Insufficient balance");
                 }
+                LocalDateTime now = LocalDateTime.now();
+                long finalminutes = 5;
+                long extendminutes = 3;
+                if (now.isAfter(auction.getEndTime().minusMinutes(finalminutes)) && now.isBefore(auction.getEndTime())){
+                    LocalDateTime newEndtime = auction.getEndTime().plusMinutes(extendminutes);
+                    bidDAO.updateEndtime(conn, auctionId, newEndtime);
+                }
+
 
                 // All three writes share the same connection and will commit or rollback together.
                 userDAO.updateBalance(conn, userId, user.getBalance() - amount);
