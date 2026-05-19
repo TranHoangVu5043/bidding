@@ -1,21 +1,20 @@
 package Server.Model.users;
 
 public class ActivityLog {
-    private String user;
-    private String action;
-    private String timestamp;
+    private final String user;
+    private final String activity;
+    private final String time;
+    private final String status;
 
-    public ActivityLog(String user, String action, String timestamp) {
-        this.user      = user;
-        this.action    = action;
-        this.timestamp = timestamp;
+    public ActivityLog(String user, String activity, String time, String status) {
+        this.user = user;
+        this.activity = activity;
+        this.time = time;
+        this.status = status;
     }
 
-    public String getUser()      { return user; }
-    public String getAction()    { return action; }
-    public String getTimestamp() { return timestamp; }
-
-    public void setUser(String user)           { this.user      = user; }
-    public void setAction(String action)       { this.action    = action; }
-    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+    public String getUser() { return user; }
+    public String getActivity() { return activity; }
+    public String getTime() { return time; }
+    public String getStatus() { return status; }
 }

@@ -12,6 +12,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -22,8 +23,7 @@ public class LoginController {
     @FXML private PasswordField txtPassword;
     @FXML private TextField     txtUserName;
 
-    // JavaFX creates controllers via FXML — no constructor args.
-    // Each controller owns its API objects directly.
+
     private final UserApi userApi = new UserApi();
 
     @FXML
@@ -73,6 +73,31 @@ public class LoginController {
             showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải màn hình: " + fxmlFile);
         }
     }
+    @FXML private Pane loginPane;
+    @FXML private Pane signUpPane;
+
+    // Fields mới
+    @FXML private TextField txtFullName;
+    @FXML private TextField txtEmail;
+    @FXML private TextField txtNewUserName;
+    @FXML private PasswordField txtNewPassword;
+
+    @FXML
+    private void showSignUp() {
+        loginPane.setVisible(false);
+        signUpPane.setVisible(true);
+    }
+
+    @FXML
+    private void showLogin() {
+        signUpPane.setVisible(false);
+        loginPane.setVisible(true);
+    }
+
+    @FXML
+    private void handleSignUp() {
+        // TODO: xử lý đăng ký
+    }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
@@ -81,4 +106,5 @@ public class LoginController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
 }

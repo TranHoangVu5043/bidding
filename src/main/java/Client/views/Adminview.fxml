@@ -295,7 +295,6 @@
                             <TextField fx:id="txtAuctionSearch" prefWidth="280" promptText="Tìm phiên đấu giá..." style="-fx-background-radius: 8; -fx-padding: 8;" />
                             <ComboBox fx:id="cmbAuctionStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#handleCreateAuction" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="+ Tạo phiên" />
                         </HBox>
                         <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS">
                             <columns>
