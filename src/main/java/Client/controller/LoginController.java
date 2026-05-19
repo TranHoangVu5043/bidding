@@ -61,6 +61,14 @@ public class LoginController {
     @FXML void showUserName(ActionEvent event) { handleLogin(event); }
     @FXML void showPassWord(ActionEvent event) { handleLogin(event); }
 
+    @FXML
+    void handleNavigateToRegister(ActionEvent event) {
+        navigateTo("Registerview.fxml", event);
+    }
+
+
+
+
     private void navigateTo(String fxmlFile, ActionEvent event) {
         try {
             File fxml = new File("src/main/java/Client/views/" + fxmlFile);

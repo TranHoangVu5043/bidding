@@ -57,8 +57,10 @@ public class AdminDashboardController {
     @FXML
     public void initialize() {
         lblTotalRevenue.setText("1,337,000,000 ₫");
+        lblPageTitle.setText("Dashboard");
         setupChart();
         setupTable();
+        highlightButton(btnHome);
     }
 
     /*private void setupTable() {
@@ -176,9 +178,9 @@ public class AdminDashboardController {
 
     private void setupTable() {
         colActUser.setCellValueFactory(new PropertyValueFactory<>("user"));
-        colActAction.setCellValueFactory(new PropertyValueFactory<>("action"));
-        colActTime.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
-        colActStatus.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+        colActAction.setCellValueFactory(new PropertyValueFactory<>("activity"));
+        colActTime.setCellValueFactory(new PropertyValueFactory<>("time"));
+        colActStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
         // Thêm data mẫu trực tiếp
         ObservableList<ActivityLog> data = FXCollections.observableArrayList(
