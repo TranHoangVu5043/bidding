@@ -27,7 +27,7 @@
     style="-fx-background-color: #F4F7F9;"
     xmlns="http://javafx.com/javafx/26"
     xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="Client.controller.UserController">
+    fx:controller="Client.controller.user.UserController">
 
     <!-- ═══════════════════ TOP NAVBAR ═══════════════════ -->
     <top>

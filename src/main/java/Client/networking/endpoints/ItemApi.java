@@ -1,6 +1,6 @@
 package Client.networking.endpoints;
 
-import Client.model.Item;
+import Client.model.item.Item;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
 import com.google.gson.Gson;

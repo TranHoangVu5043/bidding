@@ -64,9 +64,13 @@ public class UserApiController {
 
             String token = userService.login(body.getUsername(), body.getPassword());
 
-            res.sendJson(200, gson.toJson(
-                    new ApiResponse<>(200, "Đăng nhập thành công!", token)
-            ));
+            if (token == null) {
+                res.error(400, "Sai tên hoặc mật khẩu");
+            } else {
+                res.sendJson(200, gson.toJson(
+                        new ApiResponse<>(200, "Đăng nhập thành công!", token)
+                ));
+            }
 
         } catch (ValidationException e) {
             res.error(400, e.getMessage());

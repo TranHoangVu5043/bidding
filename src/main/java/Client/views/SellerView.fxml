@@ -33,7 +33,7 @@
     style="-fx-background-color: #F9FAFB;"
     xmlns="http://javafx.com/javafx/26"
     xmlns:fx="http://javafx.com/fxml/1"
-    fx:controller="Client.controller.SellerController">
+    fx:controller="Client.controller.seller.SellerController">
 
     <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->
     <left>

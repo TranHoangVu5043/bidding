@@ -1,6 +1,6 @@
 package Client.networking.endpoints;
 
-import Client.model.User;
+import Client.model.user.User;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -68,7 +68,8 @@ public class UserApi {
     public ApiResponse<Void> register(
             String username,
             String password,
-            String email
+            String email,
+            String role
     ) {
 
         try {
@@ -78,6 +79,7 @@ public class UserApi {
             request.setUsername(username);
             request.setPassword(password);
             request.setEmail(email);
+            request.setRole(role);
 
             String responseJson =
                     apiClient.post(
