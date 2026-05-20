@@ -63,13 +63,6 @@ public class AdminDashboardController {
         highlightButton(btnHome);
     }
 
-    /*private void setupTable() {
-        // FIX: property name phải khớp với getter trong ActivityLog
-        colActUser.setCellValueFactory(new PropertyValueFactory<>("user"));
-        colActAction.setCellValueFactory(new PropertyValueFactory<>("action"));     // FIX: "activity" → "action"
-        colActTime.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
-        colActStatus.setCellValueFactory(new PropertyValueFactory<>("timestamp")); // placeholder, thay bằng field thật khi có
-    }*/
 
     private void setupChart() {
         XYChart.Series<String, Number> series = new XYChart.Series<>();

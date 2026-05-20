@@ -102,11 +102,6 @@ public class LoginController {
         loginPane.setVisible(true);
     }
 
-    @FXML
-    private void handleSignUp() {
-        // TODO: xử lý đăng ký
-    }
-
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

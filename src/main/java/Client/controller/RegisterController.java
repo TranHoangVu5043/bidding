@@ -109,9 +109,9 @@ public class RegisterController {
     private void clearForm() {
         txtFullName.clear();
         txtEmail.clear();
-        txtPassword().clear();
+        txtPassword.clear();
         if (txtPhoneNumber != null) txtPhoneNumber.clear();
-        if (txtCitizenId !null)txtCitizenId.clear();
+        if (txtCitizenId != null) txtCitizenId.clear();
         if (txtBankAccount != null) txtBankAccount.clear();
     }
 }
