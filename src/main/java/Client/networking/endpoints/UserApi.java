@@ -105,6 +105,39 @@ public class UserApi {
         }
     }
 
+    // ===== CHANGE PASSWORD =====
+
+    public ApiResponse<Void> changePassword(String oldPassword, String newPassword) {
+        try {
+
+            String responseJson = apiClient.post(
+                    "/users/change-password",
+                    new ChangePasswordRequest(oldPassword, newPassword)
+            );
+
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+
+    private static class ChangePasswordRequest {
+        private final String oldPassword;
+        private final String newPassword;
+
+        ChangePasswordRequest(String oldPassword, String newPassword) {
+            this.oldPassword = oldPassword;
+            this.newPassword = newPassword;
+        }
+    }
+
     // ===== GET CURRENT USER =====
 
     public ApiResponse<User> getMe() {

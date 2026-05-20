@@ -132,6 +132,45 @@ public class UserApiController {
         }
     }
 
+    // ===== POST /api/users/change-password =====
+
+    public void changePassword(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User currentUser = req.getUser();
+            if (currentUser == null) {
+                res.error(401, "Chưa xác thực.");
+                return;
+            }
+
+            UserRequestDTO body = gson.fromJson(req.getBody(), UserRequestDTO.class);
+            if (body == null || body.getOldPassword() == null || body.getNewPassword() == null) {
+                res.error(400, "Vui lòng cung cấp mật khẩu cũ và mật khẩu mới.");
+                return;
+            }
+
+            boolean changed = userService.changePassword(
+                    currentUser,
+                    body.getOldPassword(),
+                    body.getNewPassword()
+            );
+
+            if (changed) {
+                res.sendJson(200, gson.toJson(
+                        new ApiResponse<>(200, "Đổi mật khẩu thành công!", null)
+                ));
+            } else {
+                res.error(401, "Mật khẩu cũ không đúng.");
+            }
+
+        } catch (IllegalArgumentException e) {
+            res.error(400, e.getMessage());
+
+        } catch (Exception e) {
+            System.err.println("[UserApiController] changePassword error: " + e.getMessage());
+            res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
+        }
+    }
+
     // ===== HELPER =====
 
     private String extractToken(RequestWrapper req) {

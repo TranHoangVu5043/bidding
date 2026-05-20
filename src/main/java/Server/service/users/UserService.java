@@ -68,4 +68,24 @@ public class UserService {
             userDAO.deleteSession(token);
         }
     }
+
+    public boolean changePassword(User currentUser, String oldPassword, String newPassword) {
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new IllegalArgumentException("Mật khẩu cũ không được để trống.");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+        }
+
+        User stored = userDAO.findById(currentUser.getId());
+        if (stored == null) return false;
+
+        BCrypt.Result verified = BCrypt.verifyer()
+                .verify(oldPassword.toCharArray(), stored.getPassword().toCharArray());
+        if (!verified.verified) return false;
+
+        String newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
+        userDAO.updatePassword(currentUser.getId(), newHash);
+        return true;
+    }
 }

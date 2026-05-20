@@ -160,6 +160,23 @@ public class UserDAO {
         }
         return null;
     }
+
+    public void updatePassword(int userId, String newHash) {
+        String sql = "UPDATE users SET password = ? WHERE id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newHash);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            log("updatePassword failed", e);
+            throw new RuntimeException("Không thể cập nhật mật khẩu.", e);
+        }
+    }
+
     public boolean exists(String username) {
         String sql = "SELECT 1 FROM users WHERE username = ?";
 

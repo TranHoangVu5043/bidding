@@ -1,26 +1,25 @@
 package Client;
 
-//import Client.networking.ClientConnection;
-
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.io.File;
-import java.io.IOException;
+import java.net.URL;
 
-/**
- * Hello world!
- *
- */
 public class ClientApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        File fxml = new File("src/main/java/Client/views/LoginView.fxml");
-        Parent root = FXMLLoader.load(fxml.toURI().toURL());
+        URL fxml = getClass().getResource("/Client/views/LoginView.fxml");
+        if (fxml == null) {
+            throw new IllegalStateException(
+                "Cannot find /Client/views/LoginView.fxml on the classpath. " +
+                "Run 'mvn clean javafx:run' to ensure resources are copied."
+            );
+        }
+        Parent root = FXMLLoader.load(fxml);
         primaryStage.setTitle("Auction App");
         primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);
