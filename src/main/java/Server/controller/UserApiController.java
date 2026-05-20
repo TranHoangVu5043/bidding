@@ -64,9 +64,13 @@ public class UserApiController {
 
             String token = userService.login(body.getUsername(), body.getPassword());
 
-            res.sendJson(200, gson.toJson(
-                    new ApiResponse<>(200, "Đăng nhập thành công!", token)
-            ));
+            if (token == null) {
+                res.error(400, "Sai tên hoặc mật khẩu");
+            } else {
+                res.sendJson(200, gson.toJson(
+                        new ApiResponse<>(200, "Đăng nhập thành công!", token)
+                ));
+            }
 
         } catch (ValidationException e) {
             res.error(400, e.getMessage());
@@ -124,6 +128,45 @@ public class UserApiController {
 
         } catch (Exception e) {
             System.err.println("[UserApiController] getMe error: " + e.getMessage());
+            res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
+        }
+    }
+
+    // ===== POST /api/users/change-password =====
+
+    public void changePassword(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User currentUser = req.getUser();
+            if (currentUser == null) {
+                res.error(401, "Chưa xác thực.");
+                return;
+            }
+
+            UserRequestDTO body = gson.fromJson(req.getBody(), UserRequestDTO.class);
+            if (body == null || body.getOldPassword() == null || body.getNewPassword() == null) {
+                res.error(400, "Vui lòng cung cấp mật khẩu cũ và mật khẩu mới.");
+                return;
+            }
+
+            boolean changed = userService.changePassword(
+                    currentUser,
+                    body.getOldPassword(),
+                    body.getNewPassword()
+            );
+
+            if (changed) {
+                res.sendJson(200, gson.toJson(
+                        new ApiResponse<>(200, "Đổi mật khẩu thành công!", null)
+                ));
+            } else {
+                res.error(401, "Mật khẩu cũ không đúng.");
+            }
+
+        } catch (IllegalArgumentException e) {
+            res.error(400, e.getMessage());
+
+        } catch (Exception e) {
+            System.err.println("[UserApiController] changePassword error: " + e.getMessage());
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }

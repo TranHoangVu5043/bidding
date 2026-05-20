@@ -1,6 +1,6 @@
 package Client.networking.endpoints;
 
-import Client.model.Auction;
+import Client.model.auction.Auction;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
 import com.google.gson.Gson;

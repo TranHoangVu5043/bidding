@@ -50,9 +50,10 @@ public class ServerApp {
         ApiRouter router = new ApiRouter();
 
         // --- User routes (login + register are public; filter whitelists them) ---
-        router.register("POST", "/api/users/login",    userController::login);
-        router.register("POST", "/api/users/register", userController::register);
-        router.register("GET",  "/api/users/me",        userController::getMe);
+        router.register("POST", "/api/users/login",           userController::login);
+        router.register("POST", "/api/users/register",        userController::register);
+        router.register("GET",  "/api/users/me",              userController::getMe);
+        router.register("POST", "/api/users/change-password", userController::changePassword);
 
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
@@ -72,7 +73,6 @@ public class ServerApp {
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
 
-        // Apply auth filter to every request (login/register are whitelisted inside the filter)
         HttpContext context = server.getServer().createContext("/", router);
         context.getFilters().add(new sessionFilter(userService));
 

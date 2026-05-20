@@ -1,6 +1,6 @@
 package Client.networking.endpoints;
 
-import Client.model.User;
+import Client.model.user.User;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -68,7 +68,8 @@ public class UserApi {
     public ApiResponse<Void> register(
             String username,
             String password,
-            String email
+            String email,
+            String role
     ) {
 
         try {
@@ -78,6 +79,7 @@ public class UserApi {
             request.setUsername(username);
             request.setPassword(password);
             request.setEmail(email);
+            request.setRole(role);
 
             String responseJson =
                     apiClient.post(
@@ -100,6 +102,39 @@ public class UserApi {
             response.setMessage(e.getMessage());
 
             return response;
+        }
+    }
+
+    // ===== CHANGE PASSWORD =====
+
+    public ApiResponse<Void> changePassword(String oldPassword, String newPassword) {
+        try {
+
+            String responseJson = apiClient.post(
+                    "/users/change-password",
+                    new ChangePasswordRequest(oldPassword, newPassword)
+            );
+
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+
+    private static class ChangePasswordRequest {
+        private final String oldPassword;
+        private final String newPassword;
+
+        ChangePasswordRequest(String oldPassword, String newPassword) {
+            this.oldPassword = oldPassword;
+            this.newPassword = newPassword;
         }
     }
 
