@@ -13,13 +13,12 @@ public class AutoBidConfig implements Comparable<AutoBidConfig>{
     public AutoBidConfig(int auctionId,
                          int userId,
                          double maxBid,
-                         double increment,
-                         LocalDateTime createTime){
+                         double increment){
         this.auctionId = auctionId;
         this.userId = userId;
         this.maxBid = maxBid;
-        this.increment = maxBid;
-        this.createTime = createTime;
+        this.increment = increment;
+        this.createTime = LocalDateTime.now();
     }
 
     public int getAuctionId() {
