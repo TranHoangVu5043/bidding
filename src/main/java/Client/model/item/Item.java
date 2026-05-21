@@ -8,6 +8,8 @@ public class Item {
     private String category;
     private String condition;
     private String status;
+    private double price;
+    private int stock;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -29,4 +31,10 @@ public class Item {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
+
+    public int getStock() { return stock; }
+    public void setStock(int stock) { this.stock = stock; }
 }

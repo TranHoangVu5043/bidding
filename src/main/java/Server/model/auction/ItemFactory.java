@@ -10,20 +10,25 @@ import java.sql.SQLException;
 
 public class ItemFactory {
     public static Item createItem(String category, int id, String name, String desc, int ownerId, String condition, ResultSet rs) throws SQLException {
+        double price = rs.getDouble("price");
+        int stock = rs.getInt("stock");
         return switch (category.toUpperCase()) {
             case "ELECTRONICS" -> new Electronics(
                     id, name, desc, ownerId, category, condition,
+                    price, stock,
                     rs.getString("warranty_period"),
                     rs.getDouble("weight")
             );
             case "ART" -> new Art(
                     id, name, desc, ownerId, category, condition,
+                    price, stock,
                     rs.getString("artist"),
                     rs.getString("material"),
                     rs.getString("certificate")
             );
             case "VEHICLE" -> new Vehicle(
                     id, name, desc, ownerId, category, condition,
+                    price, stock,
                     rs.getString("manuFacturer"),
                     rs.getString("fuelType"),
                     rs.getString("license_plate")

@@ -11,6 +11,8 @@ public abstract class Item implements Entity {
     private int ownerId;
     private String category;
     private String status;
+    private double price;
+    private int stock;
 
     @Override
     public int getId() {
@@ -66,13 +68,23 @@ public abstract class Item implements Entity {
         this.category = category;
     }
 
-    public Item(int id, String name, String description, int ownerId, String category, String condition) {
+    public double getPrice() { return price; }
+
+    public void setPrice(double price) { this.price = price; }
+
+    public int getStock() { return stock; }
+
+    public void setStock(int stock) { this.stock = stock; }
+
+    public Item(int id, String name, String description, int ownerId, String category, String condition, double price, int stock) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.ownerId= ownerId;
-        this.category= category;
-        this.condition= condition;
+        this.ownerId = ownerId;
+        this.category = category;
+        this.condition = condition;
+        this.price = price;
+        this.stock = stock;
     }
 
     public void displayInfo() {

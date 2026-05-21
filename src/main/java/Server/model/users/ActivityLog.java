@@ -1,4 +1,4 @@
-package Server.Model.users;
+package Server.model.users;
 
 public class ActivityLog {
     private final String user;

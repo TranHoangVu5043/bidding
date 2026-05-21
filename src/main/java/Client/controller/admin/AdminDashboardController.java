@@ -121,7 +121,6 @@ public class AdminDashboardController {
 
     @FXML
     private void handleSignOut() {
-        // FIX: clear session and navigate to login instead of System.exit(0)
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }

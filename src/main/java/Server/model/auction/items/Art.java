@@ -30,11 +30,12 @@ public class Art extends Item {
     }
 
     public Art(int id, String name, String description, int ownerId, String category, String condition,
-               String artist, String material, String certificate) {
-        super(id, name, description, ownerId, category, condition);
+               double price, int stock, String artist, String material, String certificate) {
+        super(id, name, description, ownerId, category, condition, price, stock);
         this.artist = artist;
         this.material = material;
         this.certificate = certificate;
+    }
     }
 
     @Override

@@ -31,9 +31,9 @@ public class ItemApi {
         }
     }
 
-    public ApiResponse<Void> createItem(String name, String description, String category, String condition) {
+    public ApiResponse<Void> createItem(String name, String description, String category, String condition, double price, int stock) {
         try {
-            String json = apiClient.post("/items/create", new CreateBody(name, description, category, condition));
+            String json = apiClient.post("/items/create", new CreateBody(name, description, category, condition, price, stock));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -72,8 +72,10 @@ public class ItemApi {
 
     private static class CreateBody {
         String name, description, category, condition;
-        CreateBody(String n, String d, String cat, String cond) {
-            name = n; description = d; category = cat; condition = cond;
+        double price;
+        int stock;
+        CreateBody(String n, String d, String cat, String cond, double p, int s) {
+            name = n; description = d; category = cat; condition = cond; price = p; stock = s;
         }
     }
 

@@ -171,7 +171,6 @@ public class UserApi {
                     new TypeToken<ApiResponse<Void>>() {}.getType()
             );
 
-            // Xóa token ở client dù server trả về gì
             SessionManager.clear();
 
             return response;

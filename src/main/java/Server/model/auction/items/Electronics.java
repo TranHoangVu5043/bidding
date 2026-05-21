@@ -1,6 +1,6 @@
 package Server.model.auction.items;
 
-public class Electronics extends Item {
+public class Electronics extends Server.model.auction.items.Item {
     private String warrantyPeriod;
     private double weight;
 
@@ -20,9 +20,9 @@ public class Electronics extends Item {
         this.weight = weight;
     }
 
-    public Electronics(int id, String name, String description, int ownerId, String category, String condition
-            , String warrantyPeriod, double weight){
-        super(id, name, description, ownerId, category, condition);
+    public Electronics(int id, String name, String description, int ownerId, String category, String condition,
+                       double price, int stock, String warrantyPeriod, double weight) {
+        super(id, name, description, ownerId, category, condition, price, stock);
         this.warrantyPeriod = warrantyPeriod;
         this.weight = weight;
     }
