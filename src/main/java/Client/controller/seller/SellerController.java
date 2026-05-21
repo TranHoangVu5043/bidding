@@ -27,14 +27,13 @@ import java.util.List;
 public class SellerController {
 
     // ── Inventory table columns ──
-    @FXML private TableView<Item>              tableView;
+    @FXML private TableView<Item>              tableMyItems;
     @FXML private TableColumn<Item, Integer>   colId;
     @FXML private TableColumn<Item, String>    colName;
     @FXML private TableColumn<Item, String>    colCategory;
     @FXML private TableColumn<Item, String>    colStatus;
     @FXML private TableColumn<Item, Double>  colPrice;
     @FXML private TableColumn<Item, Integer> colStock;
-    @FXML private TableColumn<Item, ?> colActions;
 
     // ── Add-product tab fields ──
     @FXML private TextField  txtName;
@@ -55,7 +54,6 @@ public class SellerController {
     @FXML private Button btnAuctions;
     @FXML private Button btnOrders;
     @FXML private Button btnRevenue;
-    @FXML private Button btnNotification;
     @FXML private Button btnHistory;
     @FXML private Button btnProfile;
     @FXML private Button btnLogout;
@@ -107,12 +105,10 @@ public class SellerController {
     // ── Nút tìm kiếm & lọc trạng thái trong tab Đấu giá ──
     @FXML private TextField txtAuctionSearch;
     @FXML private ComboBox<String> cmbAuctionStatus;
+    @FXML private Label lblSelectedProduct;
 
     // ── Hồ sơ người bán & Đổi mật khẩu ──
     @FXML private TextField txtShopName;
-    @FXML private TextField txtSellerPhone;
-    @FXML private TextArea txtShopDesc;
-    @FXML private TextField txtSellerAddress;
     @FXML private PasswordField txtOldPw;
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;
@@ -123,15 +119,16 @@ public class SellerController {
     @FXML private TableColumn<Order, String>   colHisProduct;
     @FXML private TableColumn<Order, Double>   colHisAmount;
     @FXML private TableColumn<Order, String>   colHisStatus;
-    @FXML private TextField txtHistorySearch;
-    @FXML private ComboBox<String> cmbHistoryType;
-    @FXML private ComboBox<String> cmbHistoryDate;
+
     // ── Bảng Đơn hàng (Tab Đơn hàng) ──
     @FXML private TableView<Order> tableRecentOrders;
     @FXML private TableColumn<Order, String> colROId;
     @FXML private TableColumn<Order, String> colROProduct;
     @FXML private TableColumn<Order, Double> colROTotal;
     @FXML private TableColumn<Order, String> colROStatus;
+
+    @FXML private TextField txtAuctionPrice;
+    @FXML private DatePicker dpAuctionEndDate;
 
     // ── Instance các Api kết nối trực tiếp Backend ──
     private final ItemApi    itemApi    = new ItemApi();
@@ -150,7 +147,7 @@ public class SellerController {
     @FXML
     public void initialize() {
         // ── Cell Factories: Kho hàng (Đã sửa lỗi đưa colPrice và colStock về đúng vị trí) ──
-        if (tableView != null) {
+        if (tableMyItems != null) {
             if (colId != null) colId.setCellValueFactory(new PropertyValueFactory<>("id"));
             if (colName != null) colName.setCellValueFactory(new PropertyValueFactory<>("name"));
             if (colCategory != null) colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
@@ -159,7 +156,7 @@ public class SellerController {
             if (colStock != null) colStock.setCellValueFactory(new PropertyValueFactory<>("stock"));
 
             filteredData = new FilteredList<>(masterData, p -> true);
-            tableView.setItems(filteredData);
+            tableMyItems.setItems(filteredData);
         }
 
         // ── Cell Factories: Bảng Đấu giá ──
@@ -199,6 +196,14 @@ public class SellerController {
             if (colROTotal != null) colROTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
             if (colROStatus != null) colROStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
             tableRecentOrders.setItems(recentOrders);
+        }
+        if (tableMyItems != null) {
+            tableMyItems.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue != null && lblSelectedProduct != null) {
+                    lblSelectedProduct.setText("Đang chọn: " + newValue.getName());
+                    lblSelectedProduct.setStyle("-fx-text-fill: #22c55e; -fx-font-weight: bold; -fx-pref-width: 150;");
+                }
+            });
         }
 
         // ── Cài đặt ComboBox ──
@@ -335,7 +340,60 @@ public class SellerController {
             } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
+    // ── Hàm xử lý Đăng lên sàn  ──
+    @FXML
+    private void handleQuickAuction() {
+        Item selectedItem = tableMyItems.getSelectionModel().getSelectedItem();
 
+        if (selectedItem == null) {
+            SceneUtil.showAlert("Chú ý", "Vui lòng click chọn 1 sản phẩm trong bảng trước!");
+            return;
+        }
+
+        try {
+            // 2. Lấy dữ liệu giá và ngày từ giao diện
+            double price = Double.parseDouble(txtAuctionPrice.getText());
+            java.time.LocalDate endDate = dpAuctionEndDate.getValue();
+
+            if (endDate == null) {
+                SceneUtil.showAlert("Chú ý",  "Vui lòng chọn ngày kết thúc!");
+                return;
+            }
+
+            String startTime = java.time.LocalDateTime.now().withNano(0).toString();
+            String endTime = endDate.atTime(23, 59, 59).toString();
+            ApiResponse<Void> response = auctionApi.createAuction(
+                    selectedItem.getId(),
+                    price,
+                    startTime,
+                    endTime
+            );
+            if (response != null && (response.getStatus() == 200 || response.getStatus() == 0)) {
+                SceneUtil.showAlert("Thành công", "Đã đưa sản phẩm lên sàn đấu giá thành công!");
+
+                // Dọn dẹp form
+                txtAuctionPrice.clear();
+                dpAuctionEndDate.setValue(null);
+
+                // Tự động chuyển sang Tab Đấu Giá
+                showAuctions();
+                loadSellerAuctions();
+                updateAuctionStats();
+
+            } else {
+                String errorMsg = (response != null && response.getMessage() != null)
+                        ? response.getMessage()
+                        : "Lỗi kết nối máy chủ!";
+                SceneUtil.showAlert("Đăng thất bại", errorMsg);
+            }
+
+        } catch (NumberFormatException e) {
+            SceneUtil.showAlert("Lỗi nhập liệu", "Giá khởi điểm phải là một số hợp lệ!");
+        } catch (Exception e) {
+            SceneUtil.showAlert("Lỗi",  "Đã xảy ra lỗi: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
     // ── Logic tính toán số liệu thống kê phòng tránh Lost Update ──
     private void updateAuctionStats() {
         long active = sellerAuctions.stream().filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus())).count();
@@ -467,14 +525,14 @@ public class SellerController {
     }
 
     // ── 🔗 ĐỒNG BỘ: Sự kiện chuyển tab của Sidebar Buttons ──
-    @FXML public void showDashboard()    { switchTab(tabDashboard,    "Dashboard");        loadMyItems(); loadSellerAuctions(); loadRecentOrdersData(); }
-    @FXML public void showInventory()    { switchTab(tabInventory,    "Kho Hàng");         loadMyItems(); }
-    @FXML public void showAddProduct()   { switchTab(tabAddProduct,   "Thêm Sản Phẩm"); }
-    @FXML public void showAuctions()     { switchTab(tabAuctions,     "Đấu Giá");          loadSellerAuctions(); }
-    @FXML public void showOrders()       { switchTab(tabOrders,       "Đơn Hàng");         loadRecentOrdersData(); }
-    @FXML public void showRevenue()      { switchTab(tabRevenue,      "Doanh Thu");         loadRevenue(); }
-    @FXML public void showHistory()      { switchTab(tabHistory,      "Lịch Sử Giao Dịch"); loadHistory();}
-    @FXML public void showProfile()      { switchTab(tabProfile,      "Hồ Sơ Người Bán"); }
+    @FXML public void showDashboard()    { switchTab(tabDashboard,    "Dashboard",         btnDashboard);  loadMyItems(); loadSellerAuctions(); loadRecentOrdersData(); }
+    @FXML public void showInventory()    { switchTab(tabInventory,    "Kho Hàng",          btnInventory);  loadMyItems(); }
+    @FXML public void showAddProduct()   { switchTab(tabAddProduct,   "Thêm Sản Phẩm",     btnAddProduct); }
+    @FXML public void showAuctions()     { switchTab(tabAuctions,     "Đấu Giá",           btnAuctions);   loadSellerAuctions(); }
+    @FXML public void showOrders()       { switchTab(tabOrders,       "Đơn Hàng",          btnOrders);     loadRecentOrdersData(); }
+    @FXML public void showRevenue()      { switchTab(tabRevenue,      "Doanh Thu",         btnRevenue);    loadRevenue(); }
+    @FXML public void showHistory()      { switchTab(tabHistory,      "Lịch Sử Giao Dịch", btnHistory);    loadHistory(); }
+    @FXML public void showProfile()      { switchTab(tabProfile,      "Hồ Sơ Người Bán",   btnProfile); }
 
     @FXML
     public void showLogout() {
@@ -524,9 +582,33 @@ public class SellerController {
             }
         }).start();
     }
+    // Đổi màu nút bấm ──
+    private final String NORMAL_STYLE = "-fx-background-color: transparent; -fx-text-fill: #CBD5E1; -fx-background-radius: 8; -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
+    private final String ACTIVE_STYLE = "-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-size: 13; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
 
-    private void switchTab(Tab tab, String title) {
+    // ── Hàm điều hướng Tab ──
+    private void switchTab(Tab tab, String title, Button activeBtn) {
         if (mainTabPane != null && tab != null) mainTabPane.getSelectionModel().select(tab);
         if (lblPageTitle != null && title != null) lblPageTitle.setText(title);
+
+        highlightButton(activeBtn);
+    }
+
+    private void highlightButton(Button active) {
+        // Gom các nút của Seller vào mảng
+        Button[] allButtons = {
+                btnDashboard, btnInventory, btnAddProduct, btnAuctions,
+                btnOrders, btnRevenue, btnHistory, btnProfile
+        };
+
+        for (Button btn : allButtons) {
+            if (btn != null) {
+                btn.setStyle(NORMAL_STYLE);
+            }
+        }
+
+        if (active != null) {
+            active.setStyle(ACTIVE_STYLE);
+        }
     }
 }

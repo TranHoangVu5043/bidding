@@ -27,6 +27,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
+<?import javafx.scene.control.DatePicker?>
 <BorderPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F9FAFB;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.seller.SellerController">
 
     <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->
@@ -147,9 +148,10 @@
                             <TextField fx:id="txtSearch" onAction="#handleSearch" prefWidth="280" promptText="Tìm tên sản phẩm..." style="-fx-background-radius: 8; -fx-padding: 8;" />
                             <ComboBox fx:id="cmbInvStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#showAddProduct" style="-fx-background-color: #f97316; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;                                            -fx-font-weight: bold;" text="+ Thêm sản phẩm" />
+                            <Button onAction="#showAddProduct" style="-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand; -fx-font-weight: bold;" text="+ Thêm sản phẩm" />
                         </HBox>
-                        <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
+
+                        <TableView fx:id="tableMyItems" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="colId" prefWidth="70" text="ID" />
                                 <TableColumn fx:id="colName" prefWidth="220" text="Tên sản phẩm" />
@@ -163,6 +165,15 @@
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                             </columnResizePolicy>
                         </TableView>
+
+                        <HBox alignment="CENTER_LEFT" spacing="15" style="-fx-padding: 15; -fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 1 0 0 0; -fx-background-radius: 8;">
+                            <Label style="-fx-font-weight: bold; -fx-text-fill: #334155;" text="Đưa sản phẩm lên sàn:" />
+                            <Label fx:id="lblSelectedProduct" text="(Chưa chọn SP nào)" style="-fx-text-fill: #ef4444; -fx-font-style: italic; -fx-pref-width: 150;" />
+                            <TextField fx:id="txtAuctionPrice" prefWidth="150" promptText="Giá khởi điểm (₫)" style="-fx-background-radius: 6;" />
+                            <DatePicker fx:id="dpAuctionEndDate" prefWidth="150" promptText="Ngày kết thúc" />
+                            <Button onAction="#handleQuickAuction" style="-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand;" text="Đăng Lên Sàn" />
+                        </HBox>
+
                     </VBox>
                 </Tab>
 
@@ -182,7 +193,8 @@
                                         </columnConstraints>
                                         <rowConstraints>
                                             <RowConstraints /><RowConstraints />
-                                            <RowConstraints /><RowConstraints /><RowConstraints />
+                                            <RowConstraints /><RowConstraints />
+                                            <RowConstraints /><RowConstraints />
                                         </rowConstraints>
                                         <children>
                                             <Label style="-fx-font-size: 13;" text="Tên sản phẩm:" GridPane.rowIndex="0" />
@@ -191,14 +203,17 @@
                                             <Label style="-fx-font-size: 13;" text="Danh mục:" GridPane.rowIndex="1" />
                                             <ComboBox fx:id="cmbCategory" maxWidth="Infinity" promptText="Chọn danh mục..." style="-fx-background-radius: 8;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                                            <Label style="-fx-font-size: 13;" text="Giá bán (₫):" GridPane.rowIndex="2" />
-                                            <TextField fx:id="txtPrice" maxWidth="200" promptText="0" style="-fx-background-radius: 8; -fx-padding: 9;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                            <Label style="-fx-font-size: 13;" text="Tình trạng:" GridPane.rowIndex="2" />
+                                            <ComboBox fx:id="cmbCondition" maxWidth="Infinity" promptText="Chọn tình trạng..." style="-fx-background-radius: 8;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
-                                            <Label style="-fx-font-size: 13;" text="Số lượng tồn kho:" GridPane.rowIndex="3" />
-                                            <TextField fx:id="txtStock" maxWidth="120" promptText="0" style="-fx-background-radius: 8; -fx-padding: 9;" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                            <Label style="-fx-font-size: 13;" text="Giá bán (₫):" GridPane.rowIndex="3" />
+                                            <TextField fx:id="txtPrice" maxWidth="200" promptText="0" style="-fx-background-radius: 8; -fx-padding: 9;" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
-                                            <Label style="-fx-font-size: 13;" text="Mô tả:" GridPane.rowIndex="4" />
-                                            <TextArea fx:id="txtDescription" prefHeight="80" promptText="Mô tả sản phẩm..." style="-fx-background-radius: 8;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                                            <Label style="-fx-font-size: 13;" text="Số lượng tồn kho:" GridPane.rowIndex="4" />
+                                            <TextField fx:id="txtStock" maxWidth="120" promptText="0" style="-fx-background-radius: 8; -fx-padding: 9;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                                            <Label style="-fx-font-size: 13;" text="Mô tả:" GridPane.rowIndex="5" />
+                                            <TextArea fx:id="txtDescription" prefHeight="80" promptText="Mô tả sản phẩm..." style="-fx-background-radius: 8;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="5" />
                                         </children>
                                     </GridPane>
                                 </VBox>
