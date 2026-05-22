@@ -36,7 +36,6 @@ public class Art extends Item {
         this.material = material;
         this.certificate = certificate;
     }
-}
 
     @Override
     public void displayInfo() {

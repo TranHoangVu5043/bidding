@@ -108,10 +108,16 @@ public class SellerController {
     @FXML private Label lblSelectedProduct;
 
     // ── Hồ sơ người bán & Đổi mật khẩu ──
-    @FXML private TextField txtShopName;
+    @FXML private TextField     txtShopName;
+    @FXML private TextField     txtSellerPhone;
+    @FXML private TextArea      txtShopDesc;
+    @FXML private TextField     txtSellerAddress;
     @FXML private PasswordField txtOldPw;
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;
+
+    // ── Inventory table action column (declared in FXML, not yet wired) ──
+    @FXML private TableColumn<Item, Void>      colActions;
 
     // ── Bảng Lịch sử giao dịch ──
     @FXML private TableView<Order>             tableHistory;
@@ -119,6 +125,11 @@ public class SellerController {
     @FXML private TableColumn<Order, String>   colHisProduct;
     @FXML private TableColumn<Order, Double>   colHisAmount;
     @FXML private TableColumn<Order, String>   colHisStatus;
+
+    // ── History tab filters ──
+    @FXML private TextField    txtHistorySearch;
+    @FXML private ComboBox<String> cmbHistoryType;
+    @FXML private ComboBox<String> cmbHistoryDate;
 
     // ── Bảng Đơn hàng (Tab Đơn hàng) ──
     @FXML private TableView<Order> tableRecentOrders;
@@ -219,7 +230,7 @@ public class SellerController {
             cmbInvStatus.valueProperty().addListener((obs, oldV, newV) -> applyFilter(txtSearch != null ? txtSearch.getText() : ""));
         }
         if (cmbAuctionStatus != null) {
-            cmbAuctionStatus.setItems(FXCollections.observableArrayList("Tất cả", "ACTIVE", "ENDED", "UPCOMING"));
+            cmbAuctionStatus.setItems(FXCollections.observableArrayList("Tất cả", "ACTIVE", "FINISHED", "UPCOMING"));
             cmbAuctionStatus.setValue("Tất cả");
             cmbAuctionStatus.valueProperty().addListener((obs, oldV, newV) -> applyAuctionFilter());
         }
@@ -289,7 +300,7 @@ public class SellerController {
                 Platform.runLater(() -> {
                     if (res != null && res.getStatus() == 200 && res.getData() != null) {
                         List<Auction> ended = res.getData().stream()
-                                .filter(a -> "ENDED".equalsIgnoreCase(a.getStatus()))
+                                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
                                 .toList();
                         List<Auction> active = res.getData().stream()
                                 .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
@@ -368,7 +379,7 @@ public class SellerController {
                     startTime,
                     endTime
             );
-            if (response != null && (response.getStatus() == 200 || response.getStatus() == 0)) {
+            if (response != null && response.getStatus() == 201) {
                 SceneUtil.showAlert("Thành công", "Đã đưa sản phẩm lên sàn đấu giá thành công!");
 
                 // Dọn dẹp form
@@ -397,9 +408,9 @@ public class SellerController {
     // ── Logic tính toán số liệu thống kê phòng tránh Lost Update ──
     private void updateAuctionStats() {
         long active = sellerAuctions.stream().filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus())).count();
-        long ended = sellerAuctions.stream().filter(a -> "ENDED".equalsIgnoreCase(a.getStatus())).count();
+        long ended = sellerAuctions.stream().filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())).count();
         double revenue = sellerAuctions.stream()
-                .filter(a -> "ENDED".equalsIgnoreCase(a.getStatus()))
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
                 .mapToDouble(Auction::getCurrentPrice).sum();
 
         if (lblSellerActiveAuctions != null) lblSellerActiveAuctions.setText(String.valueOf(active));
