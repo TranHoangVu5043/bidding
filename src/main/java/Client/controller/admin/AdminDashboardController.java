@@ -28,14 +28,13 @@ public class AdminDashboardController {
     @FXML private Button btnOrders;
     @FXML private Button btnAuctions;
     @FXML private Button btnAnalytics;
-    @FXML private Button btnNotifications;
     @FXML private Button btnSettings;
     @FXML private Button btnSignOut;
 
     // ── Labels ──
     @FXML private Label lblTotalRevenue;
     @FXML private Label lblPageTitle;
-    @FXML private Label welcomeLabel;   // sidebar admin name (fx:id="welcomeLabel" in Adminview.fxml)
+    @FXML private Label welcomeLabel;   
 
     // ── Chart ──
     @FXML private LineChart<String, Number> chartRevenue;
@@ -65,7 +64,7 @@ public class AdminDashboardController {
     public void initialize() {
         sidebarButtons = new Button[]{
             btnHome, btnUsers, btnSellers, btnInventory,
-            btnOrders, btnAuctions, btnAnalytics, btnNotifications, btnSettings
+            btnOrders, btnAuctions, btnAnalytics, btnSettings
         };
 
         lblTotalRevenue.setText("1,337,000,000 ₫");
@@ -109,58 +108,59 @@ public class AdminDashboardController {
 
     // ── Sidebar navigation ──
 
-    @FXML private void handleHome()          { switchTab(tabDashboard,     "Dashboard");            highlightButton(btnHome); }
-    @FXML private void handleUsers()         { switchTab(tabUsers,         "Quản Lý Người Dùng");  highlightButton(btnUsers); }
-    @FXML private void handleSellers()       { switchTab(tabSellers,       "Quản Lý Người Bán");   highlightButton(btnSellers); }
-    @FXML private void handleInventory()     { switchTab(tabInventory,     "Quản Lý Sản Phẩm");    highlightButton(btnInventory); }
-    @FXML private void handleOrders()        { switchTab(tabOrders,        "Đơn Hàng");             highlightButton(btnOrders); }
-    @FXML private void handleAuctions()      { switchTab(tabAuctions,      "Đấu Giá");              highlightButton(btnAuctions); }
-    @FXML private void handleAnalytics()     { switchTab(tabAnalytics,     "Phân Tích");            highlightButton(btnAnalytics); }
-    @FXML private void handleNotifications() { switchTab(tabNotifications, "Thông Báo");            highlightButton(btnNotifications); }
-    @FXML private void handleSettings()      { switchTab(tabSettings,      "Cài Đặt");              highlightButton(btnSettings); }
+    @FXML private void handleHome()          { switchTab(tabDashboard,     "Dashboard", btnHome );            highlightButton(btnHome); }
+    @FXML private void handleUsers()         { switchTab(tabUsers,         "Quản Lý Người Dùng", btnUsers);  highlightButton(btnUsers); }
+    @FXML private void handleSellers()       { switchTab(tabSellers,       "Quản Lý Người Bán",btnSellers);   highlightButton(btnSellers); }
+    @FXML private void handleInventory()     { switchTab(tabInventory,     "Quản Lý Sản Phẩm",btnInventory);    highlightButton(btnInventory); }
+    @FXML private void handleOrders()        { switchTab(tabOrders,        "Đơn Hàng",btnOrders);             highlightButton(btnOrders); }
+    @FXML private void handleAuctions()      { switchTab(tabAuctions,      "Đấu Giá",btnAuctions);              highlightButton(btnAuctions); }
+    @FXML private void handleAnalytics()     { switchTab(tabAnalytics,     "Phân Tích",btnAnalytics);            highlightButton(btnAnalytics); }
+    @FXML private void handleSettings()      { switchTab(tabSettings,      "Cài Đặt",btnSettings);              highlightButton(btnSettings); }
 
     @FXML
     private void handleSignOut() {
-        // FIX: clear session and navigate to login instead of System.exit(0)
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }
 
     // ── Other FXML handlers ──
     @FXML private void handleAddProduct()        {}
-    @FXML private void handleExportUsers()       {}
-    @FXML private void handleBanUser()           {}
+    @FXML private void handleExportUsers()       {}{}
     @FXML private void handleApproveSeller()     {}
     @FXML private void handleCreateAuction()     {}
     @FXML private void handleRefreshAnalytics()  {}
-    @FXML private void handleSendNotification()  {}
     @FXML private void handleSavePlatform()      {}
     @FXML private void handleChangeAdminPw()     {}
 
     // ── Helpers ──
 
-    private void switchTab(Tab tab, String title) {
+    private final String NORMAL_STYLE = "-fx-background-color: transparent; -fx-text-fill: #CBD5E1; -fx-background-radius: 8; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
+    private final String ACTIVE_STYLE = "-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
+
+    // ── Hàm điều hướng Tab  ──
+    private void switchTab(Tab tab, String title, Button activeBtn) {
         if (mainTabPane != null && tab != null) {
             mainTabPane.getSelectionModel().select(tab);
         }
         if (lblPageTitle != null && title != null) {
             lblPageTitle.setText(title);
         }
+
+        highlightButton(activeBtn);
     }
 
+    // ── Hàm đổi màu nút ──
     private void highlightButton(Button active) {
         if (sidebarButtons == null) return;
+
         for (Button b : sidebarButtons) {
-            if (b == null) continue;
-            b.getStyleClass().remove("sidebar-active");
-            b.setStyle(b.getStyle()
-                    .replace("-fx-background-color: #2ecc71;", "-fx-background-color: transparent;")
-                    .replace("-fx-text-fill: white;", "-fx-text-fill: #CBD5E1;"));
+            if (b != null) {
+                b.setStyle(NORMAL_STYLE);
+            }
         }
+
         if (active != null) {
-            active.setStyle(active.getStyle()
-                    .replace("-fx-background-color: transparent;", "-fx-background-color: #2ecc71;")
-                    .replace("-fx-text-fill: #CBD5E1;", "-fx-text-fill: white;"));
+            active.setStyle(ACTIVE_STYLE);
         }
     }
 }

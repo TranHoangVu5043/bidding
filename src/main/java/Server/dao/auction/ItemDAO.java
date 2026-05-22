@@ -55,8 +55,8 @@ public class ItemDAO {
 
     public void create(Item item) {
         String sql = """
-            INSERT INTO items(name, description, owner_id, category, condition)
-            VALUES (?, ?, ?, ?, ?)
+        INSERT INTO items(name, description, owner_id, category, condition, price, stock)
+        VALUES (?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = dataSource.getConnection();
@@ -67,6 +67,8 @@ public class ItemDAO {
             stmt.setInt(3, item.getOwnerId());
             stmt.setString(4, item.getCategory());
             stmt.setString(5, item.getCondition());
+            stmt.setDouble(6, item.getPrice());
+            stmt.setInt(7, item.getStock());
 
             stmt.executeUpdate();
 

@@ -75,7 +75,7 @@ public class ItemApiController {
                 return;
             }
 
-            Item item = new Item(0, body.name, body.description, user.getId(), body.category, body.condition) {};
+            Item item = new Item(0, body.name, body.description, user.getId(), body.category, body.condition, body.price, body.stock) {};
 
             boolean added = itemService.addItem(item);
             if (!added) {
@@ -164,6 +164,8 @@ public class ItemApiController {
         String description;
         String category;
         String condition;
+        double price;
+        int stock;
     }
 
     private static class UpdateItemRequest {

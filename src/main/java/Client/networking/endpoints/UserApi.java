@@ -160,4 +160,29 @@ public class UserApi {
             return response;
         }
     }
+    // ===== LOGOUT =====
+
+    public ApiResponse<Void> logout() {
+        try {
+            String responseJson = apiClient.post("/users/logout", null);
+
+            ApiResponse<Void> response = gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+
+            SessionManager.clear();
+
+            return response;
+
+        } catch (Exception e) {
+            // Dù lỗi vẫn xóa token — không để user bị kẹt
+            SessionManager.clear();
+
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
 }

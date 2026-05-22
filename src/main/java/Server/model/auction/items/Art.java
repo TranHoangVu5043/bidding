@@ -3,7 +3,7 @@ package Server.model.auction.items;
 public class Art extends Item {
     private String artist;
     private String material;
-    private String certificate; //giấy chứng nhận hàng thật
+    private String certificate;
 
     public String getArtist() {
         return artist;
@@ -30,12 +30,13 @@ public class Art extends Item {
     }
 
     public Art(int id, String name, String description, int ownerId, String category, String condition,
-               String artist, String material, String certificate) {
-        super(id, name, description, ownerId, category, condition);
+               double price, int stock, String artist, String material, String certificate) {
+        super(id, name, description, ownerId, category, condition, price, stock);
         this.artist = artist;
         this.material = material;
         this.certificate = certificate;
     }
+}
 
     @Override
     public void displayInfo() {

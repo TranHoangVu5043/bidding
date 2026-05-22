@@ -18,7 +18,9 @@ import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
 import com.sun.net.httpserver.HttpContext;
-
+import Server.controller.responseObjects.OrderApiController;
+import Server.dao.auction.OrderDAO;
+import Server.service.auction.OrderService;
 import javax.sql.DataSource;
 
 public class ServerApp {
@@ -33,19 +35,21 @@ public class ServerApp {
         ItemDAO itemDAO = new ItemDAO(dataSource);
         AuctionDAO auctionDAO = new AuctionDAO(dataSource);
         BidDAO bidDAO = new BidDAO(dataSource);
+        OrderDAO orderDAO = new OrderDAO(dataSource);
 
         // Services
         UserService userService = new UserService(userDAO);
         AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         ItemService itemService = new ItemService(itemDAO);
+        OrderService orderService = new OrderService(orderDAO);
 
         // Controllers
         UserApiController userController = new UserApiController(userService);
         AuctionApiController auctionController = new AuctionApiController(auctionService);
         BidApiController bidController = new BidApiController(biddingService);
         ItemApiController itemController = new ItemApiController(itemService);
-
+        OrderApiController orderController = new OrderApiController(orderService);
         // Router
         ApiRouter router = new ApiRouter();
 
@@ -72,6 +76,9 @@ public class ServerApp {
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
+        // --- Order routes ---
+        router.register("GET", "/api/orders/recent", orderController::getRecentOrders);
+        router.register("GET", "/api/orders/all",    orderController::getAllOrders);
 
         HttpContext context = server.getServer().createContext("/", router);
         context.getFilters().add(new sessionFilter(userService));
@@ -79,6 +86,7 @@ public class ServerApp {
         server.start();
 
         System.out.println("[Server] Listening on :8080");
-        System.out.println("[Server] Routes registered: users, auctions, bids, items");
+        System.out.println("[Server] Routes registered: users, auctions, bids, items,orders");
+
     }
 }
