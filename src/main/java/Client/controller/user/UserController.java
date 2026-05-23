@@ -12,20 +12,26 @@ import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserController {
-
     // ══════════════════════════════════════════
     // FXML — Top Navbar
     // ══════════════════════════════════════════
@@ -50,6 +56,8 @@ public class UserController {
     @FXML private Button btnSettings;
     @FXML private Button btnSignOut;
     @FXML private Label  lblSidebarName;
+    @FXML private Button btnFollow ;
+    @FXML private Button btnHistory;
 
     // ══════════════════════════════════════════
     // FXML — TabPane
@@ -72,6 +80,7 @@ public class UserController {
     @FXML private FlowPane           auctionFlowPane;
     @FXML private Button             btnRefreshAuctions;
 
+
     // ══════════════════════════════════════════
     // FXML — Tab Shop
     // ══════════════════════════════════════════
@@ -79,6 +88,8 @@ public class UserController {
     @FXML private ComboBox<String> cmbCategory;
     @FXML private ComboBox<String> cmbSort;
     @FXML private FlowPane         shopFlowPane;
+
+
 
     // ══════════════════════════════════════════
     // FXML — Tab Cart
@@ -167,6 +178,7 @@ public class UserController {
         setupOrderTable();
         setupComboBoxes();
         updateCartBadge();
+        updateNotificationBadge();
         populateUserInfo();
         loadAuctions();
 
@@ -226,6 +238,8 @@ public class UserController {
     private void updateCartBadge() {
         if (lblCartCount != null) lblCartCount.setText(String.valueOf(cartCount));
     }
+
+    private void updateNotificationBadge(){if (  lblNotifCount != null)    lblNotifCount.setText(String.valueOf(notificationList));}
 
     // ══════════════════════════════════════════
     // Sidebar Navigation
@@ -515,6 +529,40 @@ public class UserController {
         }).start();
 
         dialog.showAndWait();
+    }
+
+    //RegisterAuction
+    @FXML
+    private void handleRegisterAuction(ActionEvent event){
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client/AuctionDetailView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+            stage.centerOnScreen();
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("Không tìm thấy file: /client/AuctionDetailView.fxml");
+            e.printStackTrace();
+        }
+    }
+    // AddCart
+
+    @FXML
+    private void handleAddCart(Auction auction) {
+        if (auction != null) {
+            if (!cartItems.contains(auction)) {
+                cartItems.add(auction);
+                updateCartBadge();
+
+                System.out.println("Đã thêm vào giỏ hàng: " + auction.getId());
+            } else {
+                System.out.println("Món hàng này đã có trong giỏ!");
+            }
+        }
     }
 
     // ══════════════════════════════════════════
