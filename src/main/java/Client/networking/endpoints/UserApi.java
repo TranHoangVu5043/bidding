@@ -69,7 +69,8 @@ public class UserApi {
             String username,
             String password,
             String email,
-            String role
+            String role,
+            String storeName
     ) {
 
         try {
@@ -80,6 +81,7 @@ public class UserApi {
             request.setPassword(password);
             request.setEmail(email);
             request.setRole(role);
+            request.setStoreName(storeName);
 
             String responseJson =
                     apiClient.post(

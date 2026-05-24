@@ -3,7 +3,9 @@ package Server;
 import Server.controller.AuctionApiController;
 import Server.controller.BidApiController;
 import Server.controller.ItemApiController;
+import Server.controller.NotificationApiController;
 import Server.controller.UserApiController;
+import Server.dao.NotificationDAO;
 import Server.dao.auction.AuctionDAO;
 import Server.dao.auction.BidDAO;
 import Server.dao.auction.ItemDAO;
@@ -12,6 +14,7 @@ import Server.filters.sessionFilter;
 import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
+import Server.service.NotificationService;
 import Server.service.auction.AuctionService;
 import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
@@ -39,14 +42,17 @@ public class ServerApp {
 
         // Services
         UserService userService = new UserService(userDAO);
-        AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO);
+        NotificationDAO notificationDAO = new NotificationDAO(dataSource);
+        NotificationService notificationService = new NotificationService(notificationDAO);
+        AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO, userDAO, notificationService);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         ItemService itemService = new ItemService(itemDAO);
         OrderService orderService = new OrderService(orderDAO);
 
         // Controllers
         UserApiController userController = new UserApiController(userService);
-        AuctionApiController auctionController = new AuctionApiController(auctionService);
+        AuctionApiController auctionController = new AuctionApiController(auctionService, userService);
+        NotificationApiController notifController = new NotificationApiController(notificationService);
         BidApiController bidController = new BidApiController(biddingService);
         ItemApiController itemController = new ItemApiController(itemService);
         OrderApiController orderController = new OrderApiController(orderService);
@@ -62,6 +68,7 @@ public class ServerApp {
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
         router.register("GET",  "/api/auctions",         auctionController::getAllAuctions);
+        router.register("GET",  "/api/auctions/mine",    auctionController::getMyAuctions);
         router.register("POST", "/api/auctions/get",     auctionController::getAuction);
         router.register("POST", "/api/auctions/cancel",  auctionController::cancelAuction);
         router.register("POST", "/api/auctions/refresh", auctionController::refreshStatus);
@@ -79,6 +86,10 @@ public class ServerApp {
         // --- Order routes ---
         router.register("GET", "/api/orders/recent", orderController::getRecentOrders);
         router.register("GET", "/api/orders/all",    orderController::getAllOrders);
+
+        // --- Notification routes ---
+        router.register("GET",  "/api/notifications",          notifController::getNotifications);
+        router.register("POST", "/api/notifications/read-all", notifController::markAllRead);
 
         HttpContext context = server.getServer().createContext("/", router);
         context.getFilters().add(new sessionFilter(userService));

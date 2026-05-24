@@ -77,13 +77,13 @@ public class ItemApiController {
 
             Item item = new Item(0, body.name, body.description, user.getId(), body.category, body.condition, body.price, body.stock) {};
 
-            boolean added = itemService.addItem(item);
-            if (!added) {
+            Item created = itemService.addItem(item);
+            if (created == null) {
                 res.error(400, "Failed to add item");
                 return;
             }
 
-            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Item created", null)));
+            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Item created", created)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
         }

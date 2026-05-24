@@ -11,18 +11,16 @@ import java.time.Duration;
 
 public class ApiClient {
 
-    private static final String BASE_URL =
-            "http://localhost:8080/api";
+    private static final String BASE_URL = "http://127.0.0.1:8080/api";
 
-    private final HttpClient client;
+    // Shared across all ApiClient instances — reuses the connection pool
+    private static final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     private final Gson gson;
 
     public ApiClient() {
-
-        this.client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-
         this.gson = new Gson();
     }
 

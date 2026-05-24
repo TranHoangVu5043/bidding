@@ -49,8 +49,8 @@ public class BiddingService {
                 Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);
                 if (auction == null) throw new RuntimeException("Auction not found");
 
-                if (!"RUNNING".equals(auction.getStatus())) {
-                    throw new RuntimeException("Auction is not running");
+                if (!"ACTIVE".equals(auction.getStatus())) {
+                    throw new RuntimeException("Auction is not active");
                 }
 
                 if (auction.getEndTime().isBefore(LocalDateTime.now())) {
@@ -103,8 +103,8 @@ public class BiddingService {
         Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);
         if (auction == null) throw new RuntimeException("Auction not found");
 
-        if (!"RUNNING".equals(auction.getStatus())) {
-            throw new RuntimeException("Auction is not running");
+        if (!"ACTIVE".equals(auction.getStatus())) {
+            throw new RuntimeException("Auction is not active");
         }
 
         if (auction.getEndTime().isBefore(LocalDateTime.now())) {

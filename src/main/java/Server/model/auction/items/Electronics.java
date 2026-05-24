@@ -1,36 +1,14 @@
 package Server.model.auction.items;
 
-public class Electronics extends Server.model.auction.items.Item {
-    private String warrantyPeriod;
-    private double weight;
+public class Electronics extends Item {
 
-    public String getWarrantyPeriod() {
-        return warrantyPeriod;
-    }
-
-    public void setWarrantyPeriod(String warrantyPeriod) {
-        this.warrantyPeriod = warrantyPeriod;
-    }
-
-    public double getWeight() {
-        return weight;
-    }
-
-    public void setWeight(double weight) {
-        this.weight = weight;
-    }
-
-    public Electronics(int id, String name, String description, int ownerId, String category, String condition,
-                       double price, int stock, String warrantyPeriod, double weight) {
+    public Electronics(int id, String name, String description, int ownerId,
+                       String category, String condition, double price, int stock) {
         super(id, name, description, ownerId, category, condition, price, stock);
-        this.warrantyPeriod = warrantyPeriod;
-        this.weight = weight;
     }
 
     @Override
     public void displayInfo() {
-        System.out.println("[Electronics] " + getName()
-                + " | Warranty: " + warrantyPeriod
-                + " | Weight: " + weight + "kg");
+        System.out.println("[Electronics] " + getName() + " | Condition: " + getCondition());
     }
 }

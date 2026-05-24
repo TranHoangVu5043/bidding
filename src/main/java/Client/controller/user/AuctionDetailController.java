@@ -1,6 +1,6 @@
 package Client.controller.user;
 
-import Client.model.Auction;
+import Client.model.auction.Auction;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

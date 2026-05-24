@@ -12,6 +12,7 @@ public class User {
 
     private double balance;
 
+    private String storeName;
     private String createdAt;
     private String updatedAt;
 
@@ -85,6 +86,14 @@ public class User {
 
     public void setBalance(double balance) {
         this.balance = balance;
+    }
+
+    public String getStoreName() {
+        return storeName;
+    }
+
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
     }
 
     public String getCreatedAt() {

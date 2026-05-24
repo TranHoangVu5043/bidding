@@ -13,6 +13,15 @@ public class AuctionApi {
     private final ApiClient apiClient = new ApiClient();
     private final Gson gson = new Gson();
 
+    public ApiResponse<List<Auction>> getMyAuctions() {
+        try {
+            String json = apiClient.get("/auctions/mine");
+            return gson.fromJson(json, new TypeToken<ApiResponse<List<Auction>>>() {}.getType());
+        } catch (Exception e) {
+            return error(e);
+        }
+    }
+
     public ApiResponse<List<Auction>> getAllAuctions() {
         try {
             String json = apiClient.get("/auctions");
@@ -31,10 +40,10 @@ public class AuctionApi {
         }
     }
 
-    public ApiResponse<Void> createAuction(int itemId, double startingPrice, String startTime, String endTime) {
+    public ApiResponse<Auction> createAuction(int itemId, double startingPrice, String startTime, String endTime) {
         try {
             String json = apiClient.post("/auctions/create", new CreateBody(itemId, startingPrice, startTime, endTime));
-            return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
+            return gson.fromJson(json, new TypeToken<ApiResponse<Auction>>() {}.getType());
         } catch (Exception e) {
             return error(e);
         }

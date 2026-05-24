@@ -14,8 +14,7 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -152,20 +151,10 @@
                                     </VBox>
                                 </HBox>
 
-                                <!-- Recent activity table -->
+                                <!-- Recent activity feed -->
                                 <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
                                     <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Hoạt động gần đây" />
-                                    <TableView fx:id="tableActivity" prefHeight="180">
-                                        <columns>
-                                            <TableColumn fx:id="colActUser" prefWidth="160" text="Người dùng" />
-                                            <TableColumn fx:id="colActAction" prefWidth="260" text="Hành động" />
-                                            <TableColumn fx:id="colActTime" prefWidth="140" text="Thời gian" />
-                                            <TableColumn fx:id="colActStatus" prefWidth="110" text="Trạng thái" />
-                                        </columns>
-                                        <columnResizePolicy>
-                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                        </columnResizePolicy>
-                                    </TableView>
+                                    <VBox fx:id="activityVBox" spacing="8" />
                                 </VBox>
 
                             </VBox>
@@ -182,20 +171,11 @@
                             <ComboBox fx:id="cmbUserStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <ComboBox fx:id="cmbUserRole" prefWidth="130" promptText="Vai trò" style="-fx-background-radius: 8;" />
                         </HBox>
-                        <TableView fx:id="tableUsers" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colUserId" prefWidth="80" text="ID" />
-                                <TableColumn fx:id="colUserName" prefWidth="160" text="Họ tên" />
-                                <TableColumn fx:id="colUserEmail" prefWidth="200" text="Email" />
-                                <TableColumn fx:id="colUserPhone" prefWidth="120" text="SĐT" />
-                                <TableColumn fx:id="colUserJoined" prefWidth="120" text="Ngày tham gia" />
-                                <TableColumn fx:id="colUserStatus" prefWidth="100" text="Trạng thái" />
-                                <TableColumn fx:id="colUserAction" prefWidth="120" text="Hành động" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <FlowPane fx:id="usersFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 
@@ -209,21 +189,11 @@
                             <Region HBox.hgrow="ALWAYS" />
                             <Button onAction="#handleApproveSeller" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="✅ Duyệt người bán" />
                         </HBox>
-                        <TableView fx:id="tableSellers" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colSellerId" prefWidth="70" text="ID" />
-                                <TableColumn fx:id="colSellerName" prefWidth="150" text="Tên shop" />
-                                <TableColumn fx:id="colSellerOwner" prefWidth="150" text="Chủ sở hữu" />
-                                <TableColumn fx:id="colSellerProducts" prefWidth="100" text="Sản phẩm" />
-                                <TableColumn fx:id="colSellerRevenue" prefWidth="130" text="Doanh thu" />
-                                <TableColumn fx:id="colSellerRating" prefWidth="90" text="Đánh giá" />
-                                <TableColumn fx:id="colSellerStatus" prefWidth="100" text="Trạng thái" />
-                                <TableColumn fx:id="colSellerAction" prefWidth="110" text="Hành động" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <FlowPane fx:id="sellersFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 
@@ -238,21 +208,11 @@
                             <Region HBox.hgrow="ALWAYS" />
                             <Button onAction="#handleAddProduct" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="+ Thêm sản phẩm" />
                         </HBox>
-                        <TableView fx:id="tableProducts" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colProdId" prefWidth="70" text="ID" />
-                                <TableColumn fx:id="colProdName" prefWidth="200" text="Tên sản phẩm" />
-                                <TableColumn fx:id="colProdSeller" prefWidth="140" text="Người bán" />
-                                <TableColumn fx:id="colProdPrice" prefWidth="120" text="Giá" />
-                                <TableColumn fx:id="colProdStock" prefWidth="90" text="Tồn kho" />
-                                <TableColumn fx:id="colProdCategory" prefWidth="120" text="Danh mục" />
-                                <TableColumn fx:id="colProdStatus" prefWidth="100" text="Trạng thái" />
-                                <TableColumn fx:id="colProdAction" prefWidth="100" text="Xóa" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <FlowPane fx:id="productsFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 
@@ -266,20 +226,11 @@
                             <ComboBox fx:id="cmbOrderDate" prefWidth="130" promptText="Thời gian" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
                         </HBox>
-                        <TableView fx:id="tableOrders" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colOrderId" prefWidth="110" text="Mã đơn" />
-                                <TableColumn fx:id="colOrderCustomer" prefWidth="150" text="Khách hàng" />
-                                <TableColumn fx:id="colOrderSeller" prefWidth="130" text="Người bán" />
-                                <TableColumn fx:id="colOrderDate" prefWidth="130" text="Ngày đặt" />
-                                <TableColumn fx:id="colOrderTotal" prefWidth="120" text="Tổng tiền" />
-                                <TableColumn fx:id="colOrderStatus" prefWidth="110" text="Trạng thái" />
-                                <TableColumn fx:id="colOrderAction" prefWidth="100" text="Chi tiết" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <VBox fx:id="ordersListVBox" spacing="8" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 
@@ -292,21 +243,11 @@
                             <ComboBox fx:id="cmbAuctionStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
                         </HBox>
-                        <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colAucId" prefWidth="80" text="ID" />
-                                <TableColumn fx:id="colAucProduct" prefWidth="200" text="Sản phẩm" />
-                                <TableColumn fx:id="colAucSeller" prefWidth="140" text="Người bán" />
-                                <TableColumn fx:id="colAucStart" prefWidth="130" text="Giá khởi điểm" />
-                                <TableColumn fx:id="colAucCurrent" prefWidth="130" text="Giá hiện tại" />
-                                <TableColumn fx:id="colAucEndTime" prefWidth="130" text="Kết thúc" />
-                                <TableColumn fx:id="colAucStatus" prefWidth="100" text="Trạng thái" />
-                                <TableColumn fx:id="colAucAction" prefWidth="90" text="Dừng" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <FlowPane fx:id="auctionsAdminFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 
@@ -341,21 +282,10 @@
                                     </VBox>
                                 </HBox>
 
-                                <!-- Top sellers table -->
+                                <!-- Top sellers list -->
                                 <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
                                     <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Top người bán" />
-                                    <TableView fx:id="tableTopSellers" prefHeight="180">
-                                        <columns>
-                                            <TableColumn fx:id="colTopRank" prefWidth="60" text="#" />
-                                            <TableColumn fx:id="colTopSeller" prefWidth="200" text="Người bán" />
-                                            <TableColumn fx:id="colTopOrders" prefWidth="120" text="Đơn hàng" />
-                                            <TableColumn fx:id="colTopRevenue" prefWidth="150" text="Doanh thu" />
-                                            <TableColumn fx:id="colTopRating" prefWidth="100" text="Đánh giá" />
-                                        </columns>
-                                        <columnResizePolicy>
-                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                        </columnResizePolicy>
-                                    </TableView>
+                                    <VBox fx:id="topSellersVBox" spacing="8" />
                                 </VBox>
                             </VBox>
                         </content>
@@ -370,18 +300,11 @@
                             <Region HBox.hgrow="ALWAYS" />
                             <Button onAction="#handleSendNotification" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="📢 Gửi thông báo" />
                         </HBox>
-                        <TableView fx:id="tableNotifications" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colNotifTime" prefWidth="150" text="Thời gian" />
-                                <TableColumn fx:id="colNotifType" prefWidth="120" text="Loại" />
-                                <TableColumn fx:id="colNotifTarget" prefWidth="150" text="Đối tượng" />
-                                <TableColumn fx:id="colNotifContent" prefWidth="300" text="Nội dung" />
-                                <TableColumn fx:id="colNotifStatus" prefWidth="110" text="Trạng thái" />
-                            </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                        </TableView>
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <content>
+                                <VBox fx:id="notificationsVBox" spacing="8" style="-fx-padding: 4 0 16 0;" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </Tab>
 

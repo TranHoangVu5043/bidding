@@ -80,14 +80,14 @@ public class AuctionDAO {
         return auctions;
     }
 
-    public boolean create(Auction auction) {
+    public Auction create(Auction auction) {
         String sql = """
             INSERT INTO auctions(item_id, owner_id, starting_price, current_price, start_time, end_time, status)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, auction.getItemId());
             stmt.setInt(2, auction.getOwnerId());
@@ -98,11 +98,17 @@ public class AuctionDAO {
             stmt.setString(7, auction.getStatus());
 
             stmt.executeUpdate();
-            return true;
+
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    auction.setId(keys.getInt(1));
+                }
+            }
+            return auction;
 
         } catch (SQLException e) {
             log("create auction failed", e);
-            return false;
+            return null;
         }
     }
 
@@ -175,7 +181,7 @@ public class AuctionDAO {
     }
     public List<Auction> getActiveAuctions(){
         List<Auction> list = new ArrayList<>();
-        String sql = "SELECT * FROM auctions WHERE status = 'ACTIVE' AND endtime > NOW() ";
+        String sql = "SELECT * FROM auctions WHERE status = 'ACTIVE' AND end_time > NOW()";
         try (Connection conn = dataSource.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();){

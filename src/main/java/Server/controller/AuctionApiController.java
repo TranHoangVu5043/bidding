@@ -6,6 +6,7 @@ import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.auction.AuctionService;
+import Server.service.users.UserService;
 
 import com.google.gson.Gson;
 
@@ -15,10 +16,12 @@ import java.util.List;
 public class AuctionApiController {
 
     private final AuctionService auctionService;
+    private final UserService userService;
     private final Gson gson;
 
-    public AuctionApiController(AuctionService auctionService) {
+    public AuctionApiController(AuctionService auctionService, UserService userService) {
         this.auctionService = auctionService;
+        this.userService = userService;
         this.gson = new Gson();
     }
 
@@ -55,14 +58,29 @@ public class AuctionApiController {
                     startTime, endTime, "UPCOMING"
             );
 
-            boolean created = auctionService.createAuction(auction, user.getId());
-            if (!created) {
+            Auction created = auctionService.createAuction(auction, user.getId());
+            if (created == null) {
                 res.error(400, "Failed to create auction — item not found or not owned by you");
                 return;
             }
 
-            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auction created", null)));
+            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auction created", new AuctionDTO(created))));
 
+        } catch (Exception e) {
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
+    // GET /api/auctions/mine
+    // Returns only auctions owned by the logged-in seller
+    public void getMyAuctions(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+
+            List<Auction> auctions = auctionService.getAuctionsByOwner(user.getId());
+            List<AuctionDTO> dtos = auctions.stream().map(AuctionDTO::new).toList();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
         }
@@ -72,7 +90,9 @@ public class AuctionApiController {
     // No body needed — returns all auctions
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
-            List<Auction> auctions = auctionService.getAllAuctions();
+            List<Auction> auctions = auctionService.getAllAuctions().stream()
+                    .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
+                    .toList();
             List<AuctionDTO> dtos = auctions.stream().map(AuctionDTO::new).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
@@ -144,10 +164,11 @@ public class AuctionApiController {
         }
     }
 
-    private static class AuctionDTO {
+    private class AuctionDTO {
         int id, itemId, ownerId;
         double startingPrice, currentPrice;
         String startTime, endTime, status;
+        String sellerName;
 
         AuctionDTO(Auction a) {
             id = a.getId();
@@ -158,6 +179,8 @@ public class AuctionApiController {
             startTime = a.getStartTime() != null ? a.getStartTime().toString() : null;
             endTime = a.getEndTime() != null ? a.getEndTime().toString() : null;
             status = a.getStatus();
+            User seller = userService.getUserById(a.getOwnerId());
+            sellerName = (seller != null) ? seller.getUsername() : "Seller #" + a.getOwnerId();
         }
     }
 

@@ -33,4 +33,8 @@ public class Auction {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    private String sellerName;
+    public String getSellerName() { return sellerName; }
+    public void setSellerName(String sellerName) { this.sellerName = sellerName; }
 }

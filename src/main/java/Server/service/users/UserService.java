@@ -69,6 +69,10 @@ public class UserService {
         }
     }
 
+    public User getUserById(int id) {
+        return userDAO.findById(id);
+    }
+
     public boolean changePassword(User currentUser, String oldPassword, String newPassword) {
         if (oldPassword == null || oldPassword.isBlank()) {
             throw new IllegalArgumentException("Mật khẩu cũ không được để trống.");
