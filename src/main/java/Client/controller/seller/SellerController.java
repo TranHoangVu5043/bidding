@@ -109,15 +109,9 @@ public class SellerController {
 
     // ── Hồ sơ người bán & Đổi mật khẩu ──
     @FXML private TextField     txtShopName;
-    @FXML private TextField     txtSellerPhone;
-    @FXML private TextArea      txtShopDesc;
-    @FXML private TextField     txtSellerAddress;
     @FXML private PasswordField txtOldPw;
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;
-
-    // ── Inventory table action column (
-    @FXML private TableColumn<Item, Void>      colActions;
 
     // ── Bảng Lịch sử giao dịch ──
     @FXML private TableView<Order>             tableHistory;
@@ -126,10 +120,6 @@ public class SellerController {
     @FXML private TableColumn<Order, Double>   colHisAmount;
     @FXML private TableColumn<Order, String>   colHisStatus;
 
-    // ── History tab filters ──
-    @FXML private TextField    txtHistorySearch;
-    @FXML private ComboBox<String> cmbHistoryType;
-    @FXML private ComboBox<String> cmbHistoryDate;
 
     // ── Bảng Đơn hàng (Tab Đơn hàng) ──
     @FXML private TableView<Order> tableRecentOrders;
@@ -140,6 +130,7 @@ public class SellerController {
 
     @FXML private TextField txtAuctionPrice;
     @FXML private DatePicker dpAuctionEndDate;
+    @FXML private javafx.scene.chart.BarChart<String, Number> chartRevByMonth;
 
     // ── Instance các Api kết nối trực tiếp Backend ──
     private final ItemApi    itemApi    = new ItemApi();
@@ -157,7 +148,6 @@ public class SellerController {
 
     @FXML
     public void initialize() {
-        // ── Cell Factories: Kho hàng (Đã sửa lỗi đưa colPrice và colStock về đúng vị trí) ──
         if (tableMyItems != null) {
             if (colId != null) colId.setCellValueFactory(new PropertyValueFactory<>("id"));
             if (colName != null) colName.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -293,6 +283,7 @@ public class SellerController {
             });
         }).start();
     }
+
     private void loadRevenue() {
         new Thread(() -> {
             try {
@@ -351,6 +342,55 @@ public class SellerController {
             } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
+    // ── BarChart Doanh thu theo tháng ──
+    private void setupRevenueBarChart() {
+        if (chartRevByMonth == null) return;
+
+        new Thread(() -> {
+            try {
+                ApiResponse<List<Auction>> res = auctionApi.getAllAuctions();
+                Platform.runLater(() -> {
+                    if (res == null || res.getStatus() != 200 || res.getData() == null) return;
+
+                    // Tạo map 6 tháng gần nhất, thứ tự từ cũ → mới
+                    java.time.YearMonth thisMonth = java.time.YearMonth.now();
+                    java.util.LinkedHashMap<String, Double> revenueByMonth = new java.util.LinkedHashMap<>();
+                    for (int i = 5; i >= 0; i--) {
+                        java.time.YearMonth ym = thisMonth.minusMonths(i);
+                        revenueByMonth.put("T" + ym.getMonthValue() + "/" + ym.getYear(), 0.0);
+                    }
+
+                    java.time.format.DateTimeFormatter formatter =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+                    for (Auction a : res.getData()) {
+                        if (!"FINISHED".equalsIgnoreCase(a.getStatus())) continue;
+                        if (a.getEndTime() == null) continue;
+                        try {
+                            java.time.YearMonth ym = java.time.YearMonth.from(
+                                    java.time.LocalDateTime.parse(a.getEndTime(), formatter)
+                            );
+                            String key = "T" + ym.getMonthValue() + "/" + ym.getYear();
+                            if (revenueByMonth.containsKey(key)) {
+                                revenueByMonth.merge(key, a.getCurrentPrice(), Double::sum);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    series.setName("Doanh thu (₫)");
+                    revenueByMonth.forEach((month, revenue) ->
+                            series.getData().add(new XYChart.Data<>(month, revenue))
+                    );
+
+                    chartRevByMonth.getData().clear();
+                    chartRevByMonth.getData().add(series);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
     // ── Hàm xử lý Đăng lên sàn  ──
     @FXML
     private void handleQuickAuction() {
@@ -373,7 +413,7 @@ public class SellerController {
 
             String startTime = java.time.LocalDateTime.now().withNano(0).toString();
             String endTime = endDate.atTime(23, 59, 59).toString();
-            ApiResponse<Void> response = auctionApi.createAuction(
+            ApiResponse<Auction> response = auctionApi.createAuction(
                     selectedItem.getId(),
                     price,
                     startTime,
@@ -423,17 +463,53 @@ public class SellerController {
     // ── Biểu đồ Doanh thu tuần  ──
     private void setupWeekRevenueChart() {
         if (chartWeekRevenue == null) return;
-        chartWeekRevenue.getData().clear();
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Doanh thu tuần này (₫)");
-        series.getData().add(new XYChart.Data<>("Thứ 2", 1200000));
-        series.getData().add(new XYChart.Data<>("Thứ 3", 1500000));
-        series.getData().add(new XYChart.Data<>("Thứ 4", 800000));
-        series.getData().add(new XYChart.Data<>("Thứ 5", 2500000));
-        series.getData().add(new XYChart.Data<>("Thứ 6", 1900000));
-        series.getData().add(new XYChart.Data<>("Thứ 7", 3000000));
-        series.getData().add(new XYChart.Data<>("Chủ Nhật", 4500000));
-        chartWeekRevenue.getData().add(series);
+        new Thread(() -> {
+            try {
+                ApiResponse<List<Auction>> res = auctionApi.getAllAuctions();
+                Platform.runLater(() -> {
+                    if (res == null || res.getStatus() != 200 || res.getData() == null) return;
+                    // Xác định ngày đầu tuần (Thứ 2) và cuối tuần (Chủ Nhật)
+                    java.time.LocalDate today = java.time.LocalDate.now();
+                    java.time.LocalDate monday = today.with(java.time.DayOfWeek.MONDAY);
+                    java.time.LocalDate sunday = today.with(java.time.DayOfWeek.SUNDAY);
+                    // Map tên ngày tiếng Việt theo thứ tự
+                    java.util.LinkedHashMap<java.time.LocalDate, Double> revenueByDay = new java.util.LinkedHashMap<>();
+                    for (int i = 0; i < 7; i++) {
+                        revenueByDay.put(monday.plusDays(i), 0.0);
+                    }
+                    // Duyệt các auction FINISHED, parse endTime, cộng dồn currentPrice
+                    java.time.format.DateTimeFormatter formatter =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+                    for (Auction a : res.getData()) {
+                        if (!"FINISHED".equalsIgnoreCase(a.getStatus())) continue;
+                        if (a.getEndTime() == null) continue;
+
+                        try {
+                            java.time.LocalDate endDate = java.time.LocalDateTime
+                                    .parse(a.getEndTime(), formatter)
+                                    .toLocalDate();
+
+                            if (!endDate.isBefore(monday) && !endDate.isAfter(sunday)) {
+                                revenueByDay.merge(endDate, a.getCurrentPrice(), Double::sum);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    // Tên ngày tiếng Việt
+                    String[] dayLabels = {"Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7","Chủ Nhật"};
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    series.setName("Doanh thu tuần này (₫)");
+                    int i = 0;
+                    for (Double revenue : revenueByDay.values()) {
+                        series.getData().add(new XYChart.Data<>(dayLabels[i++], revenue));
+                    }
+                    chartWeekRevenue.getData().clear();
+                    chartWeekRevenue.getData().add(series);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     // ── Biểu đồ hình tròn phân loại danh mục theo dữ liệu  ──
@@ -541,7 +617,7 @@ public class SellerController {
     @FXML public void showAddProduct()   { switchTab(tabAddProduct,   "Thêm Sản Phẩm",     btnAddProduct); }
     @FXML public void showAuctions()     { switchTab(tabAuctions,     "Đấu Giá",           btnAuctions);   loadSellerAuctions(); }
     @FXML public void showOrders()       { switchTab(tabOrders,       "Đơn Hàng",          btnOrders);     loadRecentOrdersData(); }
-    @FXML public void showRevenue()      { switchTab(tabRevenue,      "Doanh Thu",         btnRevenue);    loadRevenue(); }
+    @FXML public void showRevenue()      { switchTab(tabRevenue,      "Doanh Thu",         btnRevenue);    loadRevenue(); setupRevenueBarChart(); }
     @FXML public void showHistory()      { switchTab(tabHistory,      "Lịch Sử Giao Dịch", btnHistory);    loadHistory(); }
     @FXML public void showProfile()      { switchTab(tabProfile,      "Hồ Sơ Người Bán",   btnProfile); }
 

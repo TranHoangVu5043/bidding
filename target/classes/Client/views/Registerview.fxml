@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane prefHeight="675.0" prefWidth="782.0" style="-fx-background-color: #1a337e;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.auth.RegisterController">
+    <children>
+        <Rectangle fill="#ffffff1a" height="400.0" layoutX="-50.0" layoutY="100.0" rotate="45.0" width="1.0" />
+        <Rectangle fill="#ffffff0d" height="700.0" layoutX="150.0" layoutY="-50.0" width="1.0" />
+      <VBox alignment="TOP_CENTER" layoutX="155.0" layoutY="16.0" prefHeight="650.0" prefWidth="437.0">
+         <children>
+            <Label text="REGISTER" textFill="WHITE">
+               <font>
+                  <Font name="System Bold" size="36.0" />
+               </font>
+               <VBox.margin>
+                  <Insets bottom="20.0" />
+               </VBox.margin>
+            </Label>
+            <VBox alignment="TOP_CENTER" prefHeight="543.0" prefWidth="485.0" spacing="15.0" style="-fx-background-color: #e0f2fe; -fx-background-radius: 30;">
+               <children>
+                  <TabPane prefHeight="503.0" prefWidth="388.0" side="TOP" style="-fx-tab-min-width: 150; -fx-tab-max-width: 150; -fx-tab-min-height: 40; -fx-background-color: transparent;" styleClass="custom-tab-pane" tabClosingPolicy="UNAVAILABLE">
+                     <tabs>
+
+                        <!-- ═══ USER TAB ═══ -->
+                        <Tab fx:id="tabUser" style="-fx-background-color: #001f5c; -fx-background-radius: 10 0 0 10; -fx-text-base-color: white; -fx-font-weight: bold;" text="User">
+                           <content>
+                              <VBox prefHeight="461.0" prefWidth="357.0" spacing="30.0" style="-fx-padding: 20 0 0 0;">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold; -fx-text-fill: #64748b;" text="Thông tin cá nhân" />
+                                    <TextField fx:id="txtFullName" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Họ Và Tên" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
+                                    <TextField fx:id="txtEmail" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Email" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
+                                    <!-- FIX: PasswordField instead of TextField -->
+                                    <PasswordField fx:id="txtPassword" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Mật Khẩu" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </PasswordField>
+                                    <Button fx:id="btnRegister" maxWidth="170.0" onAction="#handleRegister" prefHeight="41.0" prefWidth="173.0" style="-fx-background-color: #0ea5e9; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" text="Đăng Ký">
+                                       <VBox.margin><Insets left="80.0" /></VBox.margin>
+                                    </Button>
+                                    <Hyperlink onAction="#handleNavigateToLogin" prefHeight="24.0" prefWidth="183.0" text="Đã Có Tài Khoản? Đăng Nhập">
+                                       <VBox.margin><Insets bottom="10.0" left="20.0" /></VBox.margin>
+                                    </Hyperlink>
+                                 </children>
+                                 <padding><Insets left="50.0" /></padding>
+                              </VBox>
+                           </content>
+                        </Tab>
+
+                        <!-- ═══ SELLER TAB ═══ -->
+                        <!-- FIX: All fx:ids are unique (txtSellerFullName, txtSellerEmail, txtSellerPassword)
+                             to avoid duplicate-injection crash where JavaFX overwrites User tab fields -->
+                        <Tab fx:id="tabSeller" style="-fx-background-color: #5c6bc0; -fx-background-radius: 0 10 10 0; -fx-text-base-color: white; -fx-font-weight: bold;" text="Seller">
+                           <content>
+                              <VBox maxHeight="530.0" prefHeight="441.0" prefWidth="373.0" spacing="20.0" style="-fx-padding: 20 0 0 0;">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold; -fx-text-fill: #64748b;" text="Hồ Sơ Định Danh" />
+                                    <TextField fx:id="txtSellerFullName" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Tên Cá Nhân / Doanh Nghiệp" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
+                                    <TextField fx:id="txtSellerStoreName" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Tên Cửa Hàng" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
+                                    <TextField fx:id="txtSellerEmail" maxWidth="250.0" prefHeight="40" promptText="Email" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
+                                    <!-- FIX: PasswordField + unique id txtSellerPassword -->
+                                    <PasswordField fx:id="txtSellerPassword" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Mật Khẩu" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </PasswordField>
+                                    <Button maxWidth="170.0" onAction="#handleRegister" prefHeight="41.0" prefWidth="173.0" style="-fx-background-color: #0ea5e9; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12;" text="Đăng Ký">
+                                       <VBox.margin><Insets left="90.0" /></VBox.margin>
+                                    </Button>
+                                    <Label style="-fx-font-size: 11px; -fx-font-style: italic;" text="* Admin sẽ duyệt hồ sơ của bạn trong 24h" />
+                                 </children>
+                              </VBox>
+                           </content>
+                        </Tab>
+
+                     </tabs>
+                     <opaqueInsets><Insets /></opaqueInsets>
+                     <padding><Insets left="15.0" /></padding>
+                     <VBox.margin><Insets left="5.0" /></VBox.margin>
+                  </TabPane>
+               </children>
+               <padding>
+                  <Insets bottom="40.0" left="30.0" right="30.0" top="20.0" />
+               </padding>
+            </VBox>
+         </children>
+      </VBox>
+      <ImageView fitHeight="119.0" fitWidth="109.0" layoutX="670.0">
+         <image>
+            <Image url="@Register.png" />
+         </image>
+      </ImageView>
+    </children>
+</AnchorPane>
