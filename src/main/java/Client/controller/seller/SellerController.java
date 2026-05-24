@@ -116,7 +116,7 @@ public class SellerController {
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;
 
-    // ── Inventory table action column (declared in FXML, not yet wired) ──
+    // ── Inventory table action column (
     @FXML private TableColumn<Item, Void>      colActions;
 
     // ── Bảng Lịch sử giao dịch ──
