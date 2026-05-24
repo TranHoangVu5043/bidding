@@ -11,12 +11,11 @@ public class ItemService {
         this.itemDAO = itemDAO;
     }
 
-    public boolean addItem(Item item){
+    public Item addItem(Item item){
         if(item.getName() == null || item.getName().trim().isEmpty()){
-            return false;
+            return null;
         }
-        itemDAO.create(item);
-        return true;
+        return itemDAO.create(item);
     }
 
     public boolean deleteItem(int itemId){

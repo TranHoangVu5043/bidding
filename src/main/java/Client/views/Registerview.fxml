@@ -38,9 +38,6 @@
                                     <TextField fx:id="txtEmail" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Email" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
                                        <VBox.margin><Insets left="50.0" /></VBox.margin>
                                     </TextField>
-                                    <TextField fx:id="txtPhoneNumber" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Số Điện Thoại" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
-                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
-                                    </TextField>
                                     <!-- FIX: PasswordField instead of TextField -->
                                     <PasswordField fx:id="txtPassword" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Mật Khẩu" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
                                        <VBox.margin><Insets left="50.0" /></VBox.margin>
@@ -68,13 +65,10 @@
                                     <TextField fx:id="txtSellerFullName" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Tên Cá Nhân / Doanh Nghiệp" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
                                        <VBox.margin><Insets left="50.0" /></VBox.margin>
                                     </TextField>
+                                    <TextField fx:id="txtSellerStoreName" maxWidth="250.0" prefHeight="40" prefWidth="315.0" promptText="Tên Cửa Hàng" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
+                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
+                                    </TextField>
                                     <TextField fx:id="txtSellerEmail" maxWidth="250.0" prefHeight="40" promptText="Email" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
-                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
-                                    </TextField>
-                                    <TextField fx:id="txtCitizenId" maxWidth="250.0" prefHeight="40" promptText="Số CCCD/CMND" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
-                                       <VBox.margin><Insets left="50.0" /></VBox.margin>
-                                    </TextField>
-                                    <TextField fx:id="txtBankAccount" maxWidth="250.0" prefHeight="40" promptText="Số Tài Khoản Ngân Hàng" style="-fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-background-color: white; -fx-padding: 10 10 10 40;">
                                        <VBox.margin><Insets left="50.0" /></VBox.margin>
                                     </TextField>
                                     <!-- FIX: PasswordField + unique id txtSellerPassword -->

@@ -60,7 +60,8 @@ public class BidApiController {
             }
 
             List<Bid> bids = biddingService.getBidHistory(body.auctionId);
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", bids)));
+            List<BidDTO> dtos = bids.stream().map(BidDTO::new).toList();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
@@ -74,5 +75,19 @@ public class BidApiController {
 
     private static class AuctionIdRequest {
         int auctionId;
+    }
+
+    private static class BidDTO {
+        int id, userId, auctionId;
+        double amount;
+        String createdAt;
+
+        BidDTO(Bid b) {
+            id = b.getId();
+            userId = b.getUserId();
+            auctionId = b.getAuctionId();
+            amount = b.getAmount();
+            createdAt = b.getCreatedAt() != null ? b.getCreatedAt().toString() : null;
+        }
     }
 }

@@ -1,22 +1,21 @@
 
 package Client.controller.admin;
 
-import Client.model.admin.ActivityLog;
 import Client.model.user.User;
 import Client.networking.SessionManager;
 import Client.util.SceneUtil;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
 public class AdminDashboardController {
 
@@ -39,12 +38,8 @@ public class AdminDashboardController {
     // ── Chart ──
     @FXML private LineChart<String, Number> chartRevenue;
 
-    // ── Activity table ──
-    @FXML private TableView<ActivityLog>        tableActivity;
-    @FXML private TableColumn<ActivityLog, String> colActUser;
-    @FXML private TableColumn<ActivityLog, String> colActAction;
-    @FXML private TableColumn<ActivityLog, String> colActTime;
-    @FXML private TableColumn<ActivityLog, String> colActStatus;
+    // ── Activity feed ──
+    @FXML private VBox activityVBox;
 
     // ── TabPane ──
     @FXML private TabPane mainTabPane;
@@ -70,7 +65,7 @@ public class AdminDashboardController {
         lblTotalRevenue.setText("1,337,000,000 ₫");
         lblPageTitle.setText("Dashboard");
         setupChart();
-        setupTable();
+        populateActivityFeed();
         highlightButton(btnHome);
         populateAdminInfo();
     }
@@ -81,18 +76,31 @@ public class AdminDashboardController {
         welcomeLabel.setText(user.getUsername() != null ? user.getUsername() : "Admin");
     }
 
-    // ── Table setup ──
-    private void setupTable() {
-        colActUser.setCellValueFactory(new PropertyValueFactory<>("user"));
-        colActAction.setCellValueFactory(new PropertyValueFactory<>("activity")); // matches getActivity()
-        colActTime.setCellValueFactory(new PropertyValueFactory<>("time"));
-        colActStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+    // ── Activity feed ──
+    private void populateActivityFeed() {
+        if (activityVBox == null) return;
+        activityVBox.getChildren().clear();
+        addActivityRow("admin",   "Đăng nhập",     "2024-01-01 08:00", "SUCCESS");
+        addActivityRow("seller1", "Thêm sản phẩm", "2024-01-01 09:00", "SUCCESS");
+    }
 
-        ObservableList<ActivityLog> data = FXCollections.observableArrayList(
-                new ActivityLog("admin",   "Đăng nhập",     "2024-01-01 08:00", "SUCCESS"),
-                new ActivityLog("seller1", "Thêm sản phẩm", "2024-01-01 09:00", "SUCCESS")
-        );
-        tableActivity.setItems(data);
+    private void addActivityRow(String user, String action, String time, String status) {
+        Label userLbl = new Label(user);
+        userLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 12; -fx-pref-width: 100;");
+        Label actionLbl = new Label(action);
+        actionLbl.setStyle("-fx-font-size: 12;");
+        HBox.setHgrow(actionLbl, Priority.ALWAYS);
+        Label timeLbl = new Label(time);
+        timeLbl.setStyle("-fx-font-size: 11; -fx-text-fill: #9ca3af; -fx-pref-width: 140;");
+        String sColor = "SUCCESS".equals(status) ? "#16a34a" : "#ef4444";
+        Label statusLbl = new Label(status);
+        statusLbl.setStyle("-fx-background-color: " + sColor + "; -fx-text-fill: white;" +
+                           "-fx-font-size: 10; -fx-padding: 2 7; -fx-background-radius: 4;");
+        HBox row = new HBox(12, userLbl, actionLbl, timeLbl, statusLbl);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(10, 14, 10, 14));
+        row.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 8;");
+        activityVBox.getChildren().add(row);
     }
 
     private void setupChart() {

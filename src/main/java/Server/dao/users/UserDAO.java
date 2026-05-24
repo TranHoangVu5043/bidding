@@ -124,6 +124,18 @@ public class UserDAO {
         }
     }
 
+    public void addBalance(int userId, double amount) {
+        String sql = "UPDATE users SET balance = balance + ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDouble(1, amount);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("[UserDAO] addBalance: " + e.getMessage());
+        }
+    }
+
     public void updateBalance(int userId, double newBalance) {
         String sql = "UPDATE users SET balance = ? WHERE id = ?";
 

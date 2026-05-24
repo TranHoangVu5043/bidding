@@ -53,14 +53,14 @@ public class ItemDAO {
         return items;
     }
 
-    public void create(Item item) {
+    public Item create(Item item) {
         String sql = """
         INSERT INTO items(name, description, owner_id, category, condition, price, stock)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, item.getName());
             stmt.setString(2, item.getDescription());
@@ -72,15 +72,23 @@ public class ItemDAO {
 
             stmt.executeUpdate();
 
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    item.setId(keys.getInt(1));
+                }
+            }
+            return item;
+
         } catch (SQLException e) {
             log("create item failed", e);
+            return null;
         }
     }
 
     public void update(Item item){
         String sql = """
                 UPDATE items
-                SET name = ?, description = ?, category = ?, condition = ?
+                SET name = ?, description = ?, category = ?, condition = ?, price = ?, stock = ?
                 WHERE id = ?
                 """;
 
@@ -91,7 +99,9 @@ public class ItemDAO {
             stmt.setString(2, item.getDescription());
             stmt.setString(3, item.getCategory());
             stmt.setString(4, item.getCondition());
-            stmt.setInt(5, item.getId());
+            stmt.setDouble(5, item.getPrice());
+            stmt.setInt(6, item.getStock());
+            stmt.setInt(7, item.getId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {

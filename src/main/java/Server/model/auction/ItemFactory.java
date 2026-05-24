@@ -9,31 +9,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ItemFactory {
-    public static Item createItem(String category, int id, String name, String desc, int ownerId, String condition, ResultSet rs) throws SQLException {
+
+    public static Item createItem(String category, int id, String name, String desc,
+                                  int ownerId, String condition, ResultSet rs) throws SQLException {
         double price = rs.getDouble("price");
-        int stock = rs.getInt("stock");
+        int stock    = rs.getInt("stock");
+
         return switch (category.toUpperCase()) {
-            case "ELECTRONICS" -> new Electronics(
-                    id, name, desc, ownerId, category, condition,
-                    price, stock,
-                    rs.getString("warranty_period"),
-                    rs.getDouble("weight")
-            );
-            case "ART" -> new Art(
-                    id, name, desc, ownerId, category, condition,
-                    price, stock,
-                    rs.getString("artist"),
-                    rs.getString("material"),
-                    rs.getString("certificate")
-            );
-            case "VEHICLE" -> new Vehicle(
-                    id, name, desc, ownerId, category, condition,
-                    price, stock,
-                    rs.getString("manuFacturer"),
-                    rs.getString("fuelType"),
-                    rs.getString("license_plate")
-            );
-            default -> throw new IllegalArgumentException("Unknown category: " + category);
+            case "ELECTRONICS" -> new Electronics(id, name, desc, ownerId, category, condition, price, stock);
+            case "ART"         -> new Art(id, name, desc, ownerId, category, condition, price, stock);
+            case "VEHICLE"     -> new Vehicle(id, name, desc, ownerId, category, condition, price, stock);
+            default            -> new Item(id, name, desc, ownerId, category, condition, price, stock) {
+                @Override public void displayInfo() {
+                    System.out.println("[Item] " + getName() + " | Category: " + getCategory());
+                }
+            };
         };
     }
 }

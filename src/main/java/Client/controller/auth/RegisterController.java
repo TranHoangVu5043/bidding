@@ -15,21 +15,20 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 public class RegisterController {
 
-    // ── User tab fields (unique fx:ids) ──
+    // ── User tab fields ──
     @FXML private TextField     txtFullName;
     @FXML private TextField     txtEmail;
-    @FXML private PasswordField txtPassword;      // FIX: PasswordField (was TextField in old FXML)
-    @FXML private TextField     txtPhoneNumber;
+    @FXML private PasswordField txtPassword;
 
-    // ── Seller tab fields (unique fx:ids — FIX for duplicate-injection crash) ──
+    // ── Seller tab fields ──
     @FXML private TextField     txtSellerFullName;
+    @FXML private TextField     txtSellerStoreName;
     @FXML private TextField     txtSellerEmail;
-    @FXML private PasswordField txtSellerPassword; // FIX: unique id + PasswordField
-    @FXML private TextField     txtCitizenId;
-    @FXML private TextField     txtBankAccount;
+    @FXML private PasswordField txtSellerPassword;
 
     // ── Tabs ──
     @FXML private Tab tabUser;
@@ -39,61 +38,34 @@ public class RegisterController {
 
     @FXML
     void handleRegister(ActionEvent event) {
+        boolean isSeller = tabSeller != null && tabSeller.isSelected();
 
-        if (tabUser != null && tabUser.isSelected()) {
-            // ── USER registration ──
-            String fullName = txtFullName  != null ? txtFullName.getText().trim()   : "";
-            String email    = txtEmail     != null ? txtEmail.getText().trim()       : "";
-            String password = txtPassword  != null ? txtPassword.getText().trim()    : "";
-            String phone    = txtPhoneNumber != null ? txtPhoneNumber.getText().trim() : "";
+        String username  = isSeller ? getText(txtSellerFullName)  : getText(txtFullName);
+        String email     = isSeller ? getText(txtSellerEmail)     : getText(txtEmail);
+        String password  = isSeller ? getText(txtSellerPassword)  : getText(txtPassword);
+        String storeName = isSeller ? getText(txtSellerStoreName) : null;
+        String role      = isSeller ? "seller" : "bidder";
 
-            if (fullName.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi Nhập Liệu", "Vui lòng điền đầy đủ họ tên, email và mật khẩu.");
-                return;
-            }
-            if (phone.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Thông báo", "Vui lòng điền số điện thoại.");
-                return;
-            }
+        if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi Nhập Liệu", "Vui lòng điền đầy đủ họ tên, email và mật khẩu.");
+            return;
+        }
+        if (isSeller && storeName.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi Nhập Liệu", "Vui lòng nhập tên cửa hàng.");
+            return;
+        }
 
-            String username = email.contains("@") ? email.split("@")[0] : email;
+        ApiResponse<Void> response = userApi.register(username, password, email, role, storeName);
 
-            ApiResponse<Void> response = userApi.register(username, password, email, "bidder");
-            if (response != null && response.getStatus() == 201) {  // FIX: 201 not 200
-                showAlert(Alert.AlertType.INFORMATION, "Đăng Ký Thành Công", "Tài khoản đã được tạo. Bạn có thể đăng nhập ngay.");
-                clearForm();
-            } else {
-                String msg = (response != null) ? response.getMessage() : "Mất kết nối tới Server";
-                showAlert(Alert.AlertType.ERROR, "Đăng Ký Thất Bại", msg);
-            }
-
+        if (response != null && response.getStatus() == 201) {
+            String successMsg = isSeller
+                    ? "Hồ sơ sẽ được admin duyệt trong vòng 24h."
+                    : "Tài khoản đã được tạo. Bạn có thể đăng nhập ngay.";
+            showAlert(Alert.AlertType.INFORMATION, "Đăng Ký Thành Công", successMsg);
+            clearForm();
         } else {
-            // ── SELLER registration ──
-            String fullName  = txtSellerFullName  != null ? txtSellerFullName.getText().trim()  : "";
-            String email     = txtSellerEmail     != null ? txtSellerEmail.getText().trim()      : "";
-            String password  = txtSellerPassword  != null ? txtSellerPassword.getText().trim()   : "";
-            String citizenId = txtCitizenId       != null ? txtCitizenId.getText().trim()        : "";
-            String bankAcct  = txtBankAccount     != null ? txtBankAccount.getText().trim()      : "";
-
-            if (fullName.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi Nhập Liệu", "Vui lòng điền đầy đủ họ tên, email và mật khẩu.");
-                return;
-            }
-            if (citizenId.isEmpty() || bankAcct.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Thông báo", "Vui lòng điền số CCCD và số tài khoản ngân hàng.");
-                return;
-            }
-
-            String username = email.contains("@") ? email.split("@")[0] : email;
-
-            ApiResponse<Void> response = userApi.register(username, password, email, "seller");
-            if (response != null && response.getStatus() == 201) {  // FIX: 201 not 200
-                showAlert(Alert.AlertType.INFORMATION, "Đăng Ký Thành Công", "Hồ sơ sẽ được admin duyệt trong vòng 24h.");
-                clearForm();
-            } else {
-                String msg = (response != null) ? response.getMessage() : "Mất kết nối tới Server";
-                showAlert(Alert.AlertType.ERROR, "Đăng Ký Thất Bại", msg);
-            }
+            String msg = (response != null) ? response.getMessage() : "Mất kết nối tới Server";
+            showAlert(Alert.AlertType.ERROR, "Đăng Ký Thất Bại", msg);
         }
     }
 
@@ -112,7 +84,10 @@ public class RegisterController {
         }
     }
 
-    // FIX: single private showAlert — removed conflicting static import from SceneUtil
+    private String getText(javafx.scene.control.TextInputControl field) {
+        return field != null ? field.getText().trim() : "";
+    }
+
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
@@ -122,14 +97,9 @@ public class RegisterController {
     }
 
     private void clearForm() {
-        if (txtFullName      != null) txtFullName.clear();
-        if (txtEmail         != null) txtEmail.clear();
-        if (txtPassword      != null) txtPassword.clear();
-        if (txtPhoneNumber   != null) txtPhoneNumber.clear();
-        if (txtSellerFullName  != null) txtSellerFullName.clear();
-        if (txtSellerEmail     != null) txtSellerEmail.clear();
-        if (txtSellerPassword  != null) txtSellerPassword.clear();
-        if (txtCitizenId     != null) txtCitizenId.clear();
-        if (txtBankAccount   != null) txtBankAccount.clear();
+        Stream.of(txtFullName, txtEmail, txtSellerFullName, txtSellerStoreName, txtSellerEmail)
+              .filter(f -> f != null).forEach(TextField::clear);
+        Stream.of(txtPassword, txtSellerPassword)
+              .filter(f -> f != null).forEach(PasswordField::clear);
     }
 }
