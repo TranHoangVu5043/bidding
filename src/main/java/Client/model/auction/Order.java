@@ -5,14 +5,16 @@ public class Order {
     private String productName;
     private double totalAmount;
     private String status;
+    private String date ;
 
     public Order() {}
 
-    public Order(long id, String productName, double totalAmount, String status) {
+    public Order(long id, String productName, double totalAmount, String status,String date) {
         this.id = id;
         this.productName = productName;
         this.totalAmount = totalAmount;
         this.status = status;
+        this.date = date ;
     }
 
     public long getId() { return id; }
@@ -26,4 +28,8 @@ public class Order {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
+}
 }
