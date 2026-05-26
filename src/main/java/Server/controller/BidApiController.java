@@ -5,19 +5,23 @@ import Server.model.auction.Bid;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
+import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
 
 import com.google.gson.Gson;
 
+import java.io.OutputStream;
 import java.util.List;
 
 public class BidApiController {
 
     private final BiddingService biddingService;
+    private final AutoBidConfigService autoBidConfigService;
     private final Gson gson;
 
-    public BidApiController(BiddingService biddingService) {
+    public BidApiController(BiddingService biddingService, AutoBidConfigService autoBidConfigService) {
         this.biddingService = biddingService;
+        this.autoBidConfigService = autoBidConfigService;
         this.gson = new Gson();
     }
 
@@ -31,7 +35,6 @@ public class BidApiController {
                 res.error(403, "Only bidders can place bids");
                 return;
             }
-
             PlaceBidRequest body = gson.fromJson(req.getBody(), PlaceBidRequest.class);
             if (body == null || body.auctionId <= 0 || body.amount <= 0) {
                 res.error(400, "Missing required fields: auctionId, amount");
@@ -39,6 +42,7 @@ public class BidApiController {
             }
 
             biddingService.placeBid(user.getId(), body.auctionId, body.amount);
+            this.autoBidConfigService.triggerAutoBidding(body.auctionId); //để tí nghĩ
 
             res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Bid placed successfully", null)));
 

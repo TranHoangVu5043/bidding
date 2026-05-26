@@ -15,15 +15,13 @@ import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
 import Server.service.NotificationService;
-import Server.service.auction.AuctionService;
-import Server.service.auction.BiddingService;
-import Server.service.auction.ItemService;
+import Server.service.auction.*;
 import Server.service.users.UserService;
 
 import com.sun.net.httpserver.HttpContext;
 import Server.controller.responseObjects.OrderApiController;
 import Server.dao.auction.OrderDAO;
-import Server.service.auction.OrderService;
+
 import javax.sql.DataSource;
 
 public class ServerApp {
@@ -48,12 +46,13 @@ public class ServerApp {
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         ItemService itemService = new ItemService(itemDAO);
         OrderService orderService = new OrderService(orderDAO);
+        AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
 
         // Controllers
         UserApiController userController = new UserApiController(userService);
         AuctionApiController auctionController = new AuctionApiController(auctionService, userService);
         NotificationApiController notifController = new NotificationApiController(notificationService);
-        BidApiController bidController = new BidApiController(biddingService);
+        BidApiController bidController = new BidApiController(biddingService, autoBidConfigService);
         ItemApiController itemController = new ItemApiController(itemService);
         OrderApiController orderController = new OrderApiController(orderService);
         // Router
@@ -95,7 +94,6 @@ public class ServerApp {
 
         HttpContext context = server.getServer().createContext("/", router);
         context.getFilters().add(new sessionFilter(userService));
-
         server.start();
 
         System.out.println("[Server] Listening on :8080");
