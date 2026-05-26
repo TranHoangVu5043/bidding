@@ -6,6 +6,9 @@ import Client.model.auction.Bid;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
+import Client.websocket.AuctionWebSocketClient;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import Client.networking.endpoints.AuctionApi;
 import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.NotificationApi;
@@ -115,7 +118,11 @@ public class UserController {
     private final BidApi          bidApi     = new BidApi();
     private final NotificationApi notifApi   = new NotificationApi();
 
-    private final ObservableList<Auction> liveAuctions = FXCollections.observableArrayList();
+    private final ObservableList<Auction> liveAuctions   = FXCollections.observableArrayList();
+    /** auctionId → the price Label inside that card, for targeted live updates */
+    private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
+    /** Single persistent WebSocket connection for the auction floor */
+    private AuctionWebSocketClient wsClient;
 
     // ══════════════════════════════════════════
     // Initialize
@@ -168,6 +175,7 @@ public class UserController {
 
     @FXML
     private void handleSignOut() {
+        if (wsClient != null) wsClient.closeConnection();
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }
@@ -183,7 +191,6 @@ public class UserController {
     private void loadAuctions() {
         if (auctionFlowPane == null) return;
 
-        // Show a spinner placeholder while loading
         auctionFlowPane.getChildren().clear();
         Label loading = new Label("⏳ Đang tải danh sách phiên đấu giá...");
         loading.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13;");
@@ -198,8 +205,10 @@ public class UserController {
 
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
                     liveAuctions.setAll(response.getData());
+                    livePriceLabels.clear();
                     renderAuctionCards(liveAuctions);
                     updateAuctionStats();
+                    connectWebSocket();   // subscribe to all active auctions
                 } else {
                     auctionFlowPane.getChildren().clear();
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
@@ -208,6 +217,47 @@ public class UserController {
                     auctionFlowPane.getChildren().add(err);
                 }
             });
+        }).start();
+    }
+
+    /** Opens (or reuses) the WebSocket connection and subscribes to every ACTIVE auction. */
+    private void connectWebSocket() {
+        // Close stale connection if any
+        if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
+
+        wsClient = new AuctionWebSocketClient((auctionId, newPrice) -> {
+            // Update the in-memory auction object
+            liveAuctions.stream()
+                    .filter(a -> a.getId() == auctionId)
+                    .findFirst()
+                    .ifPresent(a -> a.setCurrentPrice(newPrice));
+
+            // Update only the price label for that card — no full re-render
+            Label lbl = livePriceLabels.get(auctionId);
+            if (lbl != null) {
+                lbl.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
+                lbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #16A34A;");
+            }
+        });
+
+        // connect() is non-blocking — safe to call on FX thread
+        wsClient.connect();
+
+        // Subscribe to every active auction once the socket opens
+        // We do this on a background thread with a short wait for the handshake
+        List<Integer> activeIds = liveAuctions.stream()
+                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .map(Auction::getId)
+                .toList();
+
+        new Thread(() -> {
+            // Wait up to 2 s for the connection to open
+            for (int i = 0; i < 20; i++) {
+                if (wsClient.isOpen()) break;
+                try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+            }
+            activeIds.forEach(wsClient::subscribe);
+            System.out.println("[WS Client] Subscribed to " + activeIds.size() + " active auction(s): " + activeIds);
         }).start();
     }
 
@@ -293,6 +343,8 @@ public class UserController {
         Label lblCurrentPrice = new Label(
                 "Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #D32F2F;");
+        // Register for live WebSocket updates
+        if ("ACTIVE".equals(status)) livePriceLabels.put(auction.getId(), lblCurrentPrice);
 
         // ── Time remaining ──
         Label lblTime = new Label("🕒 " + formatTimeRemaining(auction.getEndTime()));
@@ -507,10 +559,13 @@ public class UserController {
 
         addAuctionDetailRow(grid, 0, "📦 Mã sản phẩm",  "#" + auction.getItemId());
         addAuctionDetailRow(grid, 1, "💵 Giá khởi điểm", String.format("%,.0f ₫", auction.getStartingPrice()));
-        addAuctionDetailRow(grid, 2, "🔥 Giá hiện tại",  String.format("%,.0f ₫", auction.getCurrentPrice()));
-        addAuctionDetailRow(grid, 3, "🕐 Bắt đầu",       formatDisplayTime(auction.getStartTime()));
-        addAuctionDetailRow(grid, 4, "🕔 Kết thúc",      formatDisplayTime(auction.getEndTime()));
-        addAuctionDetailRow(grid, 5, "⏳ Còn lại",       formatTimeRemaining(auction.getEndTime()));
+
+        addAuctionDetailRow(grid, 2, "🔥 Giá hiện tại",
+                String.format("%,.0f ₫", auction.getCurrentPrice()));
+
+        addAuctionDetailRow(grid, 3, "🕐 Bắt đầu",  formatDisplayTime(auction.getStartTime()));
+        addAuctionDetailRow(grid, 4, "🕔 Kết thúc", formatDisplayTime(auction.getEndTime()));
+        addAuctionDetailRow(grid, 5, "⏳ Còn lại",  formatTimeRemaining(auction.getEndTime()));
 
         // ── Divider ──
         Separator sep = new Separator();

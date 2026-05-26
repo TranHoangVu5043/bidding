@@ -19,6 +19,7 @@ import Server.service.auction.AuctionService;
 import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
 import Server.service.users.UserService;
+import Server.websocket.BidWebSocketServer;
 
 import com.sun.net.httpserver.HttpContext;
 import Server.controller.responseObjects.OrderApiController;
@@ -56,6 +57,7 @@ public class ServerApp {
         BidApiController bidController = new BidApiController(biddingService);
         ItemApiController itemController = new ItemApiController(itemService);
         OrderApiController orderController = new OrderApiController(orderService);
+
         // Router
         ApiRouter router = new ApiRouter();
 
@@ -83,6 +85,7 @@ public class ServerApp {
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
+
         // --- Order routes ---
         router.register("GET", "/api/orders/recent", orderController::getRecentOrders);
         router.register("GET", "/api/orders/all",    orderController::getAllOrders);
@@ -95,9 +98,12 @@ public class ServerApp {
         context.getFilters().add(new sessionFilter(userService));
 
         server.start();
+        System.out.println("[Server] HTTP server listening on :8080");
 
-        System.out.println("[Server] Listening on :8080");
-        System.out.println("[Server] Routes registered: users, auctions, bids, items,orders");
+        // --- WebSocket server for real-time bid updates ---
+        BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
+        wsServer.start();
 
+        System.out.println("[Server] Routes registered: users, auctions, bids, items, orders");
     }
 }

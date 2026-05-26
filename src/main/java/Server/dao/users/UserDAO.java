@@ -51,7 +51,7 @@ public class UserDAO {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1,  String.valueOf(id));
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -59,7 +59,7 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            log("findByUsername failed", e);
+            log("findById failed", e);
         }
 
         return null;
