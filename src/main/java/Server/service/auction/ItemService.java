@@ -49,5 +49,7 @@ public class ItemService {
         if (item == null) return false;
         return item.getOwnerId() == currentUserId;
     }
-
+    public List<Item> getAllItems() {
+        return itemDAO.findAll();
+    }
 }

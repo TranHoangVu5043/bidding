@@ -8,6 +8,7 @@ import Server.model.users.records.UserRow;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class UserService {
@@ -33,6 +34,11 @@ public class UserService {
 
         return true;
     }
+
+    public List<User> getAllUsers() {
+        return userDAO.findAll();
+    }
+
 
 
     public String login(String username, String password) {

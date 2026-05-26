@@ -64,6 +64,7 @@ public class ServerApp {
         router.register("POST", "/api/users/register",        userController::register);
         router.register("GET",  "/api/users/me",              userController::getMe);
         router.register("POST", "/api/users/change-password", userController::changePassword);
+        router.register("GET",  "/api/users/all",      userController::getAllUsers);
 
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
@@ -83,6 +84,7 @@ public class ServerApp {
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
+        router.register("GET",  "/api/items/all",      itemController::getAllItems);
         // --- Order routes ---
         router.register("GET", "/api/orders/recent", orderController::getRecentOrders);
         router.register("GET", "/api/orders/all",    orderController::getAllOrders);

@@ -12,6 +12,8 @@ import Server.service.users.UserService;
 
 import com.google.gson.Gson;
 
+import java.util.List;
+
 public class UserApiController {
 
     private final UserService userService;
@@ -98,6 +100,38 @@ public class UserApiController {
 
         } catch (Exception e) {
             System.err.println("[UserApiController] logout error: " + e.getMessage());
+            res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
+        }
+    }
+    public void getAllUsers(RequestWrapper req, ResponseWrapper res) {
+        try {
+            String token = extractToken(req);
+            if (token == null) {
+                res.error(401, "Token không hợp lệ hoặc bị thiếu.");
+                return;
+            }
+
+            User requester = userService.authenticate(token);
+            if (requester == null) {
+                res.error(401, "Token đã hết hạn hoặc không tồn tại.");
+                return;
+            }
+
+            // Chỉ ADMIN mới được xem danh sách tất cả user
+            if (!"ADMIN".equalsIgnoreCase(requester.getRole())) {
+                res.error(403, "Bạn không có quyền truy cập.");
+                return;
+            }
+
+            List<User> users = userService.getAllUsers();
+            users.forEach(u -> u.setPassword(null));
+
+            res.sendJson(200, gson.toJson(
+                    new ApiResponse<>(200, "OK", users)
+            ));
+
+        } catch (Exception e) {
+            System.err.println("[UserApiController] getAllUsers error: " + e.getMessage());
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }

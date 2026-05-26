@@ -5,6 +5,7 @@ public class Order {
     private String productName;
     private double totalAmount;
     private String status;
+    private String createdAt;
 
     public Order() {}
 
@@ -26,4 +27,7 @@ public class Order {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

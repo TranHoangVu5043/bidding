@@ -35,6 +35,19 @@ public class ItemDAO {
         return null;
     }
 
+    public List<Item> findAll() {
+        String sql = "SELECT * FROM items ORDER BY id ASC";
+        List<Item> items = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) items.add(mapRow(rs));
+        } catch (SQLException e) {
+            log("findAll items failed", e);
+        }
+        return items;
+    }
+
     public List<Item> findByOwnerId(int ownerId) {
         String sql = "SELECT * FROM items WHERE owner_id = ?";
         List<Item> items = new ArrayList<>();

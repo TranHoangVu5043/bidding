@@ -7,7 +7,6 @@ import Server.dao.users.UserDAO;
 import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.auction.items.Item;
-import Server.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;

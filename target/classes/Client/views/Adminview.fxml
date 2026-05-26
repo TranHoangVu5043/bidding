@@ -14,9 +14,9 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -138,24 +138,21 @@
 
                                 <!-- Charts row -->
                                 <HBox spacing="15" VBox.vgrow="ALWAYS">
+                                    <!-- Activity Feed -->
                                     <VBox spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;" HBox.hgrow="ALWAYS">
-                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Doanh thu theo tháng" />
-                                        <LineChart fx:id="chartRevenue" prefHeight="220">
-                                            <xAxis><CategoryAxis /></xAxis>
-                                            <yAxis><NumberAxis /></yAxis>
-                                        </LineChart>
+                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="🕐 Hoạt động gần đây" />
+                                        <ScrollPane fitToWidth="true" prefHeight="220" style="-fx-background: transparent; -fx-background-color: transparent;">
+                                            <content>
+                                                <VBox fx:id="activityVBox" spacing="8" style="-fx-padding: 4 0;" />
+                                            </content>
+                                        </ScrollPane>
                                     </VBox>
+                                    <!-- Pie chart -->
                                     <VBox prefWidth="240" spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
                                         <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Phân bố người bán" />
                                         <PieChart fx:id="chartSellers" prefHeight="220" prefWidth="220" />
                                     </VBox>
                                 </HBox>
-
-                                <!-- Recent activity feed -->
-                                <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
-                                    <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Hoạt động gần đây" />
-                                    <VBox fx:id="activityVBox" spacing="8" />
-                                </VBox>
 
                             </VBox>
                         </content>
@@ -168,14 +165,19 @@
                         <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="👥 Quản Lý Người Dùng" />
                         <HBox alignment="CENTER_LEFT" spacing="10">
                             <TextField fx:id="txtUserSearch" prefWidth="280" promptText="Tìm theo tên, email..." style="-fx-background-radius: 8; -fx-padding: 8;" />
-                            <ComboBox fx:id="cmbUserStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <ComboBox fx:id="cmbUserRole" prefWidth="130" promptText="Vai trò" style="-fx-background-radius: 8;" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
-                            <content>
-                                <FlowPane fx:id="usersFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
-                            </content>
-                        </ScrollPane>
+                        <Label fx:id="lblUserCount" style="-fx-font-size: 12; -fx-text-fill: #6B7280;" text="Đang tải..." />
+                        <TableView fx:id="tblUsers" VBox.vgrow="ALWAYS" style="-fx-background-radius: 10;">
+                            <columns>
+                                <TableColumn fx:id="colUserId"       text="ID"         prefWidth="50"  />
+                                <TableColumn fx:id="colUsername"     text="Tên đăng nhập" prefWidth="160" />
+                                <TableColumn fx:id="colEmail"        text="Email"      prefWidth="200" />
+                                <TableColumn fx:id="colRole"         text="Vai trò"    prefWidth="100" />
+                                <TableColumn fx:id="colBalance"      text="Số dư"      prefWidth="130" />
+                                <TableColumn fx:id="colCreatedAt"    text="Ngày tạo"   prefWidth="140" />
+                            </columns>
+                        </TableView>
                     </VBox>
                 </Tab>
 
@@ -189,9 +191,9 @@
                             <Region HBox.hgrow="ALWAYS" />
                             <Button onAction="#handleApproveSeller" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="✅ Duyệt người bán" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
-                                <FlowPane fx:id="sellersFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                                <FlowPane fx:id="sellersFlowPane" hgap="16" style="-fx-padding: 4 0 16 0;" vgap="16" />
                             </content>
                         </ScrollPane>
                     </VBox>
@@ -206,11 +208,11 @@
                             <ComboBox fx:id="cmbProductCategory" prefWidth="140" promptText="Danh mục" style="-fx-background-radius: 8;" />
                             <ComboBox fx:id="cmbProductStatus" prefWidth="130" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#handleAddProduct" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="+ Thêm sản phẩm" />
+                            <Button onAction="#handleCancelProduct" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="Xóa sản phẩm" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
-                                <FlowPane fx:id="productsFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                                <FlowPane fx:id="productsFlowPane" hgap="16" style="-fx-padding: 4 0 16 0;" vgap="16" />
                             </content>
                         </ScrollPane>
                     </VBox>
@@ -226,7 +228,7 @@
                             <ComboBox fx:id="cmbOrderDate" prefWidth="130" promptText="Thời gian" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
                                 <VBox fx:id="ordersListVBox" spacing="8" style="-fx-padding: 4 0 16 0;" />
                             </content>
@@ -243,9 +245,9 @@
                             <ComboBox fx:id="cmbAuctionStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
                             <Region HBox.hgrow="ALWAYS" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
-                                <FlowPane fx:id="auctionsAdminFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
+                                <FlowPane fx:id="auctionsAdminFlowPane" hgap="16" style="-fx-padding: 4 0 16 0;" vgap="16" />
                             </content>
                         </ScrollPane>
                     </VBox>
@@ -273,13 +275,6 @@
                                             <yAxis><NumberAxis /></yAxis>
                                         </BarChart>
                                     </VBox>
-                                    <VBox prefWidth="260" spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
-                                        <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Người dùng mới theo tháng" textFill="#0d0d0d" />
-                                        <LineChart fx:id="chartNewUsers" prefHeight="230" prefWidth="240">
-                                            <xAxis><CategoryAxis /></xAxis>
-                                            <yAxis><NumberAxis /></yAxis>
-                                        </LineChart>
-                                    </VBox>
                                 </HBox>
 
                                 <!-- Top sellers list -->
@@ -290,22 +285,6 @@
                             </VBox>
                         </content>
                     </ScrollPane>
-                </Tab>
-
-                <!-- ───── TAB: NOTIFICATIONS ───── -->
-                <Tab fx:id="tabNotifications" text="">
-                    <VBox spacing="15" style="-fx-padding: 22;">
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🔔 Thông Báo Hệ Thống" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#handleSendNotification" style="-fx-background-color: #0066CC; -fx-text-fill: white;                                            -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;" text="📢 Gửi thông báo" />
-                        </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
-                            <content>
-                                <VBox fx:id="notificationsVBox" spacing="8" style="-fx-padding: 4 0 16 0;" />
-                            </content>
-                        </ScrollPane>
-                    </VBox>
                 </Tab>
 
                 <!-- ───── TAB: SETTINGS ───── -->
