@@ -15,13 +15,16 @@ import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
 import Server.service.NotificationService;
-import Server.service.auction.*;
+import Server.service.auction.AuctionService;
+import Server.service.auction.BiddingService;
+import Server.service.auction.ItemService;
 import Server.service.users.UserService;
+import Server.websocket.BidWebSocketServer;
 
 import com.sun.net.httpserver.HttpContext;
 import Server.controller.responseObjects.OrderApiController;
 import Server.dao.auction.OrderDAO;
-
+import Server.service.auction.OrderService;
 import javax.sql.DataSource;
 
 public class ServerApp {
@@ -46,15 +49,15 @@ public class ServerApp {
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         ItemService itemService = new ItemService(itemDAO);
         OrderService orderService = new OrderService(orderDAO);
-        AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
 
         // Controllers
         UserApiController userController = new UserApiController(userService);
         AuctionApiController auctionController = new AuctionApiController(auctionService, userService);
         NotificationApiController notifController = new NotificationApiController(notificationService);
-        BidApiController bidController = new BidApiController(biddingService, autoBidConfigService);
+        BidApiController bidController = new BidApiController(biddingService);
         ItemApiController itemController = new ItemApiController(itemService);
         OrderApiController orderController = new OrderApiController(orderService);
+
         // Router
         ApiRouter router = new ApiRouter();
 
@@ -63,7 +66,6 @@ public class ServerApp {
         router.register("POST", "/api/users/register",        userController::register);
         router.register("GET",  "/api/users/me",              userController::getMe);
         router.register("POST", "/api/users/change-password", userController::changePassword);
-        router.register("GET",  "/api/users/all",      userController::getAllUsers);
 
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
@@ -83,7 +85,7 @@ public class ServerApp {
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
-        router.register("GET",  "/api/items/all",      itemController::getAllItems);
+
         // --- Order routes ---
         router.register("GET", "/api/orders/recent", orderController::getRecentOrders);
         router.register("GET", "/api/orders/all",    orderController::getAllOrders);
@@ -94,10 +96,14 @@ public class ServerApp {
 
         HttpContext context = server.getServer().createContext("/", router);
         context.getFilters().add(new sessionFilter(userService));
+
         server.start();
+        System.out.println("[Server] HTTP server listening on :8080");
 
-        System.out.println("[Server] Listening on :8080");
-        System.out.println("[Server] Routes registered: users, auctions, bids, items,orders");
+        // --- WebSocket server for real-time bid updates ---
+        BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
+        wsServer.start();
 
+        System.out.println("[Server] Routes registered: users, auctions, bids, items, orders");
     }
 }

@@ -27,7 +27,7 @@ public class UserService {
 
         String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
 
-        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), req.getRole(), 0, req.getStoreName());
+        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), "ADMIN", 0, req.getStoreName());
         User user = UserFactory.createUser(userRow);
 
         userDAO.createUser(user);
