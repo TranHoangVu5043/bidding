@@ -1,0 +1,119 @@
+package Server.websocket;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.java_websocket.WebSocket;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
+
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Singleton WebSocket server on port 8081.
+ * Clients subscribe to an auction room and receive real-time bid updates.
+ *
+ * Client → Server messages:
+ *   {"type":"subscribe",   "auctionId": 1}
+ *   {"type":"unsubscribe", "auctionId": 1}
+ *
+ * Server → Client broadcasts:
+ *   {"type":"bid_update", "auctionId":1, "currentPrice":1500000, "userId":5, "amount":1500000}
+ */
+public class BidWebSocketServer extends WebSocketServer {
+
+    private static volatile BidWebSocketServer instance;
+
+    /** auctionId → set of subscribed connections */
+    private final Map<Integer, Set<WebSocket>> rooms = new ConcurrentHashMap<>();
+    private final Gson gson = new Gson();
+
+    private BidWebSocketServer(int port) {
+        super(new InetSocketAddress(port));
+        setReuseAddr(true);
+        setConnectionLostTimeout(60);
+    }
+
+    public static BidWebSocketServer getInstance() {
+        if (instance == null) {
+            synchronized (BidWebSocketServer.class) {
+                if (instance == null) {
+                    instance = new BidWebSocketServer(8081);
+                }
+            }
+        }
+        return instance;
+    }
+
+    @Override
+    public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        System.out.println("[WS] Client connected: " + conn.getRemoteSocketAddress());
+    }
+
+    @Override
+    public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+        rooms.values().forEach(set -> set.remove(conn));
+        System.out.println("[WS] Client disconnected: " + conn.getRemoteSocketAddress());
+    }
+
+    @Override
+    public void onMessage(WebSocket conn, String message) {
+        try {
+            JsonObject json = JsonParser.parseString(message).getAsJsonObject();
+            String type = json.get("type").getAsString();
+            int auctionId = json.get("auctionId").getAsInt();
+
+            if ("subscribe".equals(type)) {
+                rooms.computeIfAbsent(auctionId,
+                        k -> Collections.newSetFromMap(new ConcurrentHashMap<>())).add(conn);
+                System.out.println("[WS] Subscribed to auction #" + auctionId
+                        + " (room size: " + rooms.get(auctionId).size() + ")");
+            } else if ("unsubscribe".equals(type)) {
+                Set<WebSocket> room = rooms.get(auctionId);
+                if (room != null) room.remove(conn);
+            }
+        } catch (Exception e) {
+            System.err.println("[WS] Bad message from " + conn.getRemoteSocketAddress()
+                    + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onError(WebSocket conn, Exception ex) {
+        System.err.println("[WS] Error on "
+                + (conn != null ? conn.getRemoteSocketAddress() : "server") + ": " + ex.getMessage());
+    }
+
+    @Override
+    public void onStart() {
+        System.out.println("[WS] Bid WebSocket server listening on ws://localhost:8081");
+    }
+
+    /**
+     * Broadcast a bid update to every client subscribed to this auction.
+     * Called by BiddingService after a successful bid commit.
+     */
+    public void broadcastBidUpdate(int auctionId, double currentPrice, int userId, double amount) {
+        Set<WebSocket> room = rooms.get(auctionId);
+        if (room == null || room.isEmpty()) return;
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type",         "bid_update");
+        payload.addProperty("auctionId",    auctionId);
+        payload.addProperty("currentPrice", currentPrice);
+        payload.addProperty("userId",       userId);
+        payload.addProperty("amount",       amount);
+        String json = gson.toJson(payload);
+
+        room.stream()
+            .filter(WebSocket::isOpen)
+            .forEach(c -> c.send(json));
+
+        System.out.println("[WS] Broadcast bid_update → auction #" + auctionId
+                + " price=" + currentPrice + " to " + room.size() + " client(s)");
+    }
+}
