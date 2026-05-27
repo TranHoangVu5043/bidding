@@ -72,6 +72,45 @@ public class BidApiController {
         }
     }
 
+    // POST /api/bids/autobid
+    // Body: { "auctionId": 1, "maxBid": 500000.0, "increment": 50000.0 }
+    public void registerAutoBid(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+            if (!"bidder".equalsIgnoreCase(user.getRole())) {
+                res.error(403, "Only bidders can use auto-bid");
+                return;
+            }
+
+            AutoBidRequest body = gson.fromJson(req.getBody(), AutoBidRequest.class);
+            if (body == null || body.auctionId <= 0 || body.maxBid <= 0 || body.increment <= 0) {
+                res.error(400, "Missing or invalid fields: auctionId, maxBid, increment");
+                return;
+            }
+
+            AutoBidConfigService autoBidService = biddingService.getAutoBidConfigService();
+            if (autoBidService == null) {
+                res.error(500, "Auto-bid service not available");
+                return;
+            }
+
+            autoBidService.registerAutoBid(body.auctionId, user.getId(), body.maxBid, body.increment);
+            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auto-bid registered successfully", null)));
+
+        } catch (RuntimeException e) {
+            res.error(400, e.getMessage());
+        } catch (Exception e) {
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
+    private static class AutoBidRequest {
+        int auctionId;
+        double maxBid;
+        double increment;
+    }
+
     private static class PlaceBidRequest {
         int auctionId;
         double amount;
