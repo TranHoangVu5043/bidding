@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AuctionService {
     private final AuctionDAO auctionDAO;
@@ -20,6 +21,13 @@ public class AuctionService {
     private final ItemDAO itemDAO;
     private final UserDAO userDAO;
     private final NotificationService notifService;
+
+    // ── Auction list cache ───────────────────────────────────────────────────
+    // Avoids a full Supabase round-trip on every GET /api/auctions.
+    // TTL = 30 s; invalidated immediately on any write (create/cancel/refresh).
+    private static final long AUCTION_CACHE_TTL_MS = 30_000L;
+    private volatile List<Auction> auctionCache   = null;
+    private final AtomicLong       auctionCachedAt = new AtomicLong(0);
 
     public AuctionService(AuctionDAO auctionDAO, BidDAO bidDAO, ItemDAO itemDAO) {
         this(auctionDAO, bidDAO, itemDAO, null, null);
@@ -42,7 +50,9 @@ public class AuctionService {
         LocalDateTime now = LocalDateTime.now();
         auction.setStatus(auction.getStartTime().isAfter(now) ? "UPCOMING" : "ACTIVE");
         auction.setCurrentPrice(auction.getStartingPrice());
-        return auctionDAO.create(auction);
+        Auction created = auctionDAO.create(auction);
+        invalidateAuctionCache();
+        return created;
     }
 
     public Auction getAuction(int auctionId) {
@@ -50,7 +60,20 @@ public class AuctionService {
     }
 
     public List<Auction> getAllAuctions() {
-        return auctionDAO.findAll();
+        long now = System.currentTimeMillis();
+        if (auctionCache != null && now - auctionCachedAt.get() < AUCTION_CACHE_TTL_MS) {
+            System.out.println("[BENCH] CACHE  getAllAuctions  → hit");
+            return auctionCache;
+        }
+        List<Auction> fresh = auctionDAO.findAll();
+        auctionCache    = fresh;
+        auctionCachedAt.set(now);
+        return fresh;
+    }
+
+    /** Call after any write that changes auction state. */
+    private void invalidateAuctionCache() {
+        auctionCache = null;
     }
 
     public List<Auction> getAuctionsByOwner(int ownerId) {
@@ -72,6 +95,7 @@ public class AuctionService {
 
         boolean cancelled = auctionDAO.updateStatus(auctionId, "CANCELLED");
         if (!cancelled) return false;
+        invalidateAuctionCache();
 
         // Refund all bidders — sum up each user's total bids and credit back
         List<Bid> bids = bidDAO.getBidsByAuction(auctionId);
@@ -119,6 +143,7 @@ public class AuctionService {
         }
 
         auctionDAO.updateStatus(auctionId, newStatus);
+        invalidateAuctionCache();
     }
 //    public List<Auction> getAllActiveAuctions(){
 //        List<Auction> list = auctionDAO.getActiveAuctions();

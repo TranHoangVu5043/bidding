@@ -36,13 +36,11 @@ public class ApiClient {
 
         attachToken(builder);
 
-        HttpRequest request = builder.build();
-
+        long start = System.currentTimeMillis();
         HttpResponse<String> response =
-                client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
+                client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        long ms = System.currentTimeMillis() - start;
+        System.out.printf("[BENCH] CLIENT  GET    %-40s →  %d ms%n", path, ms);
 
         return response.body();
     }
@@ -62,13 +60,11 @@ public class ApiClient {
 
         attachToken(builder);
 
-        HttpRequest request = builder.build();
-
+        long start = System.currentTimeMillis();
         HttpResponse<String> response =
-                client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
+                client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        long ms = System.currentTimeMillis() - start;
+        System.out.printf("[BENCH] CLIENT  POST   %-40s →  %d ms%n", path, ms);
 
         return response.body();
     }
