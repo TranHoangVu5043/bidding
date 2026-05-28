@@ -117,7 +117,7 @@
                                 <VBox spacing="12">
                                     <children>
                                         <HBox alignment="CENTER_LEFT" spacing="10">
-                                            <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="🔨 Sàn Đấu Giá" textFill="#1f1f1f" />
+                                            <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="🔨 Sàn Đấu Giá" />
                                             <Region HBox.hgrow="ALWAYS" />
                                             <ComboBox fx:id="cmbFilter" prefWidth="140" promptText="Lọc theo..." style="-fx-background-radius: 8;" />
                                             <Button fx:id="btnRefreshAuctions" onAction="#handleRefreshAuctions" style="-fx-background-color: #E0F2FE; -fx-text-fill: #0066CC;                                                            -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 14;" text="🔄 Làm mới" />
@@ -212,7 +212,7 @@
                     <content>
                         <VBox spacing="20" style="-fx-padding: 25; -fx-max-width: 650;">
                             <children>
-                                <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="👤 Hồ Sơ Cá Nhân" textFill="#222020" />
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="👤 Hồ Sơ Cá Nhân" />
 
                                 <!-- Avatar section -->
                                 <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
