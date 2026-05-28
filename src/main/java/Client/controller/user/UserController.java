@@ -56,6 +56,7 @@ public class UserController {
     // ══════════════════════════════════════════
     @FXML private Button btnDashBoard;
     @FXML private Button btnAuction;
+    @FXML private Button btnOrderHistory;
     @FXML private Button btnNotification;
     @FXML private Button btnProfile;
     @FXML private Button btnSettings;
@@ -142,7 +143,10 @@ public class UserController {
     private final NotificationApi notifApi   = new NotificationApi();
     private final Client.networking.endpoints.OrderApi orderApi = new Client.networking.endpoints.OrderApi();
 
-    private final ObservableList<Auction> liveAuctions    = FXCollections.observableArrayList();
+    private final ObservableList<Auction> liveAuctions        = FXCollections.observableArrayList();
+    private final ObservableList<Auction> myBiddingAuctions   = FXCollections.observableArrayList();
+    /** Whichever list is currently rendered — used by pagination. */
+    private List<Auction> currentDisplayList = liveAuctions;
     /** auctionId → the price Label inside that card, for targeted live updates */
     private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
     /** Single persistent WebSocket connection for the auction floor */
@@ -164,14 +168,17 @@ public class UserController {
     public void initialize() {
         setupComboBoxes();
         populateUserInfo();
-        loadAuctions();
+        loadMyBiddingAuctions();   // Dashboard is the landing tab — show user's own bids
         loadNotifications();
         setupHistoryTable();
+
+        // Highlight Dashboard as the default active sidebar button
+        setActiveNavButton(btnDashBoard);
 
         // Re-filter cards whenever the ComboBox value changes; reset to page 0
         cmbFilter.valueProperty().addListener((obs, old, val) -> {
             currentPage = 0;
-            renderAuctionCards(liveAuctions);
+            renderAuctionCards(currentDisplayList);
         });
     }
 
@@ -204,12 +211,12 @@ public class UserController {
     // ══════════════════════════════════════════
     // Sidebar Navigation
     // ══════════════════════════════════════════
-    @FXML private void handleDashBoard()    { switchTab(tabDashboard,    "Dashboard"); }
-    @FXML private void handleAuction()      { switchTab(tabDashboard,    "Sàn Đấu Giá"); loadAuctions(); }
-    @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
-    @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
-    @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
-    @FXML private void handleHistory()      { switchTab(tabOrderHistory, "Lịch Sử Đơn Hàng"); loadOrderHistory(); }
+    @FXML private void handleDashBoard()    { switchTab(tabDashboard, btnDashBoard); loadMyBiddingAuctions(); }
+    @FXML private void handleAuction()      { switchTab(tabDashboard, btnAuction);   loadAuctions(); }
+    @FXML private void handleNotification() { switchTab(tabNotification, btnNotification); loadNotifications(); }
+    @FXML private void handleProfile()      { switchTab(tabProfile,      btnProfile); }
+    @FXML private void handleSettings()     { switchTab(tabSettings,     btnSettings); }
+    @FXML private void handleHistory()      { switchTab(tabOrderHistory, btnOrderHistory); loadOrderHistory(); }
 
 
     @FXML
@@ -245,13 +252,49 @@ public class UserController {
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
                     liveAuctions.setAll(response.getData());
                     livePriceLabels.clear();
-                    renderAuctionCards(liveAuctions);
+                    currentDisplayList = liveAuctions;
+                    currentPage = 0;
+                    renderAuctionCards(currentDisplayList);
                     updateAuctionStats();
                     connectWebSocket();   // subscribe to all active auctions
                 } else {
                     auctionFlowPane.getChildren().clear();
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
                     Label err = new Label("❌ Không thể tải phiên đấu giá: " + msg);
+                    err.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 13;");
+                    auctionFlowPane.getChildren().add(err);
+                }
+            });
+        }).start();
+    }
+
+    /** Fetches only auctions the current user has placed bids on. */
+    private void loadMyBiddingAuctions() {
+        if (auctionFlowPane == null) return;
+
+        auctionFlowPane.getChildren().clear();
+        Label loading = new Label("⏳ Đang tải phiên đấu giá của bạn...");
+        loading.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13;");
+        auctionFlowPane.getChildren().add(loading);
+
+        new Thread(() -> {
+            ApiResponse<List<Auction>> response = bidApi.getMyBiddingAuctions();
+            Platform.runLater(() -> {
+                auctionFlowPane.getChildren().clear();
+                if (response != null && response.getStatus() == 200 && response.getData() != null) {
+                    myBiddingAuctions.setAll(response.getData());
+                    currentDisplayList = myBiddingAuctions;
+                    currentPage = 0;
+                    if (myBiddingAuctions.isEmpty()) {
+                        Label empty = new Label("Bạn chưa tham gia phiên đấu giá nào.");
+                        empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
+                        auctionFlowPane.getChildren().add(empty);
+                    } else {
+                        renderAuctionCards(currentDisplayList);
+                    }
+                } else {
+                    String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
+                    Label err = new Label("❌ Không thể tải dữ liệu: " + msg);
                     err.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 13;");
                     auctionFlowPane.getChildren().add(err);
                 }
@@ -353,12 +396,12 @@ public class UserController {
     }
 
     @FXML private void handlePrevPage() {
-        if (currentPage > 0) { currentPage--; renderAuctionCards(liveAuctions); }
+        if (currentPage > 0) { currentPage--; renderAuctionCards(currentDisplayList); }
     }
 
     @FXML private void handleNextPage() {
         int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
-        if (currentPage < total - 1) { currentPage++; renderAuctionCards(liveAuctions); }
+        if (currentPage < total - 1) { currentPage++; renderAuctionCards(currentDisplayList); }
     }
 
     /** Builds one auction card VBox programmatically to match the FXML design style. */
@@ -626,7 +669,8 @@ public class UserController {
     /** Fetches bid history for an auction and shows it as a line chart (no table). */
     private void showBidHistory(Auction auction) {
         CategoryAxis xAxis = new CategoryAxis();
-        xAxis.setLabel("Người đặt  –  Thời gian");
+        xAxis.setLabel("Lượt đặt");
+        xAxis.setTickLabelRotation(30);
 
         NumberAxis yAxis = new NumberAxis();
         yAxis.setLabel("Số tiền (₫)");
@@ -636,22 +680,42 @@ public class UserController {
         chart.setTitle("Lịch sử giá đặt – Phiên #" + auction.getId());
         chart.setAnimated(false);
         chart.setCreateSymbols(true);
-        chart.setPrefSize(620, 380);
         chart.setLegendVisible(false);
+        chart.setPrefWidth(640);
+        chart.setPrefHeight(360);
+        VBox.setVgrow(chart, javafx.scene.layout.Priority.ALWAYS);
 
         Label placeholder = new Label("⏳ Đang tải...");
         placeholder.setStyle("-fx-text-fill: #555; -fx-font-size: 13;");
 
         VBox content = new VBox(10, placeholder);
         content.setPadding(new Insets(10));
+        content.setPrefHeight(400);
 
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Lịch sử đấu giá – Phiên #" + auction.getId());
-        dialog.setHeaderText("Phiên #" + auction.getId()
+        Stage stage = new Stage();
+        stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        stage.setTitle("Lịch sử đấu giá – Phiên #" + auction.getId());
+        stage.setMinWidth(680);
+        stage.setMinHeight(480);
+
+        Label header = new Label("Phiên #" + auction.getId()
                 + "  |  Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefWidth(660);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        header.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #1d4ed8; -fx-padding: 8 0 4 0;");
+
+        Button btnClose = new Button("Đóng");
+        btnClose.setOnAction(e -> stage.close());
+        btnClose.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
+                "-fx-background-radius: 6; -fx-padding: 6 20;");
+
+        HBox footer = new HBox(btnClose);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        footer.setPadding(new Insets(8, 10, 8, 10));
+
+        VBox root = new VBox(0, header, content, footer);
+        root.setPadding(new Insets(10, 14, 4, 14));
+        VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+
+        stage.setScene(new javafx.scene.Scene(root, 680, 480));
 
         new Thread(() -> {
             ApiResponse<List<Bid>> resp = bidApi.getBidHistory(auction.getId());
@@ -669,15 +733,23 @@ public class UserController {
                             .sorted(java.util.Comparator.comparing(Bid::getCreatedAt))
                             .toList();
 
+                    // Auto-scale Y axis with padding
+                    double minAmt = sorted.stream().mapToDouble(Bid::getAmount).min().orElse(0);
+                    double maxAmt = sorted.stream().mapToDouble(Bid::getAmount).max().orElse(1);
+                    double pad = Math.max((maxAmt - minAmt) * 0.15, maxAmt * 0.05);
+                    yAxis.setAutoRanging(false);
+                    yAxis.setLowerBound(Math.max(0, minAmt - pad));
+                    yAxis.setUpperBound(maxAmt + pad);
+                    yAxis.setTickUnit(Math.max(1, (maxAmt - minAmt + 2 * pad) / 6));
+
                     XYChart.Series<String, Number> series = new XYChart.Series<>();
                     for (int i = 0; i < sorted.size(); i++) {
                         Bid b = sorted.get(i);
                         String name = b.getUsername() != null ? b.getUsername() : "User#" + b.getUserId();
                         String time = formatBidTime(b.getCreatedAt(), i + 1);
-                        // X label: "username  HH:mm:ss"
-                        String xLabel = name + "\n" + time;
-                        XYChart.Data<String, Number> point = new XYChart.Data<>(xLabel, b.getAmount());
-                        series.getData().add(point);
+                        // X label: "#N  username  HH:mm" — single line, no \n
+                        String xLabel = "#" + (i + 1) + " " + name + " " + time;
+                        series.getData().add(new XYChart.Data<>(xLabel, b.getAmount()));
                     }
                     chart.getData().add(series);
                     content.getChildren().add(chart);
@@ -688,7 +760,7 @@ public class UserController {
             });
         }).start();
 
-        dialog.showAndWait();
+        stage.showAndWait();
     }
 
     private String formatBidTime(String createdAt, int index) {
@@ -839,12 +911,12 @@ public class UserController {
             renderAuctionCards(liveAuctions);
             return;
         }
-        List<Auction> filtered = liveAuctions.stream()
+        List<Auction> filtered = currentDisplayList.stream()
                 .filter(a -> String.valueOf(a.getId()).contains(keyword)
                         || String.valueOf(a.getItemId()).contains(keyword))
                 .collect(Collectors.toList());
         currentPage = 0;
-        switchTab(tabDashboard, "Dashboard");
+        switchTab(tabDashboard, btnDashBoard);
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
         if (filtered.isEmpty()) {
@@ -1085,9 +1157,31 @@ public class UserController {
 // ══════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════
-    private void switchTab(Tab tab, String title) {
+    private void switchTab(Tab tab, Button activeBtn) {
         if (mainTabPane != null && tab != null) {
             mainTabPane.getSelectionModel().select(tab);
+        }
+        setActiveNavButton(activeBtn);
+    }
+
+    private static final String NAV_ACTIVE   =
+            "-fx-background-color: #0066CC; -fx-background-radius: 8; " +
+            "-fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15; " +
+            "-fx-text-fill: white; -fx-cursor: hand;";
+    private static final String NAV_INACTIVE =
+            "-fx-background-color: transparent; -fx-background-radius: 8; " +
+            "-fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15; " +
+            "-fx-text-fill: #CBD5E1; -fx-cursor: hand;";
+
+    private void setActiveNavButton(Button active) {
+        Button[] navButtons = {
+            btnDashBoard, btnAuction, btnOrderHistory,
+            btnNotification, btnProfile, btnSettings
+        };
+        for (Button btn : navButtons) {
+            if (btn != null) {
+                btn.setStyle(btn == active ? NAV_ACTIVE : NAV_INACTIVE);
+            }
         }
     }
 

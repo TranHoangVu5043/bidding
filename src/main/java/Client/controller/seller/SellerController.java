@@ -136,6 +136,17 @@ public class SellerController {
         if (txtAuctionSearch != null) {
             txtAuctionSearch.textProperty().addListener((obs, oldVal, newVal) -> applyAuctionFilter());
         }
+        if (cmbHistoryType != null) {
+            cmbHistoryType.setItems(FXCollections.observableArrayList("Tất cả", "Đặt giá", "Đơn hàng"));
+            cmbHistoryType.setValue("Tất cả");
+        }
+        if (cmbHistoryDate != null) {
+            cmbHistoryDate.setItems(FXCollections.observableArrayList("Tất cả", "Hôm nay", "7 ngày qua", "30 ngày qua"));
+            cmbHistoryDate.setValue("Tất cả");
+        }
+        if (txtHistorySearch != null) {
+            txtHistorySearch.textProperty().addListener((obs, o, n) -> loadHistory());
+        }
 
         // Tải dữ liệu từ mạng khi khởi chạy ứng dụng lần đầu
         populateSellerInfo();
@@ -459,6 +470,7 @@ public class SellerController {
     private void showItemDetail(Item item) {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
+        popup.initOwner(mainTabPane.getScene().getWindow());
         popup.setTitle("Chi tiết sản phẩm");
         popup.setResizable(false);
 
@@ -688,6 +700,7 @@ public class SellerController {
     private void showEditItemDialog(Item item) {
         Stage editStage = new Stage();
         editStage.initModality(Modality.APPLICATION_MODAL);
+        editStage.initOwner(mainTabPane.getScene().getWindow());
         editStage.setTitle("Chỉnh sửa sản phẩm");
         editStage.setResizable(false);
 
@@ -806,6 +819,7 @@ public class SellerController {
     private void showSellerAuctionDetail(Auction auction) {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
+        popup.initOwner(mainTabPane.getScene().getWindow());
         popup.setTitle("Chi tiết phiên đấu giá #" + auction.getId());
         popup.setResizable(false);
 
@@ -1139,8 +1153,8 @@ public class SellerController {
     private void highlightButton(Button active) {
         // Gom các nút của Seller vào mảng
         Button[] allButtons = {
-                btnDashboard, btnInventory, btnAddProduct, btnAuctions,
-                btnHistory, btnProfile
+                btnDashboard, btnInventory, btnAddProduct,
+                btnAuctions, btnHistory, btnProfile
         };
 
         for (Button btn : allButtons) {

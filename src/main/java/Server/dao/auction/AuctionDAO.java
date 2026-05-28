@@ -179,6 +179,26 @@ public class AuctionDAO {
                 rs.getString("status")
         );
     }
+    /** Returns all auctions where the given user has placed at least one bid. */
+    public List<Auction> findByBidder(int userId) {
+        List<Auction> auctions = new ArrayList<>();
+        String sql = """
+            SELECT DISTINCT a.* FROM auctions a
+            JOIN bids b ON b.auction_id = a.id
+            WHERE b.user_id = ?
+            ORDER BY a.end_time ASC
+        """;
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) auctions.add(mapRow(rs));
+        } catch (SQLException e) {
+            log("findByBidder failed for userId=" + userId, e);
+        }
+        return auctions;
+    }
+
     public List<Auction> getActiveAuctions(){
         List<Auction> list = new ArrayList<>();
         String sql = "SELECT * FROM auctions WHERE status = 'ACTIVE' AND end_time > NOW()";

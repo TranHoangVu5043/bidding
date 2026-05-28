@@ -1,6 +1,7 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
@@ -69,6 +70,20 @@ public class BidApiController {
                 return new BidDTO(b, username);
             }).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
+
+        } catch (Exception e) {
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
+    // GET /api/bids/my-auctions
+    public void getMyBiddingAuctions(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+
+            List<Auction> auctions = biddingService.getAuctionsForBidder(user.getId());
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", auctions)));
 
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());

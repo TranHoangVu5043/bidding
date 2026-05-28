@@ -80,9 +80,10 @@ public class ServerApp {
         router.register("POST", "/api/auctions/refresh", auctionController::refreshStatus);
 
         // --- Bid routes ---
-        router.register("POST", "/api/bids/place",   bidController::placeBid);
-        router.register("POST", "/api/bids/history", bidController::getBidHistory);
-        router.register("POST", "/api/bids/autobid", bidController::registerAutoBid);
+        router.register("POST", "/api/bids/place",        bidController::placeBid);
+        router.register("POST", "/api/bids/history",      bidController::getBidHistory);
+        router.register("POST", "/api/bids/autobid",      bidController::registerAutoBid);
+        router.register("GET",  "/api/bids/my-auctions",  bidController::getMyBiddingAuctions);
 
         // --- Item routes ---
         router.register("GET",  "/api/items",          itemController::getMyItems);
