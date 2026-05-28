@@ -80,6 +80,34 @@ public class BidDAO {
     }
 
 
+    public double getMaxBidByUser(int userId, int auctionId) {
+        String sql = "SELECT COALESCE(MAX(amount), 0) FROM bids WHERE user_id = ? AND auction_id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, auctionId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getDouble(1);
+        } catch (SQLException e) {
+            System.err.println("[ERROR] getMaxBidByUser failed: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public int getBidCountByUser(int userId, int auctionId) {
+        String sql = "SELECT COUNT(*) FROM bids WHERE user_id = ? AND auction_id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, auctionId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("[ERROR] getBidCountByUser failed: " + e.getMessage());
+        }
+        return 0;
+    }
+
     private Bid mapRow(ResultSet rs) throws SQLException {
         return new Bid(
                 rs.getInt("id"),

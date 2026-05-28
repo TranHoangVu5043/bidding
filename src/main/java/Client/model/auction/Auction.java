@@ -37,4 +37,8 @@ public class Auction {
     private String sellerName;
     public String getSellerName() { return sellerName; }
     public void setSellerName(String sellerName) { this.sellerName = sellerName; }
+
+    private String itemName;
+    public String getItemName() { return itemName; }
+    public void setItemName(String itemName) { this.itemName = itemName; }
 }

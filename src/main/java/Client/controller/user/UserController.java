@@ -3,7 +3,7 @@ package Client.controller.user;
 import Client.model.Notification;
 import Client.model.auction.Auction;
 import Client.model.auction.Bid;
-import Client.model.auction.Order;
+import Client.model.auction.BidHistoryItem;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -18,7 +18,6 @@ import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -29,7 +28,6 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Modality;
@@ -68,7 +66,7 @@ public class UserController {
     // ══════════════════════════════════════════
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
-    @FXML private Tab tabOrderHistory;
+    @FXML private Tab tabBidHistory;
     @FXML private Tab tabNotification;
     @FXML private Tab tabProfile;
     @FXML private Tab tabSettings;
@@ -124,15 +122,9 @@ public class UserController {
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
 
-    // tabOrderHistory
-    @FXML private ComboBox<String> cbStatusFilter;
-    @FXML private TextField         txtSearchField ;
-    @FXML private TableView<Order>  tableOrderHistory;
-    @FXML private TableColumn<Order, Long> colId;
-    @FXML private TableColumn<Order, String> colDate;
-    @FXML private TableColumn<Order, String> colProduct;
-    @FXML private TableColumn<Order, Double> colTotal;
-    @FXML private TableColumn<Order, String> colStatus;
+    // ── Tab Bid History ──
+    @FXML private ComboBox<String> cmbBidHistoryFilter;
+    @FXML private VBox             bidHistoryList;
 
     // ══════════════════════════════════════════
     // APIs & Data
@@ -141,7 +133,6 @@ public class UserController {
     private final AuctionApi      auctionApi = new AuctionApi();
     private final BidApi          bidApi     = new BidApi();
     private final NotificationApi notifApi   = new NotificationApi();
-    private final Client.networking.endpoints.OrderApi orderApi = new Client.networking.endpoints.OrderApi();
 
     private final ObservableList<Auction> liveAuctions        = FXCollections.observableArrayList();
     private final ObservableList<Auction> myBiddingAuctions   = FXCollections.observableArrayList();
@@ -152,8 +143,11 @@ public class UserController {
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
 
-    private FilteredList<Order> filteredData;
-    private final ObservableList<Order> orderData = FXCollections.observableArrayList();
+    /** Cached bid history items so the filter ComboBox can re-filter without a network call. */
+    private List<BidHistoryItem> cachedBidHistory = List.of();
+
+    /** Background thread that polls the notification count every 30 s to keep the badge fresh. */
+    private Thread notifPollerThread;
 
     // ── Pagination ──────────────────────────────────────────────────────────
     private static final int PAGE_SIZE = 9;
@@ -170,16 +164,48 @@ public class UserController {
         populateUserInfo();
         loadMyBiddingAuctions();   // Dashboard is the landing tab — show user's own bids
         loadNotifications();
-        setupHistoryTable();
 
         // Highlight Dashboard as the default active sidebar button
         setActiveNavButton(btnDashBoard);
 
-        // Re-filter cards whenever the ComboBox value changes; reset to page 0
+        // Re-filter auction cards whenever the ComboBox value changes; reset to page 0
         cmbFilter.valueProperty().addListener((obs, old, val) -> {
             currentPage = 0;
             renderAuctionCards(currentDisplayList);
         });
+
+        // Re-filter bid history when outcome filter changes
+        if (cmbBidHistoryFilter != null) {
+            cmbBidHistoryFilter.valueProperty().addListener((obs, old, val) ->
+                    renderBidHistoryCards(cachedBidHistory));
+        }
+
+        // Background poller: refresh the notification badge every 30 s
+        startNotifPoller();
+    }
+
+    private void startNotifPoller() {
+        notifPollerThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Thread.sleep(30_000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                ApiResponse<List<Notification>> resp = notifApi.getNotifications();
+                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                    long unread = resp.getData().stream().filter(n -> !n.isRead()).count();
+                    Platform.runLater(() -> {
+                        if (lblNotifCount != null)
+                            lblNotifCount.setText(unread > 0 ? String.valueOf(unread) : "0");
+                    });
+                }
+            }
+        });
+        notifPollerThread.setDaemon(true);   // dies when the JVM exits
+        notifPollerThread.setName("notif-poller");
+        notifPollerThread.start();
     }
 
     /** Reads the User saved by LoginController and fills every label/field that shows user data. */
@@ -204,6 +230,11 @@ public class UserController {
     private void setupComboBoxes() {
         cmbFilter.setItems(FXCollections.observableArrayList(
                 "Tất cả", "Đang chạy", "Sắp diễn ra", "Đã kết thúc"));
+        if (cmbBidHistoryFilter != null) {
+            cmbBidHistoryFilter.setItems(FXCollections.observableArrayList(
+                    "Tất cả", "Đã thắng", "Đã thua"));
+            cmbBidHistoryFilter.getSelectionModel().selectFirst();
+        }
         cmbLanguage.setItems(FXCollections.observableArrayList("Tiếng Việt", "English"));
         cmbCurrency.setItems(FXCollections.observableArrayList("VNĐ", "USD"));
     }
@@ -211,17 +242,19 @@ public class UserController {
     // ══════════════════════════════════════════
     // Sidebar Navigation
     // ══════════════════════════════════════════
-    @FXML private void handleDashBoard()    { switchTab(tabDashboard, btnDashBoard); loadMyBiddingAuctions(); }
-    @FXML private void handleAuction()      { switchTab(tabDashboard, btnAuction);   loadAuctions(); }
+    @FXML private void handleDashBoard()    { switchTab(tabDashboard,   btnDashBoard);   loadMyBiddingAuctions(); }
+    @FXML private void handleAuction()      { switchTab(tabDashboard,   btnAuction);     loadAuctions(); }
     @FXML private void handleNotification() { switchTab(tabNotification, btnNotification); loadNotifications(); }
     @FXML private void handleProfile()      { switchTab(tabProfile,      btnProfile); }
     @FXML private void handleSettings()     { switchTab(tabSettings,     btnSettings); }
-    @FXML private void handleHistory()      { switchTab(tabOrderHistory, btnOrderHistory); loadOrderHistory(); }
+    @FXML private void handleHistory()      { switchTab(tabBidHistory,   btnOrderHistory); loadBidHistory(); }
+    @FXML private void handleRefreshBidHistory() { loadBidHistory(); }
 
 
     @FXML
     private void handleSignOut() {
         if (wsClient != null) wsClient.closeConnection();
+        if (notifPollerThread != null) notifPollerThread.interrupt();
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }
@@ -428,7 +461,9 @@ public class UserController {
         Region imgBg = new Region();
         imgBg.setPrefSize(186, 120);
         imgBg.setStyle("-fx-background-color: #EFF6FF; -fx-background-radius: 8;");
-        Label imgLabel = new Label("🏷  Mặt hàng #" + auction.getItemId());
+        String itemDisplay = (auction.getItemName() != null && !auction.getItemName().isBlank())
+                ? auction.getItemName() : "Mặt hàng #" + auction.getItemId();
+        Label imgLabel = new Label("🏷  " + itemDisplay);
         imgLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #6B7280;");
         Label hintLabel = new Label("Nhấn để xem chi tiết");
         hintLabel.setStyle("-fx-font-size: 10; -fx-text-fill: #9CA3AF; -fx-padding: 4 0 0 0;");
@@ -819,7 +854,9 @@ public class UserController {
         grid.setVgap(12);
         grid.setPadding(new Insets(20, 28, 4, 28));
 
-        addAuctionDetailRow(grid, 0, "📦 Mã sản phẩm",  "#" + auction.getItemId());
+        String itemDetailDisplay = (auction.getItemName() != null && !auction.getItemName().isBlank())
+                ? auction.getItemName() : "#" + auction.getItemId();
+        addAuctionDetailRow(grid, 0, "📦 Sản phẩm", itemDetailDisplay);
         addAuctionDetailRow(grid, 1, "💵 Giá khởi điểm", String.format("%,.0f ₫", auction.getStartingPrice()));
 
         addAuctionDetailRow(grid, 2, "🔥 Giá hiện tại",
@@ -1072,8 +1109,6 @@ public class UserController {
         }).start();
     }
 
-    @FXML private void handleChangeAvatar() { /* TODO: open image picker dialog */ }
-
     // ══════════════════════════════════════════
     // Settings
     // ══════════════════════════════════════════
@@ -1102,55 +1137,113 @@ public class UserController {
             btn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 15;");
         }
     }
-    // History
-    @FXML
-    private void loadOrderHistory() {
+    // ══════════════════════════════════════════
+    // Bid History
+    // ══════════════════════════════════════════
+
+    private void loadBidHistory() {
+        if (bidHistoryList == null) return;
+        bidHistoryList.getChildren().clear();
+        Label loading = new Label("⏳ Đang tải lịch sử đặt giá...");
+        loading.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13;");
+        bidHistoryList.getChildren().add(loading);
+
         new Thread(() -> {
-            ApiResponse<List<Order>> resp = orderApi.getAllOrders();
+            ApiResponse<List<BidHistoryItem>> resp = bidApi.getMyBidHistory();
             Platform.runLater(() -> {
-                orderData.clear();
+                bidHistoryList.getChildren().clear();
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    orderData.setAll(resp.getData());
+                    cachedBidHistory = resp.getData();
+                    renderBidHistoryCards(cachedBidHistory);
                 } else {
-                    String msg = resp != null ? resp.getMessage() : "Mất kết nối";
-                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải đơn hàng: " + msg);
+                    String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                    Label err = new Label("❌ Không thể tải lịch sử: " + msg);
+                    err.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 13;");
+                    bidHistoryList.getChildren().add(err);
                 }
             });
         }).start();
     }
 
-    public void setupHistoryTable() {
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
-        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        //ComboBox
-        cbStatusFilter.getItems().clear();
-        cbStatusFilter.getItems().addAll("Tất cả", "Thành công", "Thất bại");
-        cbStatusFilter.getSelectionModel().select("Tất cả");
-        //Search
-        FilteredList<Order> filteredData = new FilteredList<>(orderData, p -> true);
-        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
-            applyFilter(filteredData);
-        });
-        txtSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            applyFilter(filteredData);
-        });
-        tableOrderHistory.setItems(filteredData);
-    }
-    private void applyFilter(FilteredList<Order> filteredData) {
-        filteredData.setPredicate(order -> {
-            String status = cbStatusFilter.getValue();
-            String searchText = txtSearchField != null ? txtSearchField.getText().toLowerCase().trim() : "";
-            boolean matchesStatus = (status == null || status.equals("Tất cả"))
-                    || (order.getStatus() != null && order.getStatus().equals(status));
-            boolean matchesSearch = searchText.isEmpty()
-                    || (order.getProductName() != null && order.getProductName().toLowerCase().contains(searchText))
-                    || (String.valueOf(order.getId()).contains(searchText));
+    private void renderBidHistoryCards(List<BidHistoryItem> items) {
+        if (bidHistoryList == null) return;
+        bidHistoryList.getChildren().clear();
 
-            return matchesStatus && matchesSearch;
-        });
+        String filter = cmbBidHistoryFilter != null ? cmbBidHistoryFilter.getValue() : "Tất cả";
+        List<BidHistoryItem> filtered = items.stream().filter(it -> {
+            if (filter == null || "Tất cả".equals(filter)) return true;
+            return "Đã thắng".equals(filter) ? it.isWon() : !it.isWon();
+        }).toList();
+
+        if (filtered.isEmpty()) {
+            Label empty = new Label("Chưa có lịch sử đặt giá nào.");
+            empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
+            bidHistoryList.getChildren().add(empty);
+            return;
+        }
+
+        for (BidHistoryItem item : filtered) {
+            bidHistoryList.getChildren().add(buildBidHistoryCard(item));
+        }
+    }
+
+    private HBox buildBidHistoryCard(BidHistoryItem item) {
+        Auction a = item.getAuction();
+        boolean won = item.isWon();
+
+        // ── Outcome badge ──
+        String outcomeColor = won ? "#16A34A" : "#D32F2F";
+        String outcomeText  = won ? "🏆 Đã thắng" : "❌ Đã thua";
+        Label lblOutcome = new Label(outcomeText);
+        lblOutcome.setStyle("-fx-text-fill: white; -fx-font-size: 11; -fx-font-weight: bold; " +
+                "-fx-background-color: " + outcomeColor + "; " +
+                "-fx-background-radius: 6; -fx-padding: 3 8;");
+
+        // ── Auction info ──
+        Label lblTitle = new Label("Phiên đấu giá #" + (a != null ? a.getId() : "?"));
+        lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
+
+        String sellerStr = (a != null && a.getSellerName() != null) ? a.getSellerName() : "—";
+        Label lblSeller = new Label("🏪 " + sellerStr);
+        lblSeller.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+        Label lblEndDate = new Label("📅 Kết thúc: " + (a != null ? formatDisplayTime(a.getEndTime()) : "—"));
+        lblEndDate.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+        Label lblMyBid = new Label(String.format("💰 Giá đặt cao nhất của bạn: %,.0f ₫", item.getMyHighestBid()));
+        lblMyBid.setStyle("-fx-font-size: 12; -fx-font-weight: bold; " +
+                "-fx-text-fill: " + (won ? "#16A34A" : "#D32F2F") + ";");
+
+        double winPrice = a != null ? a.getCurrentPrice() : 0;
+        Label lblWinPrice = new Label(String.format("🔔 Giá thắng cuộc: %,.0f ₫", winPrice));
+        lblWinPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
+
+        Label lblCount = new Label("🔢 Số lần đặt giá: " + item.getMyBidCount());
+        lblCount.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+        VBox infoBox = new VBox(5, lblTitle, lblSeller, lblEndDate, lblMyBid, lblWinPrice, lblCount);
+        HBox.setHgrow(infoBox, javafx.scene.layout.Priority.ALWAYS);
+
+        // ── Left colour bar ──
+        Region bar = new Region();
+        bar.setPrefWidth(5);
+        bar.setMinHeight(80);
+        bar.setStyle("-fx-background-color: " + outcomeColor + "; -fx-background-radius: 4 0 0 4;");
+
+        // ── Badge column ──
+        VBox badgeCol = new VBox(lblOutcome);
+        badgeCol.setAlignment(Pos.CENTER);
+        badgeCol.setPrefWidth(90);
+
+        HBox card = new HBox(0, bar, infoBox, badgeCol);
+        card.setPadding(new Insets(14, 14, 14, 10));
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setSpacing(12);
+        String bg = won ? "#F0FDF4" : "#FFF5F5";
+        String border = won ? "#BBF7D0" : "#FECACA";
+        card.setStyle("-fx-background-color: " + bg + "; -fx-background-radius: 10; " +
+                "-fx-border-color: " + border + "; -fx-border-radius: 10; -fx-border-width: 1;");
+        return card;
     }
 
 

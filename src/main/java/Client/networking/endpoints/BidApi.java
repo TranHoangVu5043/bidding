@@ -1,7 +1,11 @@
 package Client.networking.endpoints;
 
+import Client.dto.requests.AuctionIdBody;
+import Client.dto.requests.AutoBidBody;
+import Client.dto.requests.PlaceBidBody;
 import Client.model.auction.Auction;
 import Client.model.auction.Bid;
+import Client.model.auction.BidHistoryItem;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
 import com.google.gson.Gson;
@@ -16,7 +20,7 @@ public class BidApi {
 
     public ApiResponse<Void> placeBid(int auctionId, double amount) {
         try {
-            String json = apiClient.post("/bids/place", new PlaceBody(auctionId, amount));
+            String json = apiClient.post("/bids/place", new PlaceBidBody(auctionId, amount));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -27,6 +31,15 @@ public class BidApi {
         try {
             String json = apiClient.get("/bids/my-auctions");
             return gson.fromJson(json, new TypeToken<ApiResponse<List<Auction>>>() {}.getType());
+        } catch (Exception e) {
+            return error(e);
+        }
+    }
+
+    public ApiResponse<List<BidHistoryItem>> getMyBidHistory() {
+        try {
+            String json = apiClient.get("/bids/my-history");
+            return gson.fromJson(json, new TypeToken<ApiResponse<List<BidHistoryItem>>>() {}.getType());
         } catch (Exception e) {
             return error(e);
         }
@@ -57,23 +70,4 @@ public class BidApi {
         return r;
     }
 
-    private static class PlaceBody {
-        int auctionId;
-        double amount;
-        PlaceBody(int id, double amt) { this.auctionId = id; this.amount = amt; }
-    }
-
-    private static class AuctionIdBody {
-        int auctionId;
-        AuctionIdBody(int id) { this.auctionId = id; }
-    }
-
-    private static class AutoBidBody {
-        int auctionId;
-        double maxBid;
-        double increment;
-        AutoBidBody(int id, double max, double inc) {
-            this.auctionId = id; this.maxBid = max; this.increment = inc;
-        }
-    }
 }
