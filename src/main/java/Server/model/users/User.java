@@ -58,6 +58,7 @@ public abstract class User implements Entity {
         return balance;
     }
 
+
     @Override
     public abstract void displayInfo();
 }

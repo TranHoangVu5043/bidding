@@ -83,8 +83,8 @@ public class BidDAO {
     private Bid mapRow(ResultSet rs) throws SQLException {
         return new Bid(
                 rs.getInt("id"),
-                rs.getInt("auction_id"),
                 rs.getInt("user_id"),
+                rs.getInt("auction_id"),
                 rs.getDouble("amount"),
                 rs.getTimestamp("created_at").toLocalDateTime()
         );

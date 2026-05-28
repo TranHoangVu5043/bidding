@@ -3,7 +3,7 @@ package Server.service.auction;
 import Server.dao.auction.AuctionDAO;
 import Server.dao.auction.BidDAO;
 import Server.dao.users.UserDAO;
-import Server.websocket.BidWebSocketServer;
+//import Server.websocket.BidWebSocketServer;
 import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.User;
@@ -91,7 +91,7 @@ public class BiddingService {
                 conn.commit();
 
                 // Broadcast real-time update to all WebSocket subscribers
-                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount);
+//                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount);
 
                 if (autoBidConfigService != null)
                     autoBidConfigService.triggerAutoBidding(auctionId);
