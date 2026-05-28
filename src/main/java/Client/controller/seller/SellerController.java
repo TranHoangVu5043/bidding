@@ -620,15 +620,57 @@ public class SellerController {
         Separator sep2 = new Separator();
         sep2.setPadding(new Insets(4, 20, 4, 20));
 
+        // ── Edit button ──
+        Button btnEdit = new Button("✏ Chỉnh sửa");
+        btnEdit.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
+                "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand;");
+        btnEdit.setOnAction(e -> { popup.close(); showEditItemDialog(item); });
+
+        // ── Delete button (disabled when item is in an active/upcoming auction) ──
+        Button btnDelete = new Button("🗑 Xóa");
+        btnDelete.setDisable(hasOngoingAuction);
+        btnDelete.setStyle("-fx-background-color: " + (hasOngoingAuction ? "#9ca3af" : "#ef4444") + "; " +
+                "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; " +
+                "-fx-padding: 9 18; -fx-cursor: " + (hasOngoingAuction ? "default" : "hand") + ";");
+        if (!hasOngoingAuction) {
+            btnDelete.setOnAction(e -> {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle("Xác nhận xóa");
+                confirm.setHeaderText(null);
+                confirm.setContentText("Bạn có chắc muốn xóa sản phẩm \"" + item.getName() + "\"?\n"
+                        + "Hành động này không thể hoàn tác.");
+                confirm.showAndWait().ifPresent(resp -> {
+                    if (resp != ButtonType.OK) return;
+                    new Thread(() -> {
+                        ApiResponse<Void> res = itemApi.deleteItem(item.getId());
+                        Platform.runLater(() -> {
+                            popup.close();
+                            if (res != null && res.getStatus() == 200) {
+                                masterData.removeIf(i -> i.getId() == item.getId());
+                                renderInventoryCards(masterData);
+                                if (lblActiveProducts != null)
+                                    lblActiveProducts.setText(masterData.size() + " sản phẩm");
+                                SceneUtil.showAlert("Đã xóa",
+                                        "Sản phẩm \"" + item.getName() + "\" đã được xóa.");
+                            } else {
+                                String msg = res != null ? res.getMessage() : "Mất kết nối";
+                                SceneUtil.showAlert("Xóa thất bại", msg);
+                            }
+                        });
+                    }).start();
+                });
+            });
+        }
+
         // ── Return button ──
         Button btnClose = new Button("← Quay lại");
         btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #6B7280; " +
                 "-fx-font-weight: bold; -fx-font-size: 12; -fx-background-radius: 8; " +
-                "-fx-padding: 9 28; -fx-cursor: hand; " +
+                "-fx-padding: 9 18; -fx-cursor: hand; " +
                 "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
         btnClose.setOnAction(e -> popup.close());
 
-        HBox btnBar = new HBox(btnClose);
+        HBox btnBar = new HBox(8, btnEdit, btnDelete, btnClose);
         btnBar.setAlignment(Pos.CENTER);
         btnBar.setPadding(new Insets(12, 20, 20, 20));
 
@@ -640,6 +682,124 @@ public class SellerController {
 
         popup.setScene(new Scene(scroll, 420, 620));
         popup.showAndWait();
+    }
+
+    // ── Edit Item Popup ──
+    private void showEditItemDialog(Item item) {
+        Stage editStage = new Stage();
+        editStage.initModality(Modality.APPLICATION_MODAL);
+        editStage.setTitle("Chỉnh sửa sản phẩm");
+        editStage.setResizable(false);
+
+        // ── Header ──
+        Label titleLabel = new Label("✏  Chỉnh sửa: " + item.getName());
+        titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(360);
+
+        VBox header = new VBox(titleLabel);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(20, 28, 16, 28));
+        header.setStyle("-fx-background-color: " + categoryGradient(item.getCategory()) + ";");
+
+        // ── Form fields ──
+        Label lblName = new Label("Tên sản phẩm *");
+        lblName.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        TextField tfName = new TextField(item.getName() != null ? item.getName() : "");
+        tfName.setStyle("-fx-background-radius: 6; -fx-border-color: #D1D5DB; " +
+                "-fx-border-radius: 6; -fx-padding: 7; -fx-font-size: 12;");
+
+        Label lblDesc = new Label("Mô tả");
+        lblDesc.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        TextArea taDesc = new TextArea(item.getDescription() != null ? item.getDescription() : "");
+        taDesc.setWrapText(true);
+        taDesc.setPrefRowCount(3);
+        taDesc.setStyle("-fx-background-radius: 6; -fx-border-color: #D1D5DB; " +
+                "-fx-border-radius: 6; -fx-font-size: 12;");
+
+        Label lblCat = new Label("Danh mục *");
+        lblCat.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        ComboBox<String> cbCat = new ComboBox<>();
+        cbCat.setItems(FXCollections.observableArrayList("ELECTRONICS", "ART", "VEHICLE"));
+        cbCat.setValue(item.getCategory());
+        cbCat.setMaxWidth(Double.MAX_VALUE);
+
+        Label lblCond = new Label("Tình trạng *");
+        lblCond.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        ComboBox<String> cbCond = new ComboBox<>();
+        cbCond.setItems(FXCollections.observableArrayList("NEW", "USED", "REFURBISHED"));
+        cbCond.setValue(item.getCondition());
+        cbCond.setMaxWidth(Double.MAX_VALUE);
+
+        VBox form = new VBox(10, lblName, tfName, lblDesc, taDesc, lblCat, cbCat, lblCond, cbCond);
+        form.setPadding(new Insets(20, 28, 16, 28));
+
+        // ── Save button ──
+        Button btnSave = new Button("💾 Lưu thay đổi");
+        btnSave.setMaxWidth(Double.MAX_VALUE);
+        btnSave.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
+                "-fx-font-weight: bold; -fx-font-size: 13; -fx-background-radius: 8; " +
+                "-fx-padding: 10; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            String newName = tfName.getText().trim();
+            String newDesc = taDesc.getText().trim();
+            String newCat  = cbCat.getValue();
+            String newCond = cbCond.getValue();
+
+            if (newName.isEmpty()) {
+                SceneUtil.showAlert("Thiếu thông tin", "Tên sản phẩm không được để trống.");
+                return;
+            }
+            if (newCat == null) {
+                SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn danh mục.");
+                return;
+            }
+            if (newCond == null) {
+                SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn tình trạng.");
+                return;
+            }
+
+            btnSave.setDisable(true);
+            btnSave.setText("Đang lưu...");
+
+            new Thread(() -> {
+                ApiResponse<Void> res = itemApi.updateItem(item.getId(), newName, newDesc, newCat, newCond);
+                Platform.runLater(() -> {
+                    btnSave.setDisable(false);
+                    btnSave.setText("💾 Lưu thay đổi");
+                    if (res != null && res.getStatus() == 200) {
+                        // Update the in-memory model so the card reflects changes immediately
+                        item.setName(newName);
+                        item.setDescription(newDesc);
+                        item.setCategory(newCat);
+                        item.setCondition(newCond);
+                        renderInventoryCards(masterData);
+                        setupCategoryPieChart();
+                        editStage.close();
+                        SceneUtil.showAlert("Thành công", "Sản phẩm đã được cập nhật.");
+                    } else {
+                        String msg = res != null ? res.getMessage() : "Mất kết nối";
+                        SceneUtil.showAlert("Cập nhật thất bại", msg);
+                    }
+                });
+            }).start();
+        });
+
+        Button btnCancelEdit = new Button("Hủy");
+        btnCancelEdit.setMaxWidth(Double.MAX_VALUE);
+        btnCancelEdit.setStyle("-fx-background-color: transparent; -fx-text-fill: #6B7280; " +
+                "-fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand; " +
+                "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
+        btnCancelEdit.setOnAction(e -> editStage.close());
+
+        VBox btnBox = new VBox(8, btnSave, btnCancelEdit);
+        btnBox.setPadding(new Insets(4, 28, 24, 28));
+
+        VBox root = new VBox(header, form, btnBox);
+        root.setStyle("-fx-background-color: #f8fafc;");
+
+        editStage.setScene(new Scene(root, 420, 530));
+        editStage.showAndWait();
     }
 
     // ── Seller Auction Detail Popup ──

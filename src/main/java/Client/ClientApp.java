@@ -22,9 +22,9 @@ public class ClientApp extends Application {
         Parent root = FXMLLoader.load(fxml);
         primaryStage.setTitle("Auction App");
         primaryStage.setScene(new Scene(root));
-        primaryStage.setResizable(true);
-        primaryStage.setMinWidth(900);
-        primaryStage.setMinHeight(620);
+        primaryStage.setResizable(false);
+        primaryStage.setMinWidth(480);
+        primaryStage.setMinHeight(400);
         primaryStage.show();
     }
 

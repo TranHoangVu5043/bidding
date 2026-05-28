@@ -12,9 +12,9 @@ public class DataSourceFactory {
     static {
         HikariConfig cfg = new HikariConfig();
 
-        cfg.setJdbcUrl("jdbc:postgresql://db.kxxbzrejmsoxjtpnjpdo.supabase.co:5432/postgres?sslmode=require");
-        cfg.setUsername("postgres");
-        cfg.setPassword("LTNC_CS5#1234");
+        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://db.kxxbzrejmsoxjtpnjpdo.supabase.co:5432/postgres?sslmode=require"));
+        cfg.setUsername(env("DB_USER",    "postgres"));
+        cfg.setPassword(env("DB_PASSWORD","LTNC_CS5#1234"));
         cfg.setSchema("public");
         cfg.setDriverClassName("org.postgresql.Driver");
 
@@ -30,6 +30,11 @@ public class DataSourceFactory {
 
         pool = new HikariDataSource(cfg);
         System.out.println("[DB] HikariCP pool started  (minIdle=2, maxPool=10)");
+    }
+
+    private static String env(String key, String fallback) {
+        String v = System.getenv(key);
+        return (v != null && !v.isBlank()) ? v : fallback;
     }
 
     private DataSourceFactory() {}

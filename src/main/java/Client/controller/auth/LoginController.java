@@ -79,7 +79,7 @@ public class LoginController {
                 default       -> { fxmlFile = "UserView.fxml";   title = "Auction"; }
             }
 
-            Platform.runLater(() -> navigateTo(fxmlFile, title));
+            Platform.runLater(() -> navigateTo(fxmlFile, title, true));
 
         }).start();
     }
@@ -90,16 +90,18 @@ public class LoginController {
 
     @FXML
     void handleNavigateToRegister(ActionEvent event) {
-        navigateTo("Registerview.fxml", "Register");
+        navigateTo("Registerview.fxml", "Register", false);
     }
 
-    private void navigateTo(String fxmlFile, String title) {
+    private void navigateTo(String fxmlFile, String title, boolean resizable) {
         try {
+            System.out.println(title);
             String path = "/Client/views/" + fxmlFile;
             Parent root = FXMLLoader.load(getClass().getResource(path));
             Stage stage = (Stage) btnLogin.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle(title);
+            stage.setResizable(resizable);
             stage.centerOnScreen();
             stage.show();
         } catch (Exception e) {

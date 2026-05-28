@@ -21,8 +21,11 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Modality;
@@ -598,33 +601,26 @@ public class UserController {
         });
     }
 
-    /** Fetches bid history for an auction and shows it in a dialog with a TableView. */
+    /** Fetches bid history for an auction and shows it as a line chart (no table). */
     private void showBidHistory(Auction auction) {
-        // Build the table first (shown immediately; data fills in asynchronously)
-        TableView<Bid> table = new TableView<>();
-        table.setPrefSize(480, 280);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPlaceholder(new Label("⏳ Đang tải..."));
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Người đặt  –  Thời gian");
 
-        TableColumn<Bid, Integer> colUser = new TableColumn<>("Người đặt (ID)");
-        colUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Số tiền (₫)");
+        yAxis.setForceZeroInRange(false);
 
-        TableColumn<Bid, Double> colAmount = new TableColumn<>("Số tiền");
-        colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Double val, boolean empty) {
-                super.updateItem(val, empty);
-                setText(empty || val == null ? null : String.format("%,.0f ₫", val));
-            }
-        });
+        LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
+        chart.setTitle("Lịch sử giá đặt – Phiên #" + auction.getId());
+        chart.setAnimated(false);
+        chart.setCreateSymbols(true);
+        chart.setPrefSize(620, 380);
+        chart.setLegendVisible(false);
 
-        TableColumn<Bid, String> colTime = new TableColumn<>("Thời gian");
-        colTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
+        Label placeholder = new Label("⏳ Đang tải...");
+        placeholder.setStyle("-fx-text-fill: #555; -fx-font-size: 13;");
 
-        table.getColumns().addAll(colUser, colAmount, colTime);
-
-        VBox content = new VBox(10, table);
+        VBox content = new VBox(10, placeholder);
         content.setPadding(new Insets(10));
 
         Dialog<Void> dialog = new Dialog<>();
@@ -632,25 +628,52 @@ public class UserController {
         dialog.setHeaderText("Phiên #" + auction.getId()
                 + "  |  Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefWidth(660);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
-        // Fetch in background; update table when done
         new Thread(() -> {
             ApiResponse<List<Bid>> resp = bidApi.getBidHistory(auction.getId());
             Platform.runLater(() -> {
+                content.getChildren().remove(placeholder);
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    table.setItems(FXCollections.observableArrayList(resp.getData()));
-                    if (resp.getData().isEmpty()) {
-                        table.setPlaceholder(new Label("Chưa có lượt đặt giá nào."));
+                    List<Bid> bids = resp.getData();
+                    if (bids.isEmpty()) {
+                        content.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+                        return;
                     }
+
+                    List<Bid> sorted = bids.stream()
+                            .filter(b -> b.getCreatedAt() != null)
+                            .sorted(java.util.Comparator.comparing(Bid::getCreatedAt))
+                            .toList();
+
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    for (int i = 0; i < sorted.size(); i++) {
+                        Bid b = sorted.get(i);
+                        String name = b.getUsername() != null ? b.getUsername() : "User#" + b.getUserId();
+                        String time = formatBidTime(b.getCreatedAt(), i + 1);
+                        // X label: "username  HH:mm:ss"
+                        String xLabel = name + "\n" + time;
+                        XYChart.Data<String, Number> point = new XYChart.Data<>(xLabel, b.getAmount());
+                        series.getData().add(point);
+                    }
+                    chart.getData().add(series);
+                    content.getChildren().add(chart);
                 } else {
                     String msg = resp != null ? resp.getMessage() : "Mất kết nối";
-                    table.setPlaceholder(new Label("Không thể tải lịch sử: " + msg));
+                    content.getChildren().add(new Label("Không thể tải lịch sử: " + msg));
                 }
             });
         }).start();
 
         dialog.showAndWait();
+    }
+
+    private String formatBidTime(String createdAt, int index) {
+        if (createdAt == null) return "#" + index;
+        int t = createdAt.indexOf('T');
+        if (t >= 0 && createdAt.length() > t + 8) return createdAt.substring(t + 1, t + 9);
+        return "#" + index;
     }
 
     /** Shows a styled detail popup for a clicked auction card. */
