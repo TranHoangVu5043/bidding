@@ -1,4 +1,12 @@
-"target/" | Out-File .gitignore -Encoding utf8
-".idea/" | Out-File .gitignore -Append -Encoding utf8
-"*.iml" | Out-File .gitignore -Append -Encoding utf8
-".DS_Store" | Ogit add .ut-File .gitignore -Append -Encoding utf8
+# Chặn thư mục build biên dịch local
+target/
+*.class
+
+# Chặn cấu hình riêng của các IDE để không bị xung đột máy người khác
+.idea/
+.vscode/
+*.iml
+
+# Chặn các file hệ thống tự sinh
+.DS_Store
+Thumbs.db
