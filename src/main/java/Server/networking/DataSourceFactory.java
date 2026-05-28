@@ -12,8 +12,8 @@ public class DataSourceFactory {
     static {
         HikariConfig cfg = new HikariConfig();
 
-        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://db.kxxbzrejmsoxjtpnjpdo.supabase.co:5432/postgres?sslmode=require"));
-        cfg.setUsername(env("DB_USER",    "postgres"));
+        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require"));
+        cfg.setUsername(env("DB_USER",    "postgres.kxxbzrejmsoxjtpnjpdo"));
         cfg.setPassword(env("DB_PASSWORD","LTNC_CS5#1234"));
         cfg.setSchema("public");
         cfg.setDriverClassName("org.postgresql.Driver");
