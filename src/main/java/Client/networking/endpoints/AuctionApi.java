@@ -1,5 +1,7 @@
 package Client.networking.endpoints;
 
+import Client.dto.requests.AuctionIdBody;
+import Client.dto.requests.CreateAuctionBody;
 import Client.model.auction.Auction;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
@@ -33,7 +35,7 @@ public class AuctionApi {
 
     public ApiResponse<Auction> getAuction(int auctionId) {
         try {
-            String json = apiClient.post("/auctions/get", new IdBody(auctionId));
+            String json = apiClient.post("/auctions/get", new AuctionIdBody(auctionId));
             return gson.fromJson(json, new TypeToken<ApiResponse<Auction>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -42,7 +44,7 @@ public class AuctionApi {
 
     public ApiResponse<Auction> createAuction(int itemId, double startingPrice, String startTime, String endTime) {
         try {
-            String json = apiClient.post("/auctions/create", new CreateBody(itemId, startingPrice, startTime, endTime));
+            String json = apiClient.post("/auctions/create", new CreateAuctionBody(itemId, startingPrice, startTime, endTime));
             return gson.fromJson(json, new TypeToken<ApiResponse<Auction>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -51,7 +53,7 @@ public class AuctionApi {
 
     public ApiResponse<Void> cancelAuction(int auctionId) {
         try {
-            String json = apiClient.post("/auctions/cancel", new IdBody(auctionId));
+            String json = apiClient.post("/auctions/cancel", new AuctionIdBody(auctionId));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -60,7 +62,7 @@ public class AuctionApi {
 
     public ApiResponse<Void> refreshStatus(int auctionId) {
         try {
-            String json = apiClient.post("/auctions/refresh", new IdBody(auctionId));
+            String json = apiClient.post("/auctions/refresh", new AuctionIdBody(auctionId));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -74,18 +76,4 @@ public class AuctionApi {
         return r;
     }
 
-    private static class IdBody {
-        int auctionId;
-        IdBody(int id) { this.auctionId = id; }
-    }
-
-    private static class CreateBody {
-        int itemId;
-        double startingPrice;
-        String startTime;
-        String endTime;
-        CreateBody(int i, double p, String s, String e) {
-            itemId = i; startingPrice = p; startTime = s; endTime = e;
-        }
-    }
 }

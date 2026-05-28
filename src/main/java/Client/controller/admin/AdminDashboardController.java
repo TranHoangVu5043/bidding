@@ -24,7 +24,6 @@ public class AdminDashboardController {
     @FXML private Button btnUsers;
     @FXML private Button btnSellers;
     @FXML private Button btnInventory;
-    @FXML private Button btnOrders;
     @FXML private Button btnAuctions;
     @FXML private Button btnAnalytics;
     @FXML private Button btnSettings;
@@ -47,7 +46,6 @@ public class AdminDashboardController {
     @FXML private Tab tabUsers;
     @FXML private Tab tabSellers;
     @FXML private Tab tabInventory;
-    @FXML private Tab tabOrders;
     @FXML private Tab tabAuctions;
     @FXML private Tab tabAnalytics;
     @FXML private Tab tabNotifications;
@@ -59,7 +57,7 @@ public class AdminDashboardController {
     public void initialize() {
         sidebarButtons = new Button[]{
             btnHome, btnUsers, btnSellers, btnInventory,
-            btnOrders, btnAuctions, btnAnalytics, btnSettings
+            btnAuctions, btnAnalytics, btnSettings
         };
 
         lblTotalRevenue.setText("1,337,000,000 ₫");
@@ -120,7 +118,6 @@ public class AdminDashboardController {
     @FXML private void handleUsers()         { switchTab(tabUsers,         "Quản Lý Người Dùng", btnUsers);  highlightButton(btnUsers); }
     @FXML private void handleSellers()       { switchTab(tabSellers,       "Quản Lý Người Bán",btnSellers);   highlightButton(btnSellers); }
     @FXML private void handleInventory()     { switchTab(tabInventory,     "Quản Lý Sản Phẩm",btnInventory);    highlightButton(btnInventory); }
-    @FXML private void handleOrders()        { switchTab(tabOrders,        "Đơn Hàng",btnOrders);             highlightButton(btnOrders); }
     @FXML private void handleAuctions()      { switchTab(tabAuctions,      "Đấu Giá",btnAuctions);              highlightButton(btnAuctions); }
     @FXML private void handleAnalytics()     { switchTab(tabAnalytics,     "Phân Tích",btnAnalytics);            highlightButton(btnAnalytics); }
     @FXML private void handleSettings()      { switchTab(tabSettings,      "Cài Đặt",btnSettings);              highlightButton(btnSettings); }

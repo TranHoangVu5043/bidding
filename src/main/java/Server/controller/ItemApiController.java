@@ -1,6 +1,9 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.dto.requests.CreateItemRequest;
+import Server.dto.requests.ItemIdRequest;
+import Server.dto.requests.UpdateItemRequest;
 import Server.model.auction.items.Item;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
@@ -155,24 +158,4 @@ public class ItemApiController {
         }
     }
 
-    private static class ItemIdRequest {
-        int itemId;
-    }
-
-    private static class CreateItemRequest {
-        String name;
-        String description;
-        String category;
-        String condition;
-        double price;
-        int stock;
-    }
-
-    private static class UpdateItemRequest {
-        int itemId;
-        String name;
-        String description;
-        String category;
-        String condition;
-    }
 }

@@ -65,8 +65,6 @@
 
                 <Button fx:id="btnInventory" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleInventory" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📦  Inventory" textFill="#CBD5E1" />
 
-                <Button fx:id="btnOrders" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleOrders" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🧾  Orders" textFill="#CBD5E1" />
-
                 <Button fx:id="btnAuctions" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAuctions" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🔨  Auctions" textFill="#CBD5E1" />
 
                 <Button fx:id="btnAnalytics" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAnalytics" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📊  Analytics" textFill="#CBD5E1" />
@@ -98,7 +96,6 @@
                     <TextField fx:id="txtTopSearch" promptText="Tìm kiếm..." style="-fx-background-color: transparent; -fx-border-width: 0; -fx-pref-width: 200;" />
                 </HBox>
                 <StackPane>
-                    <Button onAction="#handleNotifications" prefHeight="36" prefWidth="36" style="-fx-background-color: #F0F4F8; -fx-background-radius: 20; -fx-cursor: hand;" text="🔔" />
                     <Label fx:id="lblNotifBadge" style="-fx-background-color: #e74c3c; -fx-text-fill: white;                                   -fx-font-size: 9; -fx-font-weight: bold;                                   -fx-background-radius: 8; -fx-padding: 1 4;" text="5" translateX="3" translateY="-3" StackPane.alignment="TOP_RIGHT" />
                 </StackPane>
             </HBox>
@@ -211,24 +208,6 @@
                         <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
                             <content>
                                 <FlowPane fx:id="productsFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0;" />
-                            </content>
-                        </ScrollPane>
-                    </VBox>
-                </Tab>
-
-                <!-- ───── TAB: ORDERS ───── -->
-                <Tab fx:id="tabOrders" text="">
-                    <VBox spacing="15" style="-fx-padding: 22;">
-                        <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🧾 Quản Lý Đơn Hàng" />
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <TextField fx:id="txtOrderSearch" prefWidth="280" promptText="Tìm mã đơn, khách hàng..." style="-fx-background-radius: 8; -fx-padding: 8;" />
-                            <ComboBox fx:id="cmbOrderStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8;" />
-                            <ComboBox fx:id="cmbOrderDate" prefWidth="130" promptText="Thời gian" style="-fx-background-radius: 8;" />
-                            <Region HBox.hgrow="ALWAYS" />
-                        </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
-                            <content>
-                                <VBox fx:id="ordersListVBox" spacing="8" style="-fx-padding: 4 0 16 0;" />
                             </content>
                         </ScrollPane>
                     </VBox>

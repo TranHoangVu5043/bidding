@@ -65,7 +65,7 @@
                 </Button>
 
                       <Button fx:id="btnAuction" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAuction" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15;" text="🔨  Auction" textFill="#CBD5E1" />
-            <Button fx:id="btnOrderHistory" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleHistory" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15;" text="📦  Order History" textFill="#CBD5E1" />
+            <Button fx:id="btnOrderHistory" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleHistory" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15;" text="🏆  Bid History" textFill="#CBD5E1" />
 
                 <Button fx:id="btnNotification" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleNotification" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15;" text="🔔  Notification" textFill="#CBD5E1" />
 
@@ -134,29 +134,23 @@
                     </content>
                 </ScrollPane>
             </Tab>
-         <Tab fx:id="tabOrderHistory" text="">
+         <Tab fx:id="tabBidHistory" text="">
             <content>
                <VBox spacing="15" style="-fx-padding: 25;">
                   <children>
-                     <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="📦 Lịch Sử Đơn Hàng" />
                      <HBox alignment="CENTER_LEFT" spacing="10">
-                        <children>
-                           <ComboBox fx:id="cbStatusFilter" prefWidth="160" promptText="Trạng thái" style="-fx-background-radius: 8;" />
-                           <TextField fx:id="txtSearchField" prefWidth="220" promptText="Tìm theo mã đơn..." style="-fx-background-radius: 8; -fx-padding: 8;" />
-                        </children>
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="🏆 Lịch Sử Đặt Giá" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cmbBidHistoryFilter" prefWidth="160" promptText="Lọc kết quả" style="-fx-background-radius: 8;" />
+                        <Button fx:id="btnRefreshBidHistory" onAction="#handleRefreshBidHistory"
+                                style="-fx-background-color: #E0F2FE; -fx-text-fill: #0066CC; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 14;"
+                                text="🔄 Làm mới" />
                      </HBox>
-                     <TableView fx:id="tableOrderHistory" VBox.vgrow="ALWAYS">
-                        <columns>
-                           <TableColumn fx:id="colId" prefWidth="120" text="Mã đơn" />
-                           <TableColumn fx:id="colDate" prefWidth="130" text="Ngày đặt" />
-                           <TableColumn fx:id="colProduct" prefWidth="200" text="Sản phẩm" />
-                           <TableColumn fx:id="colTotal" prefWidth="130" text="Tổng tiền" />
-                           <TableColumn fx:id="colStatus" prefWidth="120" text="Trạng thái" />
-                        </columns>
-                        <columnResizePolicy>
-                           <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                        </columnResizePolicy>
-                     </TableView>
+                     <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+                        <content>
+                           <VBox fx:id="bidHistoryList" spacing="10" style="-fx-padding: 5;" />
+                        </content>
+                     </ScrollPane>
                   </children>
                </VBox>
             </content>
@@ -220,7 +214,7 @@
                                     <VBox spacing="8">
                                         <Label fx:id="lblProfileName" style="-fx-font-weight: bold; -fx-font-size: 18;" text="Nguyen Van A" />
                                         <Label fx:id="lblProfileEmail" style="-fx-text-fill: #6B7280;" text="nguyenvana@email.com" />
-                                        <Button fx:id="btnChangeAvatar" onAction="#handleChangeAvatar" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                                        -fx-background-radius: 8; -fx-padding: 6 14; -fx-cursor: hand;" text="Đổi ảnh đại diện" />
+
                                     </VBox>
                                 </HBox>
 

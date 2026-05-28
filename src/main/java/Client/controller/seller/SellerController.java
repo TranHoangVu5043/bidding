@@ -3,12 +3,10 @@ package Client.controller.seller;
 import Client.model.auction.Auction;
 import Client.model.item.Item;
 import Client.model.user.User;
-import Client.model.auction.Order;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
 import Client.networking.endpoints.AuctionApi;
 import Client.networking.endpoints.ItemApi;
-import Client.networking.endpoints.OrderApi;
 import Client.networking.endpoints.UserApi;
 import Client.util.SceneUtil;
 import javafx.application.Platform;
@@ -99,7 +97,6 @@ public class SellerController {
     // ── Instance các Api kết nối trực tiếp Backend ──
     private final ItemApi    itemApi    = new ItemApi();
     private final AuctionApi auctionApi = new AuctionApi();
-    private final OrderApi   orderApi   = new OrderApi();
     private final UserApi    userApi    = new UserApi();
 
     // ── Các danh sách dữ liệu ObservableList & FilteredList ──
@@ -185,13 +182,21 @@ public class SellerController {
     }
     private void loadHistory() {
         new Thread(() -> {
-            ApiResponse<List<Order>> response = orderApi.getAllOrders();
+            ApiResponse<List<Auction>> response = auctionApi.getMyAuctions();
             Platform.runLater(() -> {
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
-                    renderHistoryCards(response.getData());
+                    List<Auction> finished = response.getData().stream()
+                            .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
+                            .sorted((a, b) -> {
+                                if (b.getEndTime() == null) return -1;
+                                if (a.getEndTime() == null) return 1;
+                                return b.getEndTime().compareTo(a.getEndTime());
+                            })
+                            .toList();
+                    renderHistoryCards(finished);
                 } else {
                     String msg = response != null ? response.getMessage() : "Mất kết nối";
-                    SceneUtil.showAlert("Lỗi", "Không thể tải lịch sử giao dịch: " + msg);
+                    SceneUtil.showAlert("Lỗi", "Không thể tải lịch sử đấu giá: " + msg);
                 }
             });
         }).start();
@@ -234,6 +239,7 @@ public class SellerController {
         if (lblSellerEndedAuctions  != null) lblSellerEndedAuctions.setText(String.valueOf(ended));
         if (lblSellerTotalRevenue   != null) lblSellerTotalRevenue.setText(String.format("%,.0f ₫", revenue));
         if (lblActiveAuctions       != null) lblActiveAuctions.setText(active + " đang chạy");
+        if (lblNewOrders            != null) lblNewOrders.setText(ended + " phiên");
         if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", revenue));
     }
 
@@ -1029,46 +1035,53 @@ public class SellerController {
         return card;
     }
 
-    // ── History VBox ──
-    private void renderHistoryCards(List<Order> orders) {
+    // ── History VBox — shows seller's completed auctions ──
+    private void renderHistoryCards(List<Auction> auctions) {
         if (historyVBox == null) return;
         historyVBox.getChildren().clear();
-        if (orders == null || orders.isEmpty()) {
-            Label empty = new Label("Chưa có giao dịch nào.");
+        if (auctions == null || auctions.isEmpty()) {
+            Label empty = new Label("Chưa có phiên đấu giá nào kết thúc.");
             empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
             historyVBox.getChildren().add(empty);
             return;
         }
-        for (Order o : orders) historyVBox.getChildren().add(buildOrderRow(o));
+        for (Auction a : auctions) historyVBox.getChildren().add(buildAuctionHistoryRow(a));
     }
 
-    private HBox buildOrderRow(Order o) {
-        Label idLabel = new Label("Đơn #" + o.getId());
-        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b; -fx-pref-width: 120;");
+    private HBox buildAuctionHistoryRow(Auction a) {
+        Label idLabel = new Label("Phiên #" + a.getId());
+        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b; -fx-pref-width: 100;");
 
-        Label productLabel = new Label(o.getProductName() != null ? o.getProductName() : "—");
-        productLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
-        HBox.setHgrow(productLabel, javafx.scene.layout.Priority.ALWAYS);
+        String itemDisplay = (a.getItemName() != null && !a.getItemName().isBlank())
+                ? a.getItemName() : "Mặt hàng #" + a.getItemId();
+        Label itemLabel = new Label(itemDisplay);
+        itemLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
+        HBox.setHgrow(itemLabel, javafx.scene.layout.Priority.ALWAYS);
 
-        Label amtLabel = new Label(String.format("%,.0f ₫", o.getTotalAmount()));
-        amtLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a; -fx-pref-width: 110;");
+        Label priceLabel = new Label(String.format("%,.0f ₫", a.getCurrentPrice()));
+        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a; -fx-pref-width: 120;");
 
-        String sColor = switch (o.getStatus() == null ? "" : o.getStatus().toUpperCase()) {
-            case "COMPLETED", "PAID" -> "#16a34a";
-            case "PENDING" -> "#f59e0b";
-            case "CANCELLED" -> "#ef4444";
-            default -> "#9ca3af";
-        };
-        Label statusLabel = new Label(o.getStatus() != null ? o.getStatus() : "—");
-        statusLabel.setStyle("-fx-background-color: " + sColor + "; -fx-text-fill: white;" +
-                             "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4;");
+        Label endLabel = new Label(formatHistoryTime(a.getEndTime()));
+        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280; -fx-pref-width: 130;");
 
-        HBox row = new HBox(12, idLabel, productLabel, amtLabel, statusLabel);
+        Label badge = new Label("✓ Kết thúc");
+        badge.setStyle("-fx-background-color: #6B7280; -fx-text-fill: white;" +
+                       "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4;");
+
+        HBox row = new HBox(12, idLabel, itemLabel, priceLabel, endLabel, badge);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 16, 12, 16));
         row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
                      "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
         return row;
+    }
+
+    private String formatHistoryTime(String timeStr) {
+        if (timeStr == null) return "—";
+        try {
+            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr);
+            return String.format("%02d/%02d/%d", dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear());
+        } catch (Exception e) { return timeStr; }
     }
 
     @FXML private void showCancel() { clearFields(); showInventory(); }
