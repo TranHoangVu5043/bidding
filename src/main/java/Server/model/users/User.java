@@ -9,6 +9,8 @@ public abstract class User implements Entity {
     private String password;
     private String email;
     private String role;
+    private double balance;
+    private String status;
     private double  balance;
     private boolean notifAuction = true;
     private boolean notifEmail   = false;

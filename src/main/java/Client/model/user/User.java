@@ -17,6 +17,7 @@ public class User {
     private String  updatedAt;
     private boolean notifAuction = true;
     private boolean notifEmail   = false;
+    private String status;
 
     public User() {
     }
@@ -113,10 +114,4 @@ public class User {
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
-
-    public boolean isNotifAuction() { return notifAuction; }
-    public void setNotifAuction(boolean notifAuction) { this.notifAuction = notifAuction; }
-
-    public boolean isNotifEmail() { return notifEmail; }
-    public void setNotifEmail(boolean notifEmail) { this.notifEmail = notifEmail; }
 }

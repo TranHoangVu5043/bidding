@@ -14,7 +14,7 @@ public class ItemFactory {
                                   int ownerId, String condition, ResultSet rs) throws SQLException {
         double price = rs.getDouble("price");
         int stock    = rs.getInt("stock");
-
+        if (category == null) category = "UNKNOWN";
         return switch (category.toUpperCase()) {
             case "ELECTRONICS" -> new Electronics(id, name, desc, ownerId, category, condition, price, stock);
             case "ART"         -> new Art(id, name, desc, ownerId, category, condition, price, stock);

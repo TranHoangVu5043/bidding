@@ -42,7 +42,7 @@ public class ServerApp {
         // Services
         UserService userService = new UserService(userDAO);
         NotificationDAO notificationDAO = new NotificationDAO(dataSource);
-        NotificationService notificationService = new NotificationService(notificationDAO, userDAO);
+        NotificationService notificationService = new NotificationService(notificationDAO);
         AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO, userDAO, notificationService);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
@@ -63,8 +63,12 @@ public class ServerApp {
         // --- User routes (login + register are public; filter whitelists them) ---
         router.register("POST", "/api/users/login",           userController::login);
         router.register("POST", "/api/users/register",        userController::register);
+        router.register("POST", "/api/users/logout",          userController::logout);
         router.register("GET",  "/api/users/me",              userController::getMe);
         router.register("POST", "/api/users/change-password", userController::changePassword);
+        router.register("GET",  "/api/users/all",             userController::getAllUsers);
+        router.register("POST", "/api/users/{id}/ban",        userController::banUser);
+        router.register("POST", "/api/users/{id}/unban",      userController::unbanUser);
         router.register("POST", "/api/users/preferences",     userController::updatePreferences);
         router.register("POST", "/api/users/delete",          userController::deleteAccount);
         router.register("POST", "/api/users/deposit",         userController::deposit);

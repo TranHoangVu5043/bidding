@@ -29,7 +29,7 @@ public class ItemService {
 
     public boolean updateItem(Item item){
         if(itemDAO.findById(item.getId()) == null){
-            System.err.println("Lỗi: Không tìm thấ sản phẩm");
+            System.err.println("Lỗi: Không tìm thấy sản phẩm");
             return false;
         }
         itemDAO.update(item);
@@ -49,5 +49,7 @@ public class ItemService {
         if (item == null) return false;
         return item.getOwnerId() == currentUserId;
     }
-
+    public List<Item> getAllItems() {
+        return itemDAO.findAll();
+    }
 }

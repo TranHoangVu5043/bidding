@@ -35,6 +35,19 @@ public class ItemDAO {
         return null;
     }
 
+    public List<Item> findAll() {
+        String sql = "SELECT * FROM items ORDER BY id ASC";
+        List<Item> items = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) items.add(mapRow(rs));
+        } catch (SQLException e) {
+            log("findAll items failed", e);
+        }
+        return items;
+    }
+
     public List<Item> findByOwnerId(int ownerId) {
         String sql = "SELECT * FROM items WHERE owner_id = ?";
         List<Item> items = new ArrayList<>();
@@ -121,8 +134,17 @@ public class ItemDAO {
     }
 
     private Item mapRow(ResultSet rs) throws SQLException {
+        // 1. Lấy giá trị category từ database
+        String category = rs.getString("category");
+
+        // 2. Xử lý an toàn nếu dữ liệu bị NULL
+        if (category == null || category.trim().isEmpty()) {
+            category = "UNCLASSIFIED";
+        }
+
+        // 3. Truyền biến đã xử lý an toàn vào Factory
         return ItemFactory.createItem(
-                rs.getString("category"),
+                category,
                 rs.getInt("id"),
                 rs.getString("name"),
                 rs.getString("description"),

@@ -49,6 +49,9 @@ public class SellerController {
     // ── Search & Filter Inventory ──
     @FXML private TextField txtSearch;
     @FXML private ComboBox<String> cmbInvStatus;
+    @FXML private Button btnRevenue;
+    @FXML private Tab tabRevenue;
+    @FXML private VBox finishedAuctionVBox;
 
     // ── Sidebar buttons ──
     @FXML private Button btnDashboard;
@@ -98,6 +101,7 @@ public class SellerController {
     @FXML private TextField    txtHistorySearch;
     @FXML private ComboBox<String> cmbHistoryType;
     @FXML private ComboBox<String> cmbHistoryDate;
+    @FXML private AreaChart<String, Number> chartRevenueArea;
 
     // ── Top bar ──
     @FXML private Label lblBalance;
@@ -180,7 +184,6 @@ public class SellerController {
         loadMyItems();
         loadSellerAuctions();
         setupWeekRevenueChart();
-        startNotifPoller();
     }
 
     private void populateSellerInfo() {
@@ -228,12 +231,18 @@ public class SellerController {
                             })
                             .toList();
                     renderHistoryCards(finished);
+                    renderRevenueData(finished);
+
                 } else {
                     String msg = response != null ? response.getMessage() : "Mất kết nối";
                     SceneUtil.showAlert("Lỗi", "Không thể tải lịch sử đấu giá: " + msg);
                 }
             });
         }).start();
+    }
+    @FXML public void showRevenue() {
+        switchTab(tabRevenue, "Doanh Thu", btnRevenue);
+        loadHistory();
     }
     // ── Tải danh sách phiên đấu giá của seller ──
     private void loadSellerAuctions() {
@@ -371,7 +380,6 @@ public class SellerController {
                 .filter(a -> keyword.isEmpty()
                         || String.valueOf(a.getId()).contains(keyword)
                         || String.valueOf(a.getItemId()).contains(keyword))
-                .sorted(java.util.Comparator.comparingInt(a -> statusPriority(a.getStatus())))
                 .toList();
 
         renderAuctionCards(filtered);
@@ -570,7 +578,7 @@ public class SellerController {
         boolean hasOngoingAuction = sellerAuctions.stream()
                 .anyMatch(a -> a.getItemId() == item.getId()
                         && ("ACTIVE".equalsIgnoreCase(a.getStatus())
-                            || "UPCOMING".equalsIgnoreCase(a.getStatus())));
+                        || "UPCOMING".equalsIgnoreCase(a.getStatus())));
 
         Label auctionHeader = new Label("🏷  Đăng lên sàn đấu giá");
         auctionHeader.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #c2410c;");
@@ -1006,13 +1014,13 @@ public class SellerController {
         StackPane imageArea = new StackPane(iconLabel);
         imageArea.setPrefSize(160, 110);
         imageArea.setStyle("-fx-background-color: " + categoryGradient(item.getCategory()) +
-                           "; -fx-background-radius: 10 10 0 0;");
+                "; -fx-background-radius: 10 10 0 0;");
 
         Label priceLabel = new Label(String.format("$ %,.0f", item.getPrice()));
         priceLabel.setMaxWidth(Double.MAX_VALUE);
         priceLabel.setAlignment(Pos.CENTER);
         priceLabel.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;" +
-                            "-fx-font-weight: bold; -fx-font-size: 12; -fx-padding: 4 8;");
+                "-fx-font-weight: bold; -fx-font-size: 12; -fx-padding: 4 8;");
 
         Label nameLabel = new Label(item.getName());
         nameLabel.setWrapText(true);
@@ -1027,13 +1035,13 @@ public class SellerController {
         };
         Label catLabel = new Label(item.getCategory() != null ? item.getCategory() : "OTHER");
         catLabel.setStyle("-fx-background-color: " + catColor + "; -fx-text-fill: white;" +
-                          "-fx-font-size: 9; -fx-font-weight: bold; -fx-padding: 2 6; -fx-background-radius: 4;");
+                "-fx-font-size: 9; -fx-font-weight: bold; -fx-padding: 2 6; -fx-background-radius: 4;");
 
         // ── Auction status for this item ──
         long activeAuctionCount = sellerAuctions.stream()
                 .filter(a -> a.getItemId() == item.getId()
                         && ("ACTIVE".equalsIgnoreCase(a.getStatus())
-                            || "UPCOMING".equalsIgnoreCase(a.getStatus())))
+                        || "UPCOMING".equalsIgnoreCase(a.getStatus())))
                 .count();
         boolean isOnAuction = activeAuctionCount > 0;
         boolean isActive = sellerAuctions.stream()
@@ -1064,7 +1072,7 @@ public class SellerController {
         VBox card = new VBox(imageArea, priceLabel, info);
         card.setPrefWidth(160);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                      "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;");
+                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;");
         return card;
     }
 
@@ -1079,6 +1087,54 @@ public class SellerController {
             return;
         }
         for (Auction a : auctions) historyVBox.getChildren().add(buildAuctionHistoryRow(a));
+    }
+    private void renderRevenueData(List<Auction> auctions) {
+        // 1. Đổ dữ liệu vào bảng "Phiên đấu giá đã xong"
+        if (finishedAuctionVBox != null) {
+            finishedAuctionVBox.getChildren().clear();
+            if (auctions == null || auctions.isEmpty()) {
+                Label empty = new Label("Chưa có doanh thu từ phiên đấu giá nào.");
+                empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
+                finishedAuctionVBox.getChildren().add(empty);
+            } else {
+                for (Auction a : auctions) {
+                    // Tái sử dụng hàm build dòng lịch sử giao dịch sẵn có của bạn
+                    finishedAuctionVBox.getChildren().add(buildAuctionHistoryRow(a));
+                }
+            }
+        }
+
+        // 2. Tính toán và vẽ biểu đồ Doanh thu theo tháng (chartRevenueBar)
+        if (chartRevenueArea != null) {
+            chartRevenueArea.setAnimated(false);
+            chartRevenueArea.getXAxis().setAnimated(false);
+            chartRevenueArea.getYAxis().setAnimated(false);
+
+            chartRevenueArea.getData().clear();
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName("Doanh thu đạt được (₫)");
+
+            double[] monthlyRevenue = new double[12];
+            for (Auction a : auctions) {
+                try {
+                    if (a.getEndTime() != null) {
+                        String timeStr = a.getEndTime().replace(" ", "T");
+                        java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr);
+                        monthlyRevenue[dt.getMonthValue() - 1] += a.getCurrentPrice();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Lỗi parse thời gian tại Auction ID " + a.getId() + ": " + e.getMessage());
+                }
+            }
+
+            String[] monthLabels = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"};
+            for (int i = 0; i < 12; i++) {
+                if (monthlyRevenue[i] > 0) {
+                    series.getData().add(new XYChart.Data<>(monthLabels[i], monthlyRevenue[i]));
+                }
+            }
+            chartRevenueArea.getData().add(series);
+        }
     }
 
     private HBox buildAuctionHistoryRow(Auction a) {
@@ -1099,13 +1155,13 @@ public class SellerController {
 
         Label badge = new Label("✓ Kết thúc");
         badge.setStyle("-fx-background-color: #6B7280; -fx-text-fill: white;" +
-                       "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4;");
+                "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4;");
 
         HBox row = new HBox(12, idLabel, itemLabel, priceLabel, endLabel, badge);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 16, 12, 16));
         row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                     "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
+                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
         return row;
     }
 
@@ -1154,7 +1210,7 @@ public class SellerController {
     public void showLogout() {
         if (notifPollerThread != null) notifPollerThread.interrupt();
         SessionManager.clear();
-        SceneUtil.switchToScene(btnLogout, "/Client/views/LoginView.fxml", "Login");
+        SceneUtil.switchToScene(btnLogout, "/Client/view/Loginview.fxml", "Login");
     }
 
     @FXML private void handleSaveShop()    { SceneUtil.showAlert("Thành công", "Thông tin cửa hàng đã được lưu lại."); }
@@ -1448,7 +1504,7 @@ public class SellerController {
         Button[] allButtons = {
                 btnDashboard, btnInventory, btnAddProduct,
                 btnAuctions, btnHistory, btnProfile,
-                btnNotification, btnSettings
+                btnNotification, btnSettings, btnRevenue
         };
 
         for (Button btn : allButtons) {

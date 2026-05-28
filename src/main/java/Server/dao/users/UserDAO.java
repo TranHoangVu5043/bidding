@@ -14,6 +14,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserDAO {
 
@@ -191,6 +193,18 @@ public class UserDAO {
         return null;
     }
 
+    public void updateStatus(int userId, String status) {
+        String sql = "UPDATE users SET status = ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log("updateStatus failed", e);
+        }
+    }
+
     public void updatePassword(int userId, String newHash) {
         String sql = "UPDATE users SET password = ? WHERE id = ?";
 
@@ -205,6 +219,24 @@ public class UserDAO {
             log("updatePassword failed", e);
             throw new RuntimeException("Không thể cập nhật mật khẩu.", e);
         }
+    }
+    public List<User> findAll() {
+        String sql = "SELECT * FROM users ORDER BY id ASC";
+        List<User> users = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                users.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            log("findAll failed", e);
+        }
+
+        return users;
     }
 
     public boolean exists(String username) {
@@ -283,6 +315,7 @@ public class UserDAO {
             log("deleteSession failed", e);
         }
     }
+
 
     // ===== MAPPER =====
 
