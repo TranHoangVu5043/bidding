@@ -26,10 +26,12 @@ public class UserService {
 
         String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
 
-        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), "ADMIN", 0, req.getStoreName());
+        String role = (req.getRole() != null && !req.getRole().isBlank()) ? req.getRole() : "USER";
+        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), role, 0, req.getStoreName(), true, false);
         User user = UserFactory.createUser(userRow);
 
-        userDAO.createUser(user);
+        int newId = userDAO.createUser(user);
+        if (newId > 0) userDAO.createDefaultSettings(newId);
 
         return true;
     }
@@ -71,6 +73,27 @@ public class UserService {
 
     public User getUserById(int id) {
         return userDAO.findById(id);
+    }
+
+    public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
+        userDAO.updateNotifPrefs(userId, notifAuction, notifEmail);
+    }
+
+    public void deleteAccount(int userId) {
+        userDAO.deleteAllSessions(userId);
+        userDAO.deleteUser(userId);
+    }
+
+    /**
+     * Adds {@code amount} to the user's balance and returns the new balance.
+     * @throws IllegalArgumentException if amount ≤ 0 or exceeds the single-deposit cap.
+     */
+    public double deposit(int userId, double amount) {
+        if (amount <= 0) throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0.");
+        if (amount > 1_000_000_000) throw new IllegalArgumentException("Số tiền nạp tối đa 1.000.000.000 ₫ mỗi lần.");
+        userDAO.addBalance(userId, amount);
+        User updated = userDAO.findById(userId);
+        return updated != null ? updated.getBalance() : 0;
     }
 
     public boolean changePassword(User currentUser, String oldPassword, String newPassword) {

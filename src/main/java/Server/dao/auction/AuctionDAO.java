@@ -151,15 +151,20 @@ public class AuctionDAO {
         }
     }
 
+    /**
+     * Atomically transitions an auction to {@code status} only if it is not
+     * already in that state.  Returns {@code true} exactly once per transition,
+     * making it safe to use as a "first-time FINISHED" guard for refund logic.
+     */
     public boolean updateStatus(int auctionId, String status) {
-        String sql = "UPDATE auctions SET status = ? WHERE id = ?";
+        String sql = "UPDATE auctions SET status = ? WHERE id = ? AND status != ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, status);
             stmt.setInt(2, auctionId);
-            stmt.executeUpdate();
-            return true;
+            stmt.setString(3, status);
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
             log("update auction status failed for ID: " + auctionId, e);

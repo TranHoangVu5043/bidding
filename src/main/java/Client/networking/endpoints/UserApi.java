@@ -1,6 +1,8 @@
 package Client.networking.endpoints;
 
 import Client.dto.requests.ChangePasswordRequest;
+import Client.dto.requests.DepositBody;
+import Client.dto.requests.NotifPrefsBody;
 import Client.model.user.User;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
@@ -131,6 +133,35 @@ public class UserApi {
         }
     }
 
+    // ===== UPDATE NOTIFICATION PREFERENCES =====
+
+    public ApiResponse<Void> updatePreferences(boolean notifAuction, boolean notifEmail) {
+        try {
+            String responseJson = apiClient.post("/users/preferences",
+                    new NotifPrefsBody(notifAuction, notifEmail));
+            return gson.fromJson(responseJson,
+                    new com.google.gson.reflect.TypeToken<ApiResponse<Void>>() {}.getType());
+        } catch (Exception e) {
+            ApiResponse<Void> r = new ApiResponse<>();
+            r.setStatus(500); r.setMessage(e.getMessage());
+            return r;
+        }
+    }
+
+    // ===== DELETE ACCOUNT =====
+
+    public ApiResponse<Void> deleteAccount() {
+        try {
+            String responseJson = apiClient.post("/users/delete", null);
+            return gson.fromJson(responseJson,
+                    new com.google.gson.reflect.TypeToken<ApiResponse<Void>>() {}.getType());
+        } catch (Exception e) {
+            ApiResponse<Void> r = new ApiResponse<>();
+            r.setStatus(500); r.setMessage(e.getMessage());
+            return r;
+        }
+    }
+
     // ===== GET CURRENT USER =====
 
     public ApiResponse<User> getMe() {
@@ -153,6 +184,20 @@ public class UserApi {
             return response;
         }
     }
+    // ===== DEPOSIT =====
+
+    public ApiResponse<Double> deposit(double amount) {
+        try {
+            String responseJson = apiClient.post("/users/deposit", new DepositBody(amount));
+            return gson.fromJson(responseJson,
+                    new TypeToken<ApiResponse<Double>>() {}.getType());
+        } catch (Exception e) {
+            ApiResponse<Double> r = new ApiResponse<>();
+            r.setStatus(500); r.setMessage(e.getMessage());
+            return r;
+        }
+    }
+
     // ===== LOGOUT =====
 
     public ApiResponse<Void> logout() {

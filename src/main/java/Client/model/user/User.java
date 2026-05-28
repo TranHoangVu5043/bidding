@@ -12,9 +12,11 @@ public class User {
 
     private double balance;
 
-    private String storeName;
-    private String createdAt;
-    private String updatedAt;
+    private String  storeName;
+    private String  createdAt;
+    private String  updatedAt;
+    private boolean notifAuction = true;
+    private boolean notifEmail   = false;
 
     public User() {
     }
@@ -111,4 +113,10 @@ public class User {
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public boolean isNotifAuction() { return notifAuction; }
+    public void setNotifAuction(boolean notifAuction) { this.notifAuction = notifAuction; }
+
+    public boolean isNotifEmail() { return notifEmail; }
+    public void setNotifEmail(boolean notifEmail) { this.notifEmail = notifEmail; }
 }

@@ -7,14 +7,14 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Single persistent WebSocket connection for the main auction floor.
  * Supports subscribing to multiple auction rooms on one connection.
  *
  * Usage:
- *   client = new AuctionWebSocketClient((auctionId, newPrice) -> updateLabel(auctionId, newPrice));
+ *   client = new AuctionWebSocketClient(update -> handleUpdate(update));
  *   client.connect();                    // non-blocking, safe to call on FX thread
  *   client.subscribe(5);                 // subscribe to auction #5
  *   client.subscribe(7);                 // subscribe to auction #7
@@ -27,11 +27,11 @@ public class AuctionWebSocketClient extends WebSocketClient {
 
     /**
      * Called on the JavaFX thread whenever a bid_update arrives.
-     * Args: (auctionId, newCurrentPrice)
+     * Carries auctionId, newPrice, and optionally a new end-time (anti-snipe reset).
      */
-    private final BiConsumer<Integer, Double> onBidUpdate;
+    private final Consumer<BidUpdate> onBidUpdate;
 
-    public AuctionWebSocketClient(BiConsumer<Integer, Double> onBidUpdate) {
+    public AuctionWebSocketClient(Consumer<BidUpdate> onBidUpdate) {
         super(URI.create(WS_URL));
         this.onBidUpdate = onBidUpdate;
     }
@@ -49,10 +49,12 @@ public class AuctionWebSocketClient extends WebSocketClient {
             JsonObject json = JsonParser.parseString(message).getAsJsonObject();
             if (!"bid_update".equals(json.get("type").getAsString())) return;
 
-            int    auctionId = json.get("auctionId").getAsInt();
-            double newPrice  = json.get("currentPrice").getAsDouble();
+            int    auctionId  = json.get("auctionId").getAsInt();
+            double newPrice   = json.get("currentPrice").getAsDouble();
+            String newEndTime = json.has("newEndTime") && !json.get("newEndTime").isJsonNull()
+                    ? json.get("newEndTime").getAsString() : null;
 
-            Platform.runLater(() -> onBidUpdate.accept(auctionId, newPrice));
+            Platform.runLater(() -> onBidUpdate.accept(new BidUpdate(auctionId, newPrice, newEndTime)));
         } catch (Exception e) {
             System.err.println("[WS Client] Parse error: " + e.getMessage());
         }

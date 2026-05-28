@@ -66,20 +66,17 @@ public class AuctionService {
         if (auction.getOwnerId() != userId) return false;
 
         String status = auction.getStatus();
-        if ("FINISHED".equals(status) || "PAID".equals(status) || "CANCELLED".equals(status)) {
-            return false;
+        if ("FINISHED".equals(status) || "PAID".equals(status)) {
+            return false; // cannot cancel a concluded auction
         }
 
-        boolean cancelled = auctionDAO.updateStatus(auctionId, "CANCELLED");
-        if (!cancelled) return false;
-
-        // Refund all bidders — sum up each user's total bids and credit back
+        // 1. Refund bidders BEFORE deleting rows (bids must still be readable)
+        //    Each user paid their highest bid under the delta-charge system.
         List<Bid> bids = bidDAO.getBidsByAuction(auctionId);
         Map<Integer, Double> refunds = new HashMap<>();
         for (Bid b : bids) {
-            refunds.merge(b.getUserId(), b.getAmount(), Double::sum);
+            refunds.merge(b.getUserId(), b.getAmount(), Math::max);
         }
-
         for (Map.Entry<Integer, Double> entry : refunds.entrySet()) {
             int bidderId = entry.getKey();
             double amount = entry.getValue();
@@ -88,10 +85,14 @@ public class AuctionService {
             }
             if (notifService != null) {
                 notifService.send(bidderId,
-                    String.format("Phiên đấu giá #%d đã bị hủy. Số tiền %.0f ₫ đã được hoàn lại vào tài khoản của bạn.",
+                    String.format("Phiên đấu giá #%d đã bị hủy. %,.0f ₫ đã được hoàn lại vào tài khoản của bạn.",
                         auctionId, amount));
             }
         }
+
+        // 2. Delete bids first (avoids FK constraint if no CASCADE), then the auction itself
+        bidDAO.deleteByAuctionId(auctionId);
+        auctionDAO.deleteAuction(auctionId);
 
         return true;
     }
@@ -105,7 +106,7 @@ public class AuctionService {
         if (auction == null) return;
 
         String current = auction.getStatus();
-        if ("PAID".equals(current) || "CANCELLED".equals(current)) return;
+        if ("PAID".equals(current)) return; // terminal state — cancelled auctions are deleted
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -119,12 +120,34 @@ public class AuctionService {
         }
 
         if (!current.equals(newStatus)) {
-            auctionDAO.updateStatus(auctionId, newStatus);
+            // updateStatus returns true only on the first actual row change, preventing double-refunds
+            boolean didTransition = auctionDAO.updateStatus(auctionId, newStatus);
 
-            // First-time transition to FINISHED → notify winner
-            if ("FINISHED".equals(newStatus) && notifService != null) {
+            if (didTransition && "FINISHED".equals(newStatus)) {
                 Integer winnerId = bidDAO.findHighestBidder(auctionId);
-                if (winnerId != null) {
+
+                // Refund every losing bidder their highest bid (they only ever paid that amount)
+                if (userDAO != null) {
+                    List<Bid> bids = bidDAO.getBidsByAuction(auctionId);
+                    Map<Integer, Double> maxBidPerUser = new HashMap<>();
+                    for (Bid b : bids) {
+                        maxBidPerUser.merge(b.getUserId(), b.getAmount(), Math::max);
+                    }
+                    for (Map.Entry<Integer, Double> entry : maxBidPerUser.entrySet()) {
+                        int bidderId = entry.getKey();
+                        if (winnerId != null && bidderId == winnerId) continue; // winner keeps their payment
+                        double refund = entry.getValue();
+                        userDAO.addBalance(bidderId, refund);
+                        if (notifService != null) {
+                            notifService.send(bidderId,
+                                String.format("Phiên đấu giá #%d đã kết thúc. %,.0f ₫ đã được hoàn lại vào tài khoản của bạn.",
+                                    auctionId, refund));
+                        }
+                    }
+                }
+
+                // Notify winner
+                if (winnerId != null && notifService != null) {
                     notifService.send(winnerId,
                         String.format("🎉 Chúc mừng! Bạn đã thắng phiên đấu giá #%d với giá %,.0f ₫!",
                             auctionId, auction.getCurrentPrice()));

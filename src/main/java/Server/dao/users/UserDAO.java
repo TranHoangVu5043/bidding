@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 
 import java.time.LocalDateTime;
@@ -22,90 +23,107 @@ public class UserDAO {
         this.dataSource = dataSource;
     }
 
+    // ===== SHARED SQL FRAGMENT =====
+    // Every user query LEFT JOINs user_settings so mapRow() always gets the prefs columns.
+    private static final String SELECT_USER_WITH_SETTINGS = """
+        SELECT u.*,
+               COALESCE(s.notif_auction, TRUE)  AS notif_auction,
+               COALESCE(s.notif_email,   FALSE) AS notif_email
+        FROM   users u
+        LEFT   JOIN user_settings s ON u.id = s.user_id
+    """;
+
     // ===== USER METHODS =====
 
     public User findByUsername(String username) {
-        String sql = "SELECT * FROM users WHERE username = ?";
+        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.username = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                return mapRow(rs);
-            }
+            if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
             log("findByUsername failed", e);
         }
-
         return null;
     }
 
-
     public User findById(int id) {
-        String sql = "SELECT * FROM users WHERE id = ?";
+        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                return mapRow(rs);
-            }
+            if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
             log("findById failed", e);
         }
-
         return null;
     }
 
     public User findByUsernameAndPassword(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.username = ? AND u.password = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, username);
             stmt.setString(2, password);
-
             ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return mapRow(rs);
-            }
+            if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
             log("findByUsernameAndPassword failed", e);
         }
-
         return null;
     }
 
-
-    public void createUser(User user) {
+    /** Creates a user and returns the generated DB id (-1 on failure). */
+    public int createUser(User user) {
         String sql = """
-        INSERT INTO users(username, password, email, role, balance)
-        VALUES (?, ?, ?, ?, ?)
-    """;
+            INSERT INTO users(username, password, email, role, balance)
+            VALUES (?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getPassword());
             stmt.setString(3, user.getEmail());
             stmt.setString(4, user.getRole());
             stmt.setDouble(5, user.getBalance());
-
             stmt.executeUpdate();
+
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) return keys.getInt(1);
+            }
 
         } catch (SQLException e) {
             log("createUser failed", e);
+        }
+        return -1;
+    }
+
+    /** Inserts a default row into user_settings for a newly registered user. */
+    public void createDefaultSettings(int userId) {
+        String sql = """
+            INSERT INTO user_settings (user_id)
+            VALUES (?)
+            ON CONFLICT (user_id) DO NOTHING
+        """;
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log("createDefaultSettings failed", e);
         }
     }
 
@@ -164,7 +182,7 @@ public class UserDAO {
 
     /** Read user inside an existing transaction. */
     public User findById(Connection conn, int id) throws SQLException {
-        String sql = "SELECT * FROM users WHERE id = ?";
+        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
@@ -229,9 +247,13 @@ public class UserDAO {
 
     public User findUserByToken(String token) {
         String sql = """
-            SELECT u.* FROM users u
-            JOIN sessions s ON u.id = s.user_id
-            WHERE s.token = ? AND s.expires_at > NOW()
+            SELECT u.*,
+                   COALESCE(s.notif_auction, TRUE)  AS notif_auction,
+                   COALESCE(s.notif_email,   FALSE) AS notif_email
+            FROM   users u
+            JOIN   sessions sess ON u.id = sess.user_id
+            LEFT   JOIN user_settings s ON u.id = s.user_id
+            WHERE  sess.token = ? AND sess.expires_at > NOW()
         """;
 
         try (Connection conn = dataSource.getConnection();
@@ -239,15 +261,11 @@ public class UserDAO {
 
             stmt.setString(1, token);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                return mapRow(rs);
-            }
+            if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
             log("findUserByToken failed", e);
         }
-
         return null;
     }
 
@@ -268,6 +286,36 @@ public class UserDAO {
 
     // ===== MAPPER =====
 
+    public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
+        String sql = """
+            INSERT INTO user_settings (user_id, notif_auction, notif_email)
+            VALUES (?, ?, ?)
+            ON CONFLICT (user_id) DO UPDATE
+                SET notif_auction = EXCLUDED.notif_auction,
+                    notif_email   = EXCLUDED.notif_email
+        """;
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setBoolean(2, notifAuction);
+            stmt.setBoolean(3, notifEmail);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log("updateNotifPrefs failed", e);
+        }
+    }
+
+    public void deleteAllSessions(int userId) {
+        String sql = "DELETE FROM sessions WHERE user_id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log("deleteAllSessions failed", e);
+        }
+    }
+
     private User mapRow(ResultSet rs) throws SQLException {
         UserRow ur = new UserRow(
                 rs.getInt("id"),
@@ -276,7 +324,9 @@ public class UserDAO {
                 rs.getString("email"),
                 rs.getString("role"),
                 rs.getDouble("balance"),
-                rs.getString("store_name")
+                rs.getString("store_name"),
+                rs.getBoolean("notif_auction"),
+                rs.getBoolean("notif_email")
         );
 
         return UserFactory.createUser(ur);
