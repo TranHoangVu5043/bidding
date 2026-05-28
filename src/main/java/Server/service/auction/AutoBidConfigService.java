@@ -31,6 +31,9 @@ public class AutoBidConfigService {
         try (Connection conn = biddingService.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
             try {
+                // Capture the current leader before auto-bid fires (for outbid notification)
+                Integer previousLeader = biddingService.getBidDAO().findHighestBidder(auctionId);
+
                 double currentPrice = biddingService.getCurrentPriceforUpdate(conn, auctionId);
                 AutoBidConfig top1Config = queue.poll();
                 AutoBidConfig top2Config = queue.poll();
@@ -74,7 +77,16 @@ public class AutoBidConfigService {
                 }
                 conn.commit();
                 if (winnerBotId != -1 && finalPrice > currentPrice) {
-                    System.out.println("BotWinner: " + winnerBotId + " || FinalPrice: " + finalPrice);                }
+                    System.out.println("BotWinner: " + winnerBotId + " || FinalPrice: " + finalPrice);
+                    // Notify the person the auto-bid just outbid
+                    if (previousLeader != null && previousLeader != winnerBotId
+                            && biddingService.getNotificationService() != null) {
+                        double fp = finalPrice;
+                        biddingService.getNotificationService().send(previousLeader,
+                            String.format("📢 Bạn đã bị vượt giá (tự động) trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
+                                auctionId, fp));
+                    }
+                }
             }catch (Exception e) {
                 conn.rollback();
                 throw e;

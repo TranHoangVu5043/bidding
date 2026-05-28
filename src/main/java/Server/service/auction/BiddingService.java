@@ -3,7 +3,8 @@ package Server.service.auction;
 import Server.dao.auction.AuctionDAO;
 import Server.dao.auction.BidDAO;
 import Server.dao.users.UserDAO;
-//import Server.websocket.BidWebSocketServer;
+import Server.service.NotificationService;
+import Server.websocket.BidWebSocketServer;
 import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.User;
@@ -11,6 +12,7 @@ import Server.model.users.User;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BiddingService {
@@ -21,6 +23,7 @@ public class BiddingService {
     private final BidDAO bidDAO;
 
     private AutoBidConfigService autoBidConfigService;
+    private NotificationService  notificationService;
 
     public BiddingService(DataSource ds, UserDAO u, AuctionDAO a, BidDAO b) {
         this.dataSource = ds;
@@ -29,9 +32,8 @@ public class BiddingService {
         this.bidDAO = b;
     }
 
-    public DataSource getDataSource() {
-        return dataSource;
-    }
+    public DataSource getDataSource() { return dataSource; }
+    public BidDAO     getBidDAO()     { return bidDAO; }
 
     public AutoBidConfigService getAutoBidConfigService() {
         return autoBidConfigService;
@@ -41,8 +43,40 @@ public class BiddingService {
         this.autoBidConfigService = autoBidConfigService;
     }
 
+    public void setNotificationService(NotificationService ns) {
+        this.notificationService = ns;
+    }
+
+    public NotificationService getNotificationService() {
+        return notificationService;
+    }
+
+    /** Lightweight record carrying per-auction bid summary for one user. */
+    public record BidHistoryEntry(Auction auction, double myHighestBid, int myBidCount, boolean won) {}
+
     public List<Auction> getAuctionsForBidder(int userId) {
         return auctionDAO.findByBidder(userId);
+    }
+
+    /**
+     * Returns one {@link BidHistoryEntry} per FINISHED auction the user placed bids on.
+     * "won" is true when the user's highest bid equals the auction's final price.
+     */
+    public List<BidHistoryEntry> getBidHistoryForUser(int userId) {
+        List<Auction> finished = auctionDAO.findByBidder(userId).stream()
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
+                .sorted((a, b) -> b.getEndTime().compareTo(a.getEndTime()))
+                .toList();
+
+        List<BidHistoryEntry> result = new ArrayList<>();
+        for (Auction a : finished) {
+            double myHighestBid = bidDAO.getMaxBidByUser(userId, a.getId());
+            int myBidCount      = bidDAO.getBidCountByUser(userId, a.getId());
+            // For a finished auction currentPrice IS the winning bid
+            boolean won = myHighestBid > 0 && myHighestBid == a.getCurrentPrice();
+            result.add(new BidHistoryEntry(a, myHighestBid, myBidCount, won));
+        }
+        return result;
     }
 
     public void placeBid(int userId, int auctionId, double amount) {
@@ -74,6 +108,9 @@ public class BiddingService {
                     throw new RuntimeException("Insufficient balance");
                 }
 
+                // Remember previous leader BEFORE inserting the new bid
+                Integer previousLeader = bidDAO.findHighestBidder(auctionId);
+
                 // All three writes share the same connection and will commit or rollback together.
                 userDAO.updateBalance(conn, userId, user.getBalance() - amount);
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
@@ -90,8 +127,15 @@ public class BiddingService {
 
                 conn.commit();
 
+                // Notify the previous leader that they were outbid (fire-and-forget, outside TX)
+                if (previousLeader != null && previousLeader != userId && notificationService != null) {
+                    notificationService.send(previousLeader,
+                        String.format("📢 Bạn đã bị vượt giá trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
+                            auctionId, amount));
+                }
+
                 // Broadcast real-time update to all WebSocket subscribers
-//                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount);
+                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount);
 
                 if (autoBidConfigService != null)
                     autoBidConfigService.triggerAutoBidding(auctionId);

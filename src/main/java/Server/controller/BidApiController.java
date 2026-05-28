@@ -1,12 +1,19 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.dto.requests.AuctionIdRequest;
+import Server.dto.requests.AutoBidRequest;
+import Server.dto.requests.PlaceBidRequest;
+import Server.dto.responses.AuctionDTO;
+import Server.dto.responses.BidDTO;
+import Server.dto.responses.BidHistoryDTO;
 import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.auction.BiddingService;
+import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
 import com.google.gson.Gson;
@@ -16,12 +23,14 @@ import java.util.List;
 public class BidApiController {
 
     private final BiddingService biddingService;
-    private final UserService userService;
+    private final UserService    userService;
+    private final ItemService    itemService;
     private final Gson gson;
 
-    public BidApiController(BiddingService biddingService, UserService userService) {
+    public BidApiController(BiddingService biddingService, UserService userService, ItemService itemService) {
         this.biddingService = biddingService;
-        this.userService = userService;
+        this.userService    = userService;
+        this.itemService    = itemService;
         this.gson = new Gson();
     }
 
@@ -83,9 +92,11 @@ public class BidApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = biddingService.getAuctionsForBidder(user.getId());
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", auctions)));
+            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
+            e.printStackTrace();
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -119,34 +130,26 @@ public class BidApiController {
         }
     }
 
-    private static class PlaceBidRequest {
-        int auctionId;
-        double amount;
-    }
+    // GET /api/bids/my-history
+    // Returns finished auctions the user bid on with won/lost outcome
+    public void getMyBidHistory(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
 
-    private static class AuctionIdRequest {
-        int auctionId;
-    }
+            List<BiddingService.BidHistoryEntry> entries =
+                    biddingService.getBidHistoryForUser(user.getId());
 
-    private static class AutoBidRequest {
-        int auctionId;
-        double maxBid;
-        double increment;
-    }
+            List<BidHistoryDTO> dtos = entries.stream()
+                    .map(e -> new BidHistoryDTO(e, userService, itemService))
+                    .toList();
 
-    private static class BidDTO {
-        int id, userId, auctionId;
-        double amount;
-        String createdAt;
-        String username;
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
-        BidDTO(Bid b, String username) {
-            id = b.getId();
-            userId = b.getUserId();
-            auctionId = b.getAuctionId();
-            amount = b.getAmount();
-            createdAt = b.getCreatedAt() != null ? b.getCreatedAt().toString() : null;
-            this.username = username;
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.error(500, "Server error: " + e.getMessage());
         }
     }
+
 }

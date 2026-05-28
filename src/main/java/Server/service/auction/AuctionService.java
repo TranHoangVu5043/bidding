@@ -118,7 +118,19 @@ public class AuctionService {
             newStatus = "FINISHED";
         }
 
-        auctionDAO.updateStatus(auctionId, newStatus);
+        if (!current.equals(newStatus)) {
+            auctionDAO.updateStatus(auctionId, newStatus);
+
+            // First-time transition to FINISHED → notify winner
+            if ("FINISHED".equals(newStatus) && notifService != null) {
+                Integer winnerId = bidDAO.findHighestBidder(auctionId);
+                if (winnerId != null) {
+                    notifService.send(winnerId,
+                        String.format("🎉 Chúc mừng! Bạn đã thắng phiên đấu giá #%d với giá %,.0f ₫!",
+                            auctionId, auction.getCurrentPrice()));
+                }
+            }
+        }
     }
 //    public List<Auction> getAllActiveAuctions(){
 //        List<Auction> list = auctionDAO.getActiveAuctions();
