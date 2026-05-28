@@ -6,6 +6,7 @@ import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.auction.BiddingService;
+import Server.service.users.UserService;
 
 import com.google.gson.Gson;
 
@@ -14,10 +15,12 @@ import java.util.List;
 public class BidApiController {
 
     private final BiddingService biddingService;
+    private final UserService userService;
     private final Gson gson;
 
-    public BidApiController(BiddingService biddingService) {
+    public BidApiController(BiddingService biddingService, UserService userService) {
         this.biddingService = biddingService;
+        this.userService = userService;
         this.gson = new Gson();
     }
 
@@ -60,7 +63,11 @@ public class BidApiController {
             }
 
             List<Bid> bids = biddingService.getBidHistory(body.auctionId);
-            List<BidDTO> dtos = bids.stream().map(BidDTO::new).toList();
+            List<BidDTO> dtos = bids.stream().map(b -> {
+                User u = userService.getUserById(b.getUserId());
+                String username = (u != null) ? u.getUsername() : "User#" + b.getUserId();
+                return new BidDTO(b, username);
+            }).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
@@ -81,13 +88,15 @@ public class BidApiController {
         int id, userId, auctionId;
         double amount;
         String createdAt;
+        String username;
 
-        BidDTO(Bid b) {
+        BidDTO(Bid b, String username) {
             id = b.getId();
             userId = b.getUserId();
             auctionId = b.getAuctionId();
             amount = b.getAmount();
             createdAt = b.getCreatedAt() != null ? b.getCreatedAt().toString() : null;
+            this.username = username;
         }
     }
 }

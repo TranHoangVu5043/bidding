@@ -11,7 +11,7 @@ import java.time.Duration;
 
 public class ApiClient {
 
-    private static final String BASE_URL = "http://127.0.0.1:8080/api";
+    private static final String BASE_URL = ServerConfig.HTTP_BASE + "/api";
 
     // Shared across all ApiClient instances — reuses the connection pool
     private static final HttpClient client = HttpClient.newBuilder()
@@ -36,14 +36,8 @@ public class ApiClient {
 
         attachToken(builder);
 
-        HttpRequest request = builder.build();
-
         HttpResponse<String> response =
-                client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
-
+                client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         return response.body();
     }
 
@@ -62,14 +56,8 @@ public class ApiClient {
 
         attachToken(builder);
 
-        HttpRequest request = builder.build();
-
         HttpResponse<String> response =
-                client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-                );
-
+                client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         return response.body();
     }
 

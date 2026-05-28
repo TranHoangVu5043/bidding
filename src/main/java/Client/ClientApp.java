@@ -23,6 +23,8 @@ public class ClientApp extends Application {
         primaryStage.setTitle("Auction App");
         primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);
+        primaryStage.setMinWidth(480);
+        primaryStage.setMinHeight(400);
         primaryStage.show();
     }
 

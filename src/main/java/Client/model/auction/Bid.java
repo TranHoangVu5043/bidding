@@ -6,6 +6,7 @@ public class Bid {
     private int auctionId;
     private double amount;
     private String createdAt;
+    private String username;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -21,4 +22,7 @@ public class Bid {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 }

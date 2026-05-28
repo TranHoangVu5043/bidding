@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BidWebSocketServer extends WebSocketServer {
 
     private static volatile BidWebSocketServer instance;
+    private static final int WS_PORT =
+            Integer.parseInt(System.getenv().getOrDefault("WS_PORT", "8081"));
 
     /** auctionId → set of subscribed connections */
     private final Map<Integer, Set<WebSocket>> rooms = new ConcurrentHashMap<>();
@@ -42,7 +44,7 @@ public class BidWebSocketServer extends WebSocketServer {
         if (instance == null) {
             synchronized (BidWebSocketServer.class) {
                 if (instance == null) {
-                    instance = new BidWebSocketServer(8081);
+                    instance = new BidWebSocketServer(WS_PORT);
                 }
             }
         }

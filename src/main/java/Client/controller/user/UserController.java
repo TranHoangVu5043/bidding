@@ -3,7 +3,6 @@ package Client.controller.user;
 import Client.model.Notification;
 import Client.model.auction.Auction;
 import Client.model.auction.Bid;
-import Client.model.auction.Order;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -18,14 +17,15 @@ import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Modality;
@@ -66,7 +66,6 @@ public class UserController {
     @FXML private Tab tabNotification;
     @FXML private Tab tabProfile;
     @FXML private Tab tabSettings;
-    @FXML private Tab tabOrderHistory ;
 
     // ══════════════════════════════════════════
     // FXML — Tab Dashboard (Auction Floor)
@@ -76,6 +75,11 @@ public class UserController {
     @FXML private ComboBox<String>   cmbFilter;
     @FXML private FlowPane           auctionFlowPane;
     @FXML private Button             btnRefreshAuctions;
+
+    // ── Pagination controls ──
+    @FXML private Button btnPrevPage;
+    @FXML private Button btnNextPage;
+    @FXML private Label  lblPageInfo;
 
     // ══════════════════════════════════════════
     // FXML — Tab Notification
@@ -114,17 +118,6 @@ public class UserController {
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
 
-    // History
-    @FXML private ComboBox<String> cbStatusFilter;
-    @FXML private TextField         txtSearchField ;
-    @FXML private TableView<Order>  tableOrderHistory;
-    @FXML private TableColumn<Order, String> colId;
-    @FXML private TableColumn<Order, String> colDate;
-    @FXML private TableColumn<Order, String> colProduct;
-    @FXML private TableColumn<Order, Double> colTotal;
-    @FXML private TableColumn<Order, String> colStatus;
-
-
     // ══════════════════════════════════════════
     // APIs & Data
     // ══════════════════════════════════════════
@@ -133,14 +126,17 @@ public class UserController {
     private final BidApi          bidApi     = new BidApi();
     private final NotificationApi notifApi   = new NotificationApi();
 
-    private final ObservableList<Auction> liveAuctions   = FXCollections.observableArrayList();
+    private final ObservableList<Auction> liveAuctions    = FXCollections.observableArrayList();
     /** auctionId → the price Label inside that card, for targeted live updates */
     private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
 
-    private final ObservableList<Order> orderData = FXCollections.observableArrayList();
-    private FilteredList<Order> filteredData  ;
+    // ── Pagination ──────────────────────────────────────────────────────────
+    private static final int PAGE_SIZE = 9;
+    private int currentPage = 0;
+    /** The filtered (but not yet paged) list — kept so next/prev can slice it. */
+    private List<Auction> filteredAuctions = List.of();
 
     // ══════════════════════════════════════════
     // Initialize
@@ -151,12 +147,11 @@ public class UserController {
         populateUserInfo();
         loadAuctions();
         loadNotifications();
-        setupHistoryTable();
 
-        // Re-filter cards whenever the ComboBox value changes
-        cmbFilter.valueProperty().addListener((obs, old, val) -> renderAuctionCards(liveAuctions));
-        cbStatusFilter.valueProperty().addListener((observable, oldValue, newValue) -> {
-            applyFilter( filteredData);
+        // Re-filter cards whenever the ComboBox value changes; reset to page 0
+        cmbFilter.valueProperty().addListener((obs, old, val) -> {
+            currentPage = 0;
+            renderAuctionCards(liveAuctions);
         });
     }
 
@@ -194,8 +189,6 @@ public class UserController {
     @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
     @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
     @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
-    @FXML private void handleHistory()     { switchTab(tabOrderHistory,  "Lịch Sử "); }
-
 
     @FXML
     private void handleSignOut() {
@@ -246,7 +239,19 @@ public class UserController {
 
     /** Opens (or reuses) the WebSocket connection and subscribes to every ACTIVE auction. */
     private void connectWebSocket() {
-        // Close stale connection if any
+        List<Integer> activeIds = liveAuctions.stream()
+                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .map(Auction::getId)
+                .toList();
+
+        // If the connection is already alive just re-subscribe — don't tear it down
+        if (wsClient != null && wsClient.isOpen()) {
+            activeIds.forEach(wsClient::subscribe);
+            System.out.println("[WS Client] Re-subscribed to " + activeIds.size() + " auction(s): " + activeIds);
+            return;
+        }
+
+        // Close a stale (not-yet-open or errored) connection before creating a new one
         if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
 
         wsClient = new AuctionWebSocketClient((auctionId, newPrice) -> {
@@ -267,15 +272,8 @@ public class UserController {
         // connect() is non-blocking — safe to call on FX thread
         wsClient.connect();
 
-        // Subscribe to every active auction once the socket opens
-        // We do this on a background thread with a short wait for the handshake
-        List<Integer> activeIds = liveAuctions.stream()
-                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
-                .map(Auction::getId)
-                .toList();
-
+        // Subscribe once the handshake completes
         new Thread(() -> {
-            // Wait up to 2 s for the connection to open
             for (int i = 0; i < 20; i++) {
                 if (wsClient.isOpen()) break;
                 try { Thread.sleep(100); } catch (InterruptedException ignored) {}
@@ -285,35 +283,60 @@ public class UserController {
         }).start();
     }
 
-    /** Applies the current filter value and rebuilds the FlowPane cards. Must run on FX thread. */
+    /** Applies the current filter + current page and rebuilds the FlowPane cards. Must run on FX thread. */
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
 
         String filter = cmbFilter.getValue();
-        List<Auction> visible = auctions.stream().filter(a -> {
+        filteredAuctions = auctions.stream().filter(a -> {
             String s = a.getStatus() != null ? a.getStatus().toUpperCase() : "";
-            // Always hide CANCELLED in "Tất cả" view
             if ("CANCELLED".equalsIgnoreCase(s) && (filter == null || filter.equals("Tất cả"))) return false;
             if (filter == null || filter.equals("Tất cả")) return true;
             return switch (filter) {
-                case "Đang chạy"    -> s.equals("ACTIVE");
-                case "Sắp diễn ra"  -> s.equals("UPCOMING");
-                case "Đã kết thúc"  -> s.equals("FINISHED") || s.equals("CANCELLED");
+                case "Đang chạy"   -> s.equals("ACTIVE");
+                case "Sắp diễn ra" -> s.equals("UPCOMING");
+                case "Đã kết thúc" -> s.equals("FINISHED") || s.equals("CANCELLED");
                 default -> true;
             };
         }).collect(Collectors.toList());
 
-        if (visible.isEmpty()) {
+        if (filteredAuctions.isEmpty()) {
             Label empty = new Label("Không có phiên đấu giá nào phù hợp.");
             empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
             auctionFlowPane.getChildren().add(empty);
+            updatePaginationControls(0, 0);
             return;
         }
 
-        for (Auction auction : visible) {
+        // ── Page slice ──────────────────────────────────────────────────────
+        int totalPages = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0)          currentPage = 0;
+
+        int from = currentPage * PAGE_SIZE;
+        int to   = Math.min(from + PAGE_SIZE, filteredAuctions.size());
+
+        for (Auction auction : filteredAuctions.subList(from, to)) {
             auctionFlowPane.getChildren().add(buildAuctionCard(auction));
         }
+        updatePaginationControls(currentPage, totalPages);
+    }
+
+    private void updatePaginationControls(int page, int total) {
+        if (lblPageInfo  != null) lblPageInfo.setText(
+                total == 0 ? "—" : "Trang " + (page + 1) + " / " + total);
+        if (btnPrevPage  != null) btnPrevPage.setDisable(page <= 0);
+        if (btnNextPage  != null) btnNextPage.setDisable(total == 0 || page >= total - 1);
+    }
+
+    @FXML private void handlePrevPage() {
+        if (currentPage > 0) { currentPage--; renderAuctionCards(liveAuctions); }
+    }
+
+    @FXML private void handleNextPage() {
+        int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
+        if (currentPage < total - 1) { currentPage++; renderAuctionCards(liveAuctions); }
     }
 
     /** Builds one auction card VBox programmatically to match the FXML design style. */
@@ -386,6 +409,17 @@ public class UserController {
             btnBid.setOnAction(e -> handlePlaceBid(auction));
         }
 
+        // ── Auto-bid button (active auctions only) ──
+        Button btnAutoBid = new Button("🤖 Đặt giá tự động");
+        btnAutoBid.setMaxWidth(Double.MAX_VALUE);
+        btnAutoBid.setDisable(!canBid);
+        btnAutoBid.setStyle("-fx-background-color: " + (canBid ? "#7C3AED" : "#9CA3AF") + "; " +
+                "-fx-text-fill: white; -fx-font-weight: bold; " +
+                "-fx-background-radius: 8; -fx-cursor: " + (canBid ? "hand" : "default") + "; -fx-padding: 7;");
+        if (canBid) {
+            btnAutoBid.setOnAction(e -> handleAutoBid(auction));
+        }
+
         // ── Bid history button ──
         Button btnHistory = new Button("Lịch sử đấu giá");
         btnHistory.setMaxWidth(Double.MAX_VALUE);
@@ -397,7 +431,7 @@ public class UserController {
         VBox card = new VBox(8,
                 lblStatus, imgPane, lblTitle, lblSeller,
                 lblStartPrice, lblCurrentPrice, lblTime,
-                btnBid, btnHistory);
+                btnBid, btnAutoBid, btnHistory);
         card.setPrefWidth(210);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.09), 10, 0, 0, 3); " +
@@ -477,33 +511,116 @@ public class UserController {
         });
     }
 
-    /** Fetches bid history for an auction and shows it in a dialog with a TableView. */
-    private void showBidHistory(Auction auction) {
-        // Build the table first (shown immediately; data fills in asynchronously)
-        TableView<Bid> table = new TableView<>();
-        table.setPrefSize(480, 280);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPlaceholder(new Label("⏳ Đang tải..."));
+    /**
+     * Shows a two-field dialog (max price + step increment) and registers an auto-bid
+     * config on the server. The server's AutoBidConfigService then automatically places
+     * incremental bids on behalf of this user whenever someone outbids them.
+     */
+    private void handleAutoBid(Auction auction) {
+        // ── Build dialog layout ──
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("🤖 Đặt giá tự động – Phiên #" + auction.getId());
+        dialog.setHeaderText(
+                "Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()) + "\n" +
+                "Hệ thống sẽ tự động tăng giá thay bạn cho đến khi đạt giá tối đa.");
 
-        TableColumn<Bid, Integer> colUser = new TableColumn<>("Người đặt (ID)");
-        colUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(16, 24, 8, 24));
 
-        TableColumn<Bid, Double> colAmount = new TableColumn<>("Số tiền");
-        colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Double val, boolean empty) {
-                super.updateItem(val, empty);
-                setText(empty || val == null ? null : String.format("%,.0f ₫", val));
+        Label lblMax = new Label("Giá tối đa (₫):");
+        lblMax.setStyle("-fx-font-weight: bold;");
+        TextField txtMax = new TextField();
+        txtMax.setPromptText("Ví dụ: 5000000");
+        txtMax.setPrefWidth(200);
+
+        Label lblInc = new Label("Mức tăng mỗi lần (₫):");
+        lblInc.setStyle("-fx-font-weight: bold;");
+        TextField txtInc = new TextField();
+        txtInc.setPromptText("Ví dụ: 100000");
+        txtInc.setPrefWidth(200);
+
+        Label lblNote = new Label("⚠ Số dư của bạn phải đủ để chi trả mức giá tối đa.");
+        lblNote.setStyle("-fx-text-fill: #D97706; -fx-font-size: 11;");
+        lblNote.setWrapText(true);
+        lblNote.setMaxWidth(340);
+
+        grid.add(lblMax, 0, 0); grid.add(txtMax, 1, 0);
+        grid.add(lblInc, 0, 1); grid.add(txtInc, 1, 1);
+        grid.add(lblNote, 0, 2, 2, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // Style the OK button
+        Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okBtn.setText("Xác nhận đặt giá tự động");
+        okBtn.setStyle("-fx-background-color: #7C3AED; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        // Focus on the first field when dialog opens
+        javafx.application.Platform.runLater(txtMax::requestFocus);
+
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+            try {
+                double maxBid   = Double.parseDouble(txtMax.getText().replace(",", "").replace(".", "").trim());
+                double increment = Double.parseDouble(txtInc.getText().replace(",", "").replace(".", "").trim());
+
+                if (maxBid <= auction.getCurrentPrice()) {
+                    showAlert(Alert.AlertType.WARNING, "Giá không hợp lệ",
+                            String.format("Giá tối đa phải lớn hơn giá hiện tại (%,.0f ₫).",
+                                    auction.getCurrentPrice()));
+                    return;
+                }
+                if (increment <= 0) {
+                    showAlert(Alert.AlertType.WARNING, "Mức tăng không hợp lệ",
+                            "Mức tăng mỗi lần phải lớn hơn 0.");
+                    return;
+                }
+
+                new Thread(() -> {
+                    ApiResponse<Void> resp = bidApi.registerAutoBid(auction.getId(), maxBid, increment);
+                    Platform.runLater(() -> {
+                        if (resp != null && resp.getStatus() == 201) {
+                            showAlert(Alert.AlertType.INFORMATION, "Đặt giá tự động thành công",
+                                    String.format("Hệ thống sẽ tự động đặt giá cho phiên #%d\n" +
+                                            "Giá tối đa: %,.0f ₫  |  Mức tăng: %,.0f ₫",
+                                            auction.getId(), maxBid, increment));
+                        } else {
+                            String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                            showAlert(Alert.AlertType.ERROR, "Thất bại", msg);
+                        }
+                    });
+                }).start();
+
+            } catch (NumberFormatException ex) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi nhập liệu",
+                        "Vui lòng nhập số tiền hợp lệ (chỉ gồm các chữ số).");
             }
         });
+    }
 
-        TableColumn<Bid, String> colTime = new TableColumn<>("Thời gian");
-        colTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
+    /** Fetches bid history for an auction and shows it as a line chart (no table). */
+    private void showBidHistory(Auction auction) {
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Người đặt  –  Thời gian");
 
-        table.getColumns().addAll(colUser, colAmount, colTime);
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Số tiền (₫)");
+        yAxis.setForceZeroInRange(false);
 
-        VBox content = new VBox(10, table);
+        LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
+        chart.setTitle("Lịch sử giá đặt – Phiên #" + auction.getId());
+        chart.setAnimated(false);
+        chart.setCreateSymbols(true);
+        chart.setPrefSize(620, 380);
+        chart.setLegendVisible(false);
+
+        Label placeholder = new Label("⏳ Đang tải...");
+        placeholder.setStyle("-fx-text-fill: #555; -fx-font-size: 13;");
+
+        VBox content = new VBox(10, placeholder);
         content.setPadding(new Insets(10));
 
         Dialog<Void> dialog = new Dialog<>();
@@ -511,25 +628,52 @@ public class UserController {
         dialog.setHeaderText("Phiên #" + auction.getId()
                 + "  |  Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().setPrefWidth(660);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
-        // Fetch in background; update table when done
         new Thread(() -> {
             ApiResponse<List<Bid>> resp = bidApi.getBidHistory(auction.getId());
             Platform.runLater(() -> {
+                content.getChildren().remove(placeholder);
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    table.setItems(FXCollections.observableArrayList(resp.getData()));
-                    if (resp.getData().isEmpty()) {
-                        table.setPlaceholder(new Label("Chưa có lượt đặt giá nào."));
+                    List<Bid> bids = resp.getData();
+                    if (bids.isEmpty()) {
+                        content.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+                        return;
                     }
+
+                    List<Bid> sorted = bids.stream()
+                            .filter(b -> b.getCreatedAt() != null)
+                            .sorted(java.util.Comparator.comparing(Bid::getCreatedAt))
+                            .toList();
+
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    for (int i = 0; i < sorted.size(); i++) {
+                        Bid b = sorted.get(i);
+                        String name = b.getUsername() != null ? b.getUsername() : "User#" + b.getUserId();
+                        String time = formatBidTime(b.getCreatedAt(), i + 1);
+                        // X label: "username  HH:mm:ss"
+                        String xLabel = name + "\n" + time;
+                        XYChart.Data<String, Number> point = new XYChart.Data<>(xLabel, b.getAmount());
+                        series.getData().add(point);
+                    }
+                    chart.getData().add(series);
+                    content.getChildren().add(chart);
                 } else {
                     String msg = resp != null ? resp.getMessage() : "Mất kết nối";
-                    table.setPlaceholder(new Label("Không thể tải lịch sử: " + msg));
+                    content.getChildren().add(new Label("Không thể tải lịch sử: " + msg));
                 }
             });
         }).start();
 
         dialog.showAndWait();
+    }
+
+    private String formatBidTime(String createdAt, int index) {
+        if (createdAt == null) return "#" + index;
+        int t = createdAt.indexOf('T');
+        if (t >= 0 && createdAt.length() > t + 8) return createdAt.substring(t + 1, t + 9);
+        return "#" + index;
     }
 
     /** Shows a styled detail popup for a clicked auction card. */
@@ -608,6 +752,16 @@ public class UserController {
             btnBid.setOnAction(e -> { popup.close(); handlePlaceBid(auction); });
         }
 
+        Button btnAutoBidPopup = new Button("🤖 Đặt giá tự động");
+        btnAutoBidPopup.setDisable(!canBid);
+        btnAutoBidPopup.setMaxWidth(Double.MAX_VALUE);
+        btnAutoBidPopup.setStyle("-fx-background-color: " + (canBid ? "#7C3AED" : "#9CA3AF") + "; " +
+                "-fx-text-fill: white; -fx-font-weight: bold; " +
+                "-fx-background-radius: 8; -fx-padding: 10; -fx-cursor: " + (canBid ? "hand" : "default") + ";");
+        if (canBid) {
+            btnAutoBidPopup.setOnAction(e -> { popup.close(); handleAutoBid(auction); });
+        }
+
         Button btnHistory = new Button("Lịch sử đặt giá  📋");
         btnHistory.setMaxWidth(Double.MAX_VALUE);
         btnHistory.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #374151; " +
@@ -621,7 +775,7 @@ public class UserController {
                 "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
         btnClose.setOnAction(e -> popup.close());
 
-        VBox btnBox = new VBox(8, btnBid, btnHistory, btnClose);
+        VBox btnBox = new VBox(8, btnBid, btnAutoBidPopup, btnHistory, btnClose);
         btnBox.setPadding(new Insets(14, 28, 24, 28));
 
         VBox root = new VBox(header, grid, sep, btnBox);
@@ -667,6 +821,7 @@ public class UserController {
                 .filter(a -> String.valueOf(a.getId()).contains(keyword)
                         || String.valueOf(a.getItemId()).contains(keyword))
                 .collect(Collectors.toList());
+        currentPage = 0;
         switchTab(tabDashboard, "Dashboard");
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
@@ -842,55 +997,6 @@ public class UserController {
             }
         });
     }
-    @FXML
-    private void handleToggleNotification (ActionEvent event) {
-        Button btn = (Button) event.getSource();
-        if (btn.getText().equals("Bật")) {
-            btn.setText("Tắt");
-            btn.setStyle("-fx-background-color: #bdc3c7; -fx-text-fill: white; -fx-background-radius: 15;");
-        } else {
-            btn.setText("Bật");
-            btn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 15;");
-        }
-    }
-    // OrderHistory
-    @FXML
-    public void setupHistoryTable(){
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
-        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-
-        //ComboBox
-        cbStatusFilter.getItems().clear();
-        cbStatusFilter.getItems().addAll("Tất cả", "Thành công", "Thất bại");
-        cbStatusFilter.getSelectionModel().select("Tất cả");
-        //Search
-        filteredData = new FilteredList<>(orderData, p -> true);
-        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
-            applyFilter(filteredData);
-        });
-        txtSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            applyFilter(filteredData);
-        });
-        tableOrderHistory.setItems(filteredData);
-    }
-    private void applyFilter(FilteredList<Order> filteredData) {
-        String status = cbStatusFilter.getValue();
-        String searchText = (txtSearch.getText() == null) ? "" : txtSearch.getText().toLowerCase().trim();
-        filteredData.setPredicate(order -> {
-            boolean matchesStatus = (status == null || status.equals("Tất cả"))
-                    || (order.getStatus() != null && order.getStatus().equals(status));
-            boolean matchesSearch = searchText.isEmpty()
-                    || (order.getProductName() != null && order.getProductName().toLowerCase().contains(searchText))
-                    || (String.valueOf(order.getId()).contains(searchText));
-
-            return matchesStatus && matchesSearch;
-        });
-    }
-
-
 
     // ══════════════════════════════════════════
     // Helpers
