@@ -3,6 +3,7 @@ package Client.controller.user;
 import Client.model.Notification;
 import Client.model.auction.Auction;
 import Client.model.auction.Bid;
+import Client.model.auction.Order;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -17,10 +18,16 @@ import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -49,6 +56,7 @@ public class UserController {
     // ══════════════════════════════════════════
     @FXML private Button btnDashBoard;
     @FXML private Button btnAuction;
+    @FXML private Button btnOrderHistory;
     @FXML private Button btnNotification;
     @FXML private Button btnProfile;
     @FXML private Button btnSettings;
@@ -60,6 +68,7 @@ public class UserController {
     // ══════════════════════════════════════════
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
+    @FXML private Tab tabOrderHistory;
     @FXML private Tab tabNotification;
     @FXML private Tab tabProfile;
     @FXML private Tab tabSettings;
@@ -115,6 +124,16 @@ public class UserController {
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
 
+    // tabOrderHistory
+    @FXML private ComboBox<String> cbStatusFilter;
+    @FXML private TextField         txtSearchField ;
+    @FXML private TableView<Order>  tableOrderHistory;
+    @FXML private TableColumn<Order, Long> colId;
+    @FXML private TableColumn<Order, String> colDate;
+    @FXML private TableColumn<Order, String> colProduct;
+    @FXML private TableColumn<Order, Double> colTotal;
+    @FXML private TableColumn<Order, String> colStatus;
+
     // ══════════════════════════════════════════
     // APIs & Data
     // ══════════════════════════════════════════
@@ -122,12 +141,19 @@ public class UserController {
     private final AuctionApi      auctionApi = new AuctionApi();
     private final BidApi          bidApi     = new BidApi();
     private final NotificationApi notifApi   = new NotificationApi();
+    private final Client.networking.endpoints.OrderApi orderApi = new Client.networking.endpoints.OrderApi();
 
-    private final ObservableList<Auction> liveAuctions    = FXCollections.observableArrayList();
+    private final ObservableList<Auction> liveAuctions        = FXCollections.observableArrayList();
+    private final ObservableList<Auction> myBiddingAuctions   = FXCollections.observableArrayList();
+    /** Whichever list is currently rendered — used by pagination. */
+    private List<Auction> currentDisplayList = liveAuctions;
     /** auctionId → the price Label inside that card, for targeted live updates */
     private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
+
+    private FilteredList<Order> filteredData;
+    private final ObservableList<Order> orderData = FXCollections.observableArrayList();
 
     // ── Pagination ──────────────────────────────────────────────────────────
     private static final int PAGE_SIZE = 9;
@@ -142,13 +168,17 @@ public class UserController {
     public void initialize() {
         setupComboBoxes();
         populateUserInfo();
-        loadAuctions();
+        loadMyBiddingAuctions();   // Dashboard is the landing tab — show user's own bids
         loadNotifications();
+        setupHistoryTable();
+
+        // Highlight Dashboard as the default active sidebar button
+        setActiveNavButton(btnDashBoard);
 
         // Re-filter cards whenever the ComboBox value changes; reset to page 0
         cmbFilter.valueProperty().addListener((obs, old, val) -> {
             currentPage = 0;
-            renderAuctionCards(liveAuctions);
+            renderAuctionCards(currentDisplayList);
         });
     }
 
@@ -181,11 +211,13 @@ public class UserController {
     // ══════════════════════════════════════════
     // Sidebar Navigation
     // ══════════════════════════════════════════
-    @FXML private void handleDashBoard()    { switchTab(tabDashboard,    "Dashboard"); }
-    @FXML private void handleAuction()      { switchTab(tabDashboard,    "Sàn Đấu Giá"); loadAuctions(); }
-    @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
-    @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
-    @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
+    @FXML private void handleDashBoard()    { switchTab(tabDashboard, btnDashBoard); loadMyBiddingAuctions(); }
+    @FXML private void handleAuction()      { switchTab(tabDashboard, btnAuction);   loadAuctions(); }
+    @FXML private void handleNotification() { switchTab(tabNotification, btnNotification); loadNotifications(); }
+    @FXML private void handleProfile()      { switchTab(tabProfile,      btnProfile); }
+    @FXML private void handleSettings()     { switchTab(tabSettings,     btnSettings); }
+    @FXML private void handleHistory()      { switchTab(tabOrderHistory, btnOrderHistory); loadOrderHistory(); }
+
 
     @FXML
     private void handleSignOut() {
@@ -220,13 +252,49 @@ public class UserController {
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
                     liveAuctions.setAll(response.getData());
                     livePriceLabels.clear();
-                    renderAuctionCards(liveAuctions);
+                    currentDisplayList = liveAuctions;
+                    currentPage = 0;
+                    renderAuctionCards(currentDisplayList);
                     updateAuctionStats();
                     connectWebSocket();   // subscribe to all active auctions
                 } else {
                     auctionFlowPane.getChildren().clear();
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
                     Label err = new Label("❌ Không thể tải phiên đấu giá: " + msg);
+                    err.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 13;");
+                    auctionFlowPane.getChildren().add(err);
+                }
+            });
+        }).start();
+    }
+
+    /** Fetches only auctions the current user has placed bids on. */
+    private void loadMyBiddingAuctions() {
+        if (auctionFlowPane == null) return;
+
+        auctionFlowPane.getChildren().clear();
+        Label loading = new Label("⏳ Đang tải phiên đấu giá của bạn...");
+        loading.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13;");
+        auctionFlowPane.getChildren().add(loading);
+
+        new Thread(() -> {
+            ApiResponse<List<Auction>> response = bidApi.getMyBiddingAuctions();
+            Platform.runLater(() -> {
+                auctionFlowPane.getChildren().clear();
+                if (response != null && response.getStatus() == 200 && response.getData() != null) {
+                    myBiddingAuctions.setAll(response.getData());
+                    currentDisplayList = myBiddingAuctions;
+                    currentPage = 0;
+                    if (myBiddingAuctions.isEmpty()) {
+                        Label empty = new Label("Bạn chưa tham gia phiên đấu giá nào.");
+                        empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
+                        auctionFlowPane.getChildren().add(empty);
+                    } else {
+                        renderAuctionCards(currentDisplayList);
+                    }
+                } else {
+                    String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
+                    Label err = new Label("❌ Không thể tải dữ liệu: " + msg);
                     err.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 13;");
                     auctionFlowPane.getChildren().add(err);
                 }
@@ -328,12 +396,12 @@ public class UserController {
     }
 
     @FXML private void handlePrevPage() {
-        if (currentPage > 0) { currentPage--; renderAuctionCards(liveAuctions); }
+        if (currentPage > 0) { currentPage--; renderAuctionCards(currentDisplayList); }
     }
 
     @FXML private void handleNextPage() {
         int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
-        if (currentPage < total - 1) { currentPage++; renderAuctionCards(liveAuctions); }
+        if (currentPage < total - 1) { currentPage++; renderAuctionCards(currentDisplayList); }
     }
 
     /** Builds one auction card VBox programmatically to match the FXML design style. */
@@ -598,59 +666,108 @@ public class UserController {
         });
     }
 
-    /** Fetches bid history for an auction and shows it in a dialog with a TableView. */
+    /** Fetches bid history for an auction and shows it as a line chart (no table). */
     private void showBidHistory(Auction auction) {
-        // Build the table first (shown immediately; data fills in asynchronously)
-        TableView<Bid> table = new TableView<>();
-        table.setPrefSize(480, 280);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPlaceholder(new Label("⏳ Đang tải..."));
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Lượt đặt");
+        xAxis.setTickLabelRotation(30);
 
-        TableColumn<Bid, Integer> colUser = new TableColumn<>("Người đặt (ID)");
-        colUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Số tiền (₫)");
+        yAxis.setForceZeroInRange(false);
 
-        TableColumn<Bid, Double> colAmount = new TableColumn<>("Số tiền");
-        colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Double val, boolean empty) {
-                super.updateItem(val, empty);
-                setText(empty || val == null ? null : String.format("%,.0f ₫", val));
-            }
-        });
+        LineChart<String, Number> chart = new LineChart<>(xAxis, yAxis);
+        chart.setTitle("Lịch sử giá đặt – Phiên #" + auction.getId());
+        chart.setAnimated(false);
+        chart.setCreateSymbols(true);
+        chart.setLegendVisible(false);
+        chart.setPrefWidth(640);
+        chart.setPrefHeight(360);
+        VBox.setVgrow(chart, javafx.scene.layout.Priority.ALWAYS);
 
-        TableColumn<Bid, String> colTime = new TableColumn<>("Thời gian");
-        colTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
+        Label placeholder = new Label("⏳ Đang tải...");
+        placeholder.setStyle("-fx-text-fill: #555; -fx-font-size: 13;");
 
-        table.getColumns().addAll(colUser, colAmount, colTime);
-
-        VBox content = new VBox(10, table);
+        VBox content = new VBox(10, placeholder);
         content.setPadding(new Insets(10));
+        content.setPrefHeight(400);
 
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Lịch sử đấu giá – Phiên #" + auction.getId());
-        dialog.setHeaderText("Phiên #" + auction.getId()
+        Stage stage = new Stage();
+        stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        stage.setTitle("Lịch sử đấu giá – Phiên #" + auction.getId());
+        stage.setMinWidth(680);
+        stage.setMinHeight(480);
+
+        Label header = new Label("Phiên #" + auction.getId()
                 + "  |  Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        header.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #1d4ed8; -fx-padding: 8 0 4 0;");
 
-        // Fetch in background; update table when done
+        Button btnClose = new Button("Đóng");
+        btnClose.setOnAction(e -> stage.close());
+        btnClose.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
+                "-fx-background-radius: 6; -fx-padding: 6 20;");
+
+        HBox footer = new HBox(btnClose);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        footer.setPadding(new Insets(8, 10, 8, 10));
+
+        VBox root = new VBox(0, header, content, footer);
+        root.setPadding(new Insets(10, 14, 4, 14));
+        VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+
+        stage.setScene(new javafx.scene.Scene(root, 680, 480));
+
         new Thread(() -> {
             ApiResponse<List<Bid>> resp = bidApi.getBidHistory(auction.getId());
             Platform.runLater(() -> {
+                content.getChildren().remove(placeholder);
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    table.setItems(FXCollections.observableArrayList(resp.getData()));
-                    if (resp.getData().isEmpty()) {
-                        table.setPlaceholder(new Label("Chưa có lượt đặt giá nào."));
+                    List<Bid> bids = resp.getData();
+                    if (bids.isEmpty()) {
+                        content.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+                        return;
                     }
+
+                    List<Bid> sorted = bids.stream()
+                            .filter(b -> b.getCreatedAt() != null)
+                            .sorted(java.util.Comparator.comparing(Bid::getCreatedAt))
+                            .toList();
+
+                    // Auto-scale Y axis with padding
+                    double minAmt = sorted.stream().mapToDouble(Bid::getAmount).min().orElse(0);
+                    double maxAmt = sorted.stream().mapToDouble(Bid::getAmount).max().orElse(1);
+                    double pad = Math.max((maxAmt - minAmt) * 0.15, maxAmt * 0.05);
+                    yAxis.setAutoRanging(false);
+                    yAxis.setLowerBound(Math.max(0, minAmt - pad));
+                    yAxis.setUpperBound(maxAmt + pad);
+                    yAxis.setTickUnit(Math.max(1, (maxAmt - minAmt + 2 * pad) / 6));
+
+                    XYChart.Series<String, Number> series = new XYChart.Series<>();
+                    for (int i = 0; i < sorted.size(); i++) {
+                        Bid b = sorted.get(i);
+                        String name = b.getUsername() != null ? b.getUsername() : "User#" + b.getUserId();
+                        String time = formatBidTime(b.getCreatedAt(), i + 1);
+                        // X label: "#N  username  HH:mm" — single line, no \n
+                        String xLabel = "#" + (i + 1) + " " + name + " " + time;
+                        series.getData().add(new XYChart.Data<>(xLabel, b.getAmount()));
+                    }
+                    chart.getData().add(series);
+                    content.getChildren().add(chart);
                 } else {
                     String msg = resp != null ? resp.getMessage() : "Mất kết nối";
-                    table.setPlaceholder(new Label("Không thể tải lịch sử: " + msg));
+                    content.getChildren().add(new Label("Không thể tải lịch sử: " + msg));
                 }
             });
         }).start();
 
-        dialog.showAndWait();
+        stage.showAndWait();
+    }
+
+    private String formatBidTime(String createdAt, int index) {
+        if (createdAt == null) return "#" + index;
+        int t = createdAt.indexOf('T');
+        if (t >= 0 && createdAt.length() > t + 8) return createdAt.substring(t + 1, t + 9);
+        return "#" + index;
     }
 
     /** Shows a styled detail popup for a clicked auction card. */
@@ -794,12 +911,12 @@ public class UserController {
             renderAuctionCards(liveAuctions);
             return;
         }
-        List<Auction> filtered = liveAuctions.stream()
+        List<Auction> filtered = currentDisplayList.stream()
                 .filter(a -> String.valueOf(a.getId()).contains(keyword)
                         || String.valueOf(a.getItemId()).contains(keyword))
                 .collect(Collectors.toList());
         currentPage = 0;
-        switchTab(tabDashboard, "Dashboard");
+        switchTab(tabDashboard, btnDashBoard);
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
         if (filtered.isEmpty()) {
@@ -974,13 +1091,97 @@ public class UserController {
             }
         });
     }
+    @FXML
+    private void handleToggleNotification(ActionEvent event) {
+        Button btn = (Button) event.getSource();
+        if (btn.getText().equals("Bật")) {
+            btn.setText("Tắt");
+            btn.setStyle("-fx-background-color: #bdc3c7; -fx-text-fill: white; -fx-background-radius: 15;");
+        } else {
+            btn.setText("Bật");
+            btn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 15;");
+        }
+    }
+    // History
+    @FXML
+    private void loadOrderHistory() {
+        new Thread(() -> {
+            ApiResponse<List<Order>> resp = orderApi.getAllOrders();
+            Platform.runLater(() -> {
+                orderData.clear();
+                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                    orderData.setAll(resp.getData());
+                } else {
+                    String msg = resp != null ? resp.getMessage() : "Mất kết nối";
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải đơn hàng: " + msg);
+                }
+            });
+        }).start();
+    }
 
-    // ══════════════════════════════════════════
+    public void setupHistoryTable() {
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
+        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+        //ComboBox
+        cbStatusFilter.getItems().clear();
+        cbStatusFilter.getItems().addAll("Tất cả", "Thành công", "Thất bại");
+        cbStatusFilter.getSelectionModel().select("Tất cả");
+        //Search
+        FilteredList<Order> filteredData = new FilteredList<>(orderData, p -> true);
+        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilter(filteredData);
+        });
+        txtSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilter(filteredData);
+        });
+        tableOrderHistory.setItems(filteredData);
+    }
+    private void applyFilter(FilteredList<Order> filteredData) {
+        filteredData.setPredicate(order -> {
+            String status = cbStatusFilter.getValue();
+            String searchText = txtSearchField != null ? txtSearchField.getText().toLowerCase().trim() : "";
+            boolean matchesStatus = (status == null || status.equals("Tất cả"))
+                    || (order.getStatus() != null && order.getStatus().equals(status));
+            boolean matchesSearch = searchText.isEmpty()
+                    || (order.getProductName() != null && order.getProductName().toLowerCase().contains(searchText))
+                    || (String.valueOf(order.getId()).contains(searchText));
+
+            return matchesStatus && matchesSearch;
+        });
+    }
+
+
+// ══════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════
-    private void switchTab(Tab tab, String title) {
+    private void switchTab(Tab tab, Button activeBtn) {
         if (mainTabPane != null && tab != null) {
             mainTabPane.getSelectionModel().select(tab);
+        }
+        setActiveNavButton(activeBtn);
+    }
+
+    private static final String NAV_ACTIVE   =
+            "-fx-background-color: #0066CC; -fx-background-radius: 8; " +
+            "-fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15; " +
+            "-fx-text-fill: white; -fx-cursor: hand;";
+    private static final String NAV_INACTIVE =
+            "-fx-background-color: transparent; -fx-background-radius: 8; " +
+            "-fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 15; " +
+            "-fx-text-fill: #CBD5E1; -fx-cursor: hand;";
+
+    private void setActiveNavButton(Button active) {
+        Button[] navButtons = {
+            btnDashBoard, btnAuction, btnOrderHistory,
+            btnNotification, btnProfile, btnSettings
+        };
+        for (Button btn : navButtons) {
+            if (btn != null) {
+                btn.setStyle(btn == active ? NAV_ACTIVE : NAV_INACTIVE);
+            }
         }
     }
 

@@ -12,9 +12,9 @@ public class DataSourceFactory {
     static {
         HikariConfig cfg = new HikariConfig();
 
-        cfg.setJdbcUrl("jdbc:postgresql://db.kxxbzrejmsoxjtpnjpdo.supabase.co:5432/postgres?sslmode=require");
-        cfg.setUsername("postgres");
-        cfg.setPassword("LTNC_CS5#1234");
+        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require"));
+        cfg.setUsername(env("DB_USER",    "postgres.kxxbzrejmsoxjtpnjpdo"));
+        cfg.setPassword(env("DB_PASSWORD","LTNC_CS5#1234"));
         cfg.setSchema("public");
         cfg.setDriverClassName("org.postgresql.Driver");
 
@@ -32,11 +32,14 @@ public class DataSourceFactory {
         System.out.println("[DB] HikariCP pool started  (minIdle=2, maxPool=10)");
     }
 
+    private static String env(String key, String fallback) {
+        String v = System.getenv(key);
+        return (v != null && !v.isBlank()) ? v : fallback;
+    }
+
     private DataSourceFactory() {}
 
     public static DataSource getDataSource() {
-        // TimedDataSource wraps the pool so benchmark logs still appear,
-        // but now getConnection() should show ~1–5 ms instead of ~600 ms.
-        return new TimedDataSource(pool);
+        return pool;
     }
 }

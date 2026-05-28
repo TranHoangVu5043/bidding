@@ -9,12 +9,12 @@ public class Order {
 
     public Order() {}
 
-    public Order(long id, String productName, double totalAmount, String status,String date) {
+    public Order(long id, String date ,String productName, double totalAmount, String status) {
         this.id = id;
+        this.date = date ;
         this.productName = productName;
         this.totalAmount = totalAmount;
         this.status = status;
-        this.date = date ;
     }
 
     public long getId() { return id; }
@@ -31,5 +31,4 @@ public class Order {
 
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
-}
 }

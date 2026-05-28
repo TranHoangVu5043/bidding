@@ -41,6 +41,10 @@ public class BiddingService {
         this.autoBidConfigService = autoBidConfigService;
     }
 
+    public List<Auction> getAuctionsForBidder(int userId) {
+        return auctionDAO.findByBidder(userId);
+    }
+
     public void placeBid(int userId, int auctionId, double amount) {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);

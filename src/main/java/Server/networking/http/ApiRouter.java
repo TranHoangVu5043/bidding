@@ -23,21 +23,20 @@ public class ApiRouter implements HttpHandler {
 
         RequestWrapper req = new RequestWrapper(exchange);
         ResponseWrapper res = new ResponseWrapper(exchange);
-        String method = req.getMethod().toUpperCase();
-        String path   = req.getPath();
-        System.out.println(method + ":" + path);
+        System.out.println(
+                req.getMethod().toUpperCase()
+                        + ":"
+                        + req.getPath()
+        );
+        String key = req.getMethod() + ":" + req.getPath();
 
-        String key = method + ":" + path;
-        Handler handler = routes.get(key);
+            Handler handler = routes.get(key);
 
         if (handler == null) {
             res.send(404, "Route not found");
             return;
         }
 
-        long start = System.currentTimeMillis();
         handler.handle(req, res);
-        long ms = System.currentTimeMillis() - start;
-        System.out.printf("[BENCH] SERVER  %-6s %-40s →  %d ms%n", method, path, ms);
     }
 }

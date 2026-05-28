@@ -1,5 +1,6 @@
 package Client.networking.endpoints;
 
+import Client.model.auction.Auction;
 import Client.model.auction.Bid;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
@@ -17,6 +18,15 @@ public class BidApi {
         try {
             String json = apiClient.post("/bids/place", new PlaceBody(auctionId, amount));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
+        } catch (Exception e) {
+            return error(e);
+        }
+    }
+
+    public ApiResponse<List<Auction>> getMyBiddingAuctions() {
+        try {
+            String json = apiClient.get("/bids/my-auctions");
+            return gson.fromJson(json, new TypeToken<ApiResponse<List<Auction>>>() {}.getType());
         } catch (Exception e) {
             return error(e);
         }

@@ -23,7 +23,7 @@ import java.util.function.BiConsumer;
  */
 public class AuctionWebSocketClient extends WebSocketClient {
 
-    private static final String WS_URL = "ws://localhost:8081";
+    private static final String WS_URL = Client.networking.ServerConfig.WS_URL;
 
     /**
      * Called on the JavaFX thread whenever a bid_update arrives.

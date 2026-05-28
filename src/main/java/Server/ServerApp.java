@@ -32,8 +32,9 @@ public class ServerApp {
     public static void main(String[] args) throws Exception {
         DataSource dataSource = DataSourceFactory.getDataSource();
 
+        int httpPort = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         ServerConnection server = ServerConnection.getInstance();
-        server.init(8080);
+        server.init(httpPort);
 
         // DAOs
         UserDAO userDAO = new UserDAO(dataSource);
@@ -57,7 +58,7 @@ public class ServerApp {
         UserApiController userController = new UserApiController(userService);
         AuctionApiController auctionController = new AuctionApiController(auctionService, userService);
         NotificationApiController notifController = new NotificationApiController(notificationService);
-        BidApiController bidController = new BidApiController(biddingService);
+        BidApiController bidController = new BidApiController(biddingService, userService);
         ItemApiController itemController = new ItemApiController(itemService);
         OrderApiController orderController = new OrderApiController(orderService);
 
@@ -79,9 +80,10 @@ public class ServerApp {
         router.register("POST", "/api/auctions/refresh", auctionController::refreshStatus);
 
         // --- Bid routes ---
-        router.register("POST", "/api/bids/place",   bidController::placeBid);
-        router.register("POST", "/api/bids/history", bidController::getBidHistory);
-        router.register("POST", "/api/bids/autobid", bidController::registerAutoBid);
+        router.register("POST", "/api/bids/place",        bidController::placeBid);
+        router.register("POST", "/api/bids/history",      bidController::getBidHistory);
+        router.register("POST", "/api/bids/autobid",      bidController::registerAutoBid);
+        router.register("GET",  "/api/bids/my-auctions",  bidController::getMyBiddingAuctions);
 
         // --- Item routes ---
         router.register("GET",  "/api/items",          itemController::getMyItems);
@@ -102,7 +104,7 @@ public class ServerApp {
         context.getFilters().add(new sessionFilter(userService));
 
         server.start();
-        System.out.println("[Server] HTTP server listening on :8080");
+        System.out.println("[Server] HTTP server listening on :" + httpPort);
 
         // --- WebSocket server for real-time bid updates ---
         BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
