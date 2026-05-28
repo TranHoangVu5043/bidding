@@ -1,5 +1,6 @@
 package Client.networking.endpoints;
 
+import Client.dto.requests.ChangePasswordRequest;
 import Client.model.user.User;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
@@ -129,16 +130,6 @@ public class UserApi {
             response.setStatus(500);
             response.setMessage(e.getMessage());
             return response;
-        }
-    }
-
-    private static class ChangePasswordRequest {
-        private final String oldPassword;
-        private final String newPassword;
-
-        ChangePasswordRequest(String oldPassword, String newPassword) {
-            this.oldPassword = oldPassword;
-            this.newPassword = newPassword;
         }
     }
 

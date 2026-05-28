@@ -1,5 +1,8 @@
 package Client.networking.endpoints;
 
+import Client.dto.requests.CreateItemBody;
+import Client.dto.requests.ItemIdBody;
+import Client.dto.requests.UpdateItemBody;
 import Client.model.item.Item;
 import Client.networking.ApiClient;
 import Client.networking.ApiResponse;
@@ -41,7 +44,7 @@ public class ItemApi {
 
     public ApiResponse<Void> createItem(String name, String description, String category, String condition, double price, int stock) {
         try {
-            String json = apiClient.post("/items/create", new CreateBody(name, description, category, condition, price, stock));
+            String json = apiClient.post("/items/create", new CreateItemBody(name, description, category, condition, price, stock));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -50,7 +53,7 @@ public class ItemApi {
 
     public ApiResponse<Void> updateItem(int itemId, String name, String description, String category, String condition) {
         try {
-            String json = apiClient.post("/items/update", new UpdateBody(itemId, name, description, category, condition));
+            String json = apiClient.post("/items/update", new UpdateItemBody(itemId, name, description, category, condition));
             return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
         } catch (Exception e) {
             return error(e);
@@ -73,25 +76,4 @@ public class ItemApi {
         return r;
     }
 
-    private static class ItemIdBody {
-        int itemId;
-        ItemIdBody(int id) { this.itemId = id; }
-    }
-
-    private static class CreateBody {
-        String name, description, category, condition;
-        double price;
-        int stock;
-        CreateBody(String n, String d, String cat, String cond, double p, int s) {
-            name = n; description = d; category = cat; condition = cond; price = p; stock = s;
-        }
-    }
-
-    private static class UpdateBody {
-        int itemId;
-        String name, description, category, condition;
-        UpdateBody(int id, String n, String d, String cat, String cond) {
-            itemId = id; name = n; description = d; category = cat; condition = cond;
-        }
-    }
 }

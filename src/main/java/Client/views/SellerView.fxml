@@ -97,9 +97,9 @@
                                         <Label style="-fx-font-size: 10; -fx-text-fill: #16A34A;" text="▲ 18% so với tháng trước" />
                                     </VBox>
                                     <VBox prefHeight="88" prefWidth="185" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
-                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Đơn hàng mới" />
-                                        <Label fx:id="lblNewOrders" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0066CC;" text="24 đơn" />
-                                        <Label style="-fx-font-size: 10; -fx-text-fill: #0066CC;" text="▲ 5 đơn so với hôm qua" />
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Phiên đã kết thúc" />
+                                        <Label fx:id="lblNewOrders" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0066CC;" text="0 phiên" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #6B7280;" text="Lịch sử đấu giá" />
                                     </VBox>
                                     <VBox prefHeight="88" prefWidth="185" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
                                         <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Sản phẩm đang bán" />

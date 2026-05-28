@@ -1,27 +1,36 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.dto.requests.AuctionIdRequest;
+import Server.dto.requests.AutoBidRequest;
+import Server.dto.requests.PlaceBidRequest;
+import Server.dto.responses.AuctionDTO;
+import Server.dto.responses.BidDTO;
+import Server.dto.responses.BidHistoryDTO;
+import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
-import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
+import Server.service.auction.ItemService;
+import Server.service.users.UserService;
 
 import com.google.gson.Gson;
 
-import java.io.OutputStream;
 import java.util.List;
 
 public class BidApiController {
 
     private final BiddingService biddingService;
-    private final AutoBidConfigService autoBidConfigService;
+    private final UserService    userService;
+    private final ItemService    itemService;
     private final Gson gson;
 
-    public BidApiController(BiddingService biddingService, AutoBidConfigService autoBidConfigService) {
+    public BidApiController(BiddingService biddingService, UserService userService, ItemService itemService) {
         this.biddingService = biddingService;
-        this.autoBidConfigService = autoBidConfigService;
+        this.userService    = userService;
+        this.itemService    = itemService;
         this.gson = new Gson();
     }
 
@@ -35,6 +44,7 @@ public class BidApiController {
                 res.error(403, "Only bidders can place bids");
                 return;
             }
+
             PlaceBidRequest body = gson.fromJson(req.getBody(), PlaceBidRequest.class);
             if (body == null || body.auctionId <= 0 || body.amount <= 0) {
                 res.error(400, "Missing required fields: auctionId, amount");
@@ -42,7 +52,6 @@ public class BidApiController {
             }
 
             biddingService.placeBid(user.getId(), body.auctionId, body.amount);
-            this.autoBidConfigService.triggerAutoBidding(body.auctionId); //để tí nghĩ
 
             res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Bid placed successfully", null)));
 
@@ -64,7 +73,11 @@ public class BidApiController {
             }
 
             List<Bid> bids = biddingService.getBidHistory(body.auctionId);
-            List<BidDTO> dtos = bids.stream().map(BidDTO::new).toList();
+            List<BidDTO> dtos = bids.stream().map(b -> {
+                User u = userService.getUserById(b.getUserId());
+                String username = (u != null) ? u.getUsername() : "User#" + b.getUserId();
+                return new BidDTO(b, username);
+            }).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
@@ -72,31 +85,43 @@ public class BidApiController {
         }
     }
 
+    // GET /api/bids/my-auctions
+    public void getMyBiddingAuctions(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+
+            List<Auction> auctions = biddingService.getAuctionsForBidder(user.getId());
+            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
     // POST /api/bids/autobid
-    // Body: { "auctionId": 1, "maxBid": 500000.0, "increment": 50000.0 }
+    // Body: { "auctionId": 1, "maxBid": 500.0, "increment": 10.0 }
     public void registerAutoBid(RequestWrapper req, ResponseWrapper res) {
         try {
             User user = req.getUser();
             if (user == null) { res.error(401, "Unauthorized"); return; }
             if (!"bidder".equalsIgnoreCase(user.getRole())) {
-                res.error(403, "Only bidders can use auto-bid");
+                res.error(403, "Only bidders can register auto-bids");
                 return;
             }
 
             AutoBidRequest body = gson.fromJson(req.getBody(), AutoBidRequest.class);
             if (body == null || body.auctionId <= 0 || body.maxBid <= 0 || body.increment <= 0) {
-                res.error(400, "Missing or invalid fields: auctionId, maxBid, increment");
+                res.error(400, "Missing required fields: auctionId, maxBid, increment");
                 return;
             }
 
-            AutoBidConfigService autoBidService = biddingService.getAutoBidConfigService();
-            if (autoBidService == null) {
-                res.error(500, "Auto-bid service not available");
-                return;
-            }
+            biddingService.getAutoBidConfigService()
+                    .registerAutoBid(body.auctionId, user.getId(), body.maxBid, body.increment);
 
-            autoBidService.registerAutoBid(body.auctionId, user.getId(), body.maxBid, body.increment);
-            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auto-bid registered successfully", null)));
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Auto-bid registered successfully", null)));
 
         } catch (RuntimeException e) {
             res.error(400, e.getMessage());
@@ -105,32 +130,26 @@ public class BidApiController {
         }
     }
 
-    private static class AutoBidRequest {
-        int auctionId;
-        double maxBid;
-        double increment;
-    }
+    // GET /api/bids/my-history
+    // Returns finished auctions the user bid on with won/lost outcome
+    public void getMyBidHistory(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
 
-    private static class PlaceBidRequest {
-        int auctionId;
-        double amount;
-    }
+            List<BiddingService.BidHistoryEntry> entries =
+                    biddingService.getBidHistoryForUser(user.getId());
 
-    private static class AuctionIdRequest {
-        int auctionId;
-    }
+            List<BidHistoryDTO> dtos = entries.stream()
+                    .map(e -> new BidHistoryDTO(e, userService, itemService))
+                    .toList();
 
-    private static class BidDTO {
-        int id, userId, auctionId;
-        double amount;
-        String createdAt;
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
-        BidDTO(Bid b) {
-            id = b.getId();
-            userId = b.getUserId();
-            auctionId = b.getAuctionId();
-            amount = b.getAmount();
-            createdAt = b.getCreatedAt() != null ? b.getCreatedAt().toString() : null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.error(500, "Server error: " + e.getMessage());
         }
     }
+
 }

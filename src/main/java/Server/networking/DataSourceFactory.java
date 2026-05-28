@@ -12,7 +12,9 @@ public class DataSourceFactory {
     static {
         HikariConfig cfg = new HikariConfig();
 
-        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require"));
+        // prepareThreshold=0  → disables server-side prepared statements, which avoids
+        // "prepared statement S_N already exists" errors when HikariCP reuses connections.
+        cfg.setJdbcUrl(env("DB_URL",      "jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0"));
         cfg.setUsername(env("DB_USER",    "postgres.kxxbzrejmsoxjtpnjpdo"));
         cfg.setPassword(env("DB_PASSWORD","LTNC_CS5#1234"));
         cfg.setSchema("public");

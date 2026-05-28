@@ -1,11 +1,15 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.dto.requests.AuctionIdRequest;
+import Server.dto.requests.CreateAuctionRequest;
+import Server.dto.responses.AuctionDTO;
 import Server.model.auction.Auction;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.auction.AuctionService;
+import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
 import com.google.gson.Gson;
@@ -16,12 +20,14 @@ import java.util.List;
 public class AuctionApiController {
 
     private final AuctionService auctionService;
-    private final UserService userService;
+    private final UserService    userService;
+    private final ItemService    itemService;
     private final Gson gson;
 
-    public AuctionApiController(AuctionService auctionService, UserService userService) {
+    public AuctionApiController(AuctionService auctionService, UserService userService, ItemService itemService) {
         this.auctionService = auctionService;
-        this.userService = userService;
+        this.userService    = userService;
+        this.itemService    = itemService;
         this.gson = new Gson();
     }
 
@@ -64,7 +70,7 @@ public class AuctionApiController {
                 return;
             }
 
-            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auction created", new AuctionDTO(created))));
+            res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auction created", new AuctionDTO(created, userService, itemService))));
 
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
@@ -79,7 +85,7 @@ public class AuctionApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = auctionService.getAuctionsByOwner(user.getId());
-            List<AuctionDTO> dtos = auctions.stream().map(AuctionDTO::new).toList();
+            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
@@ -93,7 +99,7 @@ public class AuctionApiController {
             List<Auction> auctions = auctionService.getAllAuctions().stream()
                     .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
                     .toList();
-            List<AuctionDTO> dtos = auctions.stream().map(AuctionDTO::new).toList();
+            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
@@ -104,7 +110,7 @@ public class AuctionApiController {
     // Body: { "auctionId": 1 }
     public void getAuction(RequestWrapper req, ResponseWrapper res) {
         try {
-            IdRequest body = gson.fromJson(req.getBody(), IdRequest.class);
+            AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);
             if (body == null || body.auctionId <= 0) {
                 res.error(400, "Missing required field: auctionId");
                 return;
@@ -116,7 +122,7 @@ public class AuctionApiController {
                 return;
             }
 
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction))));
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction, userService, itemService))));
         } catch (Exception e) {
             res.error(500, "Server error: " + e.getMessage());
         }
@@ -129,7 +135,7 @@ public class AuctionApiController {
             User user = req.getUser();
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
-            IdRequest body = gson.fromJson(req.getBody(), IdRequest.class);
+            AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);
             if (body == null || body.auctionId <= 0) {
                 res.error(400, "Missing required field: auctionId");
                 return;
@@ -151,7 +157,7 @@ public class AuctionApiController {
     // Body: { "auctionId": 1 }
     public void refreshStatus(RequestWrapper req, ResponseWrapper res) {
         try {
-            IdRequest body = gson.fromJson(req.getBody(), IdRequest.class);
+            AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);
             if (body == null || body.auctionId <= 0) {
                 res.error(400, "Missing required field: auctionId");
                 return;
@@ -164,34 +170,4 @@ public class AuctionApiController {
         }
     }
 
-    private class AuctionDTO {
-        int id, itemId, ownerId;
-        double startingPrice, currentPrice;
-        String startTime, endTime, status;
-        String sellerName;
-
-        AuctionDTO(Auction a) {
-            id = a.getId();
-            itemId = a.getItemId();
-            ownerId = a.getOwnerId();
-            startingPrice = a.getStartingPrice();
-            currentPrice = a.getCurrentPrice();
-            startTime = a.getStartTime() != null ? a.getStartTime().toString() : null;
-            endTime = a.getEndTime() != null ? a.getEndTime().toString() : null;
-            status = a.getStatus();
-            User seller = userService.getUserById(a.getOwnerId());
-            sellerName = (seller != null) ? seller.getUsername() : "Seller #" + a.getOwnerId();
-        }
-    }
-
-    private static class CreateAuctionRequest {
-        int itemId;
-        double startingPrice;
-        String startTime;
-        String endTime;
-    }
-
-    private static class IdRequest {
-        int auctionId;
-    }
 }
