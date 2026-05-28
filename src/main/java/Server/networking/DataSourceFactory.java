@@ -40,8 +40,6 @@ public class DataSourceFactory {
     private DataSourceFactory() {}
 
     public static DataSource getDataSource() {
-        // TimedDataSource wraps the pool so benchmark logs still appear,
-        // but now getConnection() should show ~1–5 ms instead of ~600 ms.
-        return new TimedDataSource(pool);
+        return pool;
     }
 }
