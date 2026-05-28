@@ -67,6 +67,7 @@ public class UserController {
     // ══════════════════════════════════════════
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
+    @FXML private Tab tabOrderHistory;
     @FXML private Tab tabNotification;
     @FXML private Tab tabProfile;
     @FXML private Tab tabSettings;
@@ -139,6 +140,7 @@ public class UserController {
     private final AuctionApi      auctionApi = new AuctionApi();
     private final BidApi          bidApi     = new BidApi();
     private final NotificationApi notifApi   = new NotificationApi();
+    private final Client.networking.endpoints.OrderApi orderApi = new Client.networking.endpoints.OrderApi();
 
     private final ObservableList<Auction> liveAuctions    = FXCollections.observableArrayList();
     /** auctionId → the price Label inside that card, for targeted live updates */
@@ -207,7 +209,7 @@ public class UserController {
     @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
     @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
     @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
-    @FXML private void handleHistory()     { switchTab(tabOrderHistory,     "Lịch Sử "); }
+    @FXML private void handleHistory()      { switchTab(tabOrderHistory, "Lịch Sử Đơn Hàng"); loadOrderHistory(); }
 
 
     @FXML
@@ -1030,6 +1032,21 @@ public class UserController {
     }
     // History
     @FXML
+    private void loadOrderHistory() {
+        new Thread(() -> {
+            ApiResponse<List<Order>> resp = orderApi.getAllOrders();
+            Platform.runLater(() -> {
+                orderData.clear();
+                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                    orderData.setAll(resp.getData());
+                } else {
+                    String msg = resp != null ? resp.getMessage() : "Mất kết nối";
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải đơn hàng: " + msg);
+                }
+            });
+        }).start();
+    }
+
     public void setupHistoryTable() {
         colId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
@@ -1053,7 +1070,7 @@ public class UserController {
     private void applyFilter(FilteredList<Order> filteredData) {
         filteredData.setPredicate(order -> {
             String status = cbStatusFilter.getValue();
-            String searchText = txtSearch.getText().toLowerCase().trim();
+            String searchText = txtSearchField != null ? txtSearchField.getText().toLowerCase().trim() : "";
             boolean matchesStatus = (status == null || status.equals("Tất cả"))
                     || (order.getStatus() != null && order.getStatus().equals(status));
             boolean matchesSearch = searchText.isEmpty()
