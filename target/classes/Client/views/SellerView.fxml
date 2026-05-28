@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.AreaChart?>
+<?import javafx.scene.chart.BarChart?>
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
@@ -13,11 +15,11 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -51,6 +53,8 @@
                 <Button fx:id="btnAddProduct" maxWidth="Infinity" mnemonicParsing="false" onAction="#showAddProduct" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="➕  Add Product" textFill="#CBD5E1" />
 
                 <Button fx:id="btnAuctions" maxWidth="Infinity" mnemonicParsing="false" onAction="#showAuctions" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🔨  Auctions" textFill="#CBD5E1" />
+
+                <Button fx:id="btnRevenue" maxWidth="Infinity" mnemonicParsing="false" onAction="#showRevenue" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📊  Revenue" textFill="#CBD5E1" />
 
                 <Button fx:id="btnHistory" maxWidth="Infinity" mnemonicParsing="false" onAction="#showHistory" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="📜  History" textFill="#CBD5E1" />
 
@@ -97,9 +101,9 @@
                                         <Label style="-fx-font-size: 10; -fx-text-fill: #16A34A;" text="▲ 18% so với tháng trước" />
                                     </VBox>
                                     <VBox prefHeight="88" prefWidth="185" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
-                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Đơn hàng mới" />
-                                        <Label fx:id="lblNewOrders" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0066CC;" text="24 đơn" />
-                                        <Label style="-fx-font-size: 10; -fx-text-fill: #0066CC;" text="▲ 5 đơn so với hôm qua" />
+                                        <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Phiên đã kết thúc" />
+                                        <Label fx:id="lblNewOrders" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0066CC;" text="0 phiên" />
+                                        <Label style="-fx-font-size: 10; -fx-text-fill: #6B7280;" text="Lịch sử đấu giá" />
                                     </VBox>
                                     <VBox prefHeight="88" prefWidth="185" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12;                                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2); -fx-padding: 16;">
                                         <Label style="-fx-text-fill: #9CA3AF; -fx-font-size: 12;" text="Sản phẩm đang bán" />
@@ -116,14 +120,14 @@
                                 <HBox spacing="14">
                                     <VBox spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;" HBox.hgrow="ALWAYS">
                                         <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Doanh thu 7 ngày gần nhất" />
-                                        <LineChart fx:id="chartWeekRevenue" prefHeight="261.0" prefWidth="570.0">
-                                            <xAxis><CategoryAxis /></xAxis>
-                                            <yAxis><NumberAxis /></yAxis>
+                                        <LineChart fx:id="chartWeekRevenue" prefHeight="261.0" prefWidth="570.0" animated="false">
+                                            <xAxis><CategoryAxis animated="false" /></xAxis>
+                                            <yAxis><NumberAxis animated="false" /></yAxis>
                                         </LineChart>
                                     </VBox>
                                     <VBox prefWidth="240" spacing="8" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 16;">
                                         <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Danh mục sản phẩm" />
-                                        <PieChart fx:id="chartCategories" prefHeight="210" prefWidth="220" />
+                                        <PieChart fx:id="chartCategories" prefHeight="210" prefWidth="220" animated="false" labelsVisible="false" legendVisible="true" legendSide="BOTTOM" />
                                     </VBox>
                                 </HBox>
 
@@ -144,9 +148,9 @@
                             <Button onAction="#showAddProduct" style="-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand; -fx-font-weight: bold;" text="+ Thêm sản phẩm" />
                         </HBox>
 
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
-                                <FlowPane fx:id="inventoryFlowPane" hgap="16" vgap="16" style="-fx-padding: 4 0 16 0; -fx-background-color: transparent;" />
+                                <FlowPane fx:id="inventoryFlowPane" hgap="16" style="-fx-padding: 4 0 16 0; -fx-background-color: transparent;" vgap="16" />
                             </content>
                         </ScrollPane>
 
@@ -233,13 +237,59 @@
                         </HBox>
 
                         <!-- Card grid -->
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
-                                <FlowPane fx:id="auctionFlowPane" hgap="16" vgap="16" style="-fx-padding: 6 0 16 0; -fx-background-color: transparent;" />
+                                <FlowPane fx:id="auctionFlowPane" hgap="16" style="-fx-padding: 6 0 16 0; -fx-background-color: transparent;" vgap="16" />
                             </content>
                         </ScrollPane>
 
                     </VBox>
+                </Tab>
+
+                <!-- TAB: REVENUE -->
+                <Tab fx:id="tabRevenue" text="">
+                    <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <content>
+                            <VBox spacing="16" style="-fx-padding: 22;">
+
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #1F2937;" text="📊 Doanh Thu" />
+
+                                <!-- Bar chart -->
+                                <VBox spacing="0" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2);">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1F2937;" text="Doanh Thu Theo Tháng" />
+                                    <AreaChart fx:id="chartRevenueArea" animated="false" prefHeight="300" style="-fx-background-color: transparent;">
+                                        <xAxis>
+                                            <CategoryAxis animated="false" label="Tháng" />
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis animated="false" label="Doanh Thu (₫)" />
+                                        </yAxis>
+                                    </AreaChart>
+                                </VBox>
+
+                                <!-- Finished auctions table -->
+                                <VBox spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2);">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1F2937;" text="Phiên đấu giá đã xong" />
+
+                                    <!-- Table header -->
+                                    <HBox style="-fx-background-color: #F3F4F6; -fx-background-radius: 8; -fx-padding: 8 14;">
+                                        <Label prefWidth="60" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-text-fill: #6B7280;" text="ID" />
+                                        <Label prefWidth="200" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-text-fill: #6B7280;" text="Sản Phẩm" />
+                                        <Label prefWidth="140" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-text-fill: #6B7280;" text="Giá cuối" />
+                                        <Label prefWidth="160" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-text-fill: #6B7280;" />
+                                        <Label prefWidth="100" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-text-fill: #6B7280;" text="Trạng thái" />
+                                    </HBox>
+
+                                    <ScrollPane fitToWidth="true" prefHeight="300" style="-fx-background: transparent; -fx-background-color: transparent;">
+                                        <content>
+                                            <VBox fx:id="finishedAuctionVBox" spacing="4" style="-fx-padding: 0 0 8 0;" />
+                                        </content>
+                                    </ScrollPane>
+                                </VBox>
+
+                            </VBox>
+                        </content>
+                    </ScrollPane>
                 </Tab>
 
                 <!-- TAB: HISTORY -->
@@ -251,7 +301,7 @@
                             <ComboBox fx:id="cmbHistoryType" prefWidth="160" promptText="Loại giao dịch" style="-fx-background-radius: 8;" />
                             <ComboBox fx:id="cmbHistoryDate" prefWidth="140" promptText="Thời gian" style="-fx-background-radius: 8;" />
                         </HBox>
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                             <content>
                                 <VBox fx:id="historyVBox" spacing="10" style="-fx-padding: 4 0 16 0;" />
                             </content>

@@ -134,8 +134,17 @@ public class ItemDAO {
     }
 
     private Item mapRow(ResultSet rs) throws SQLException {
+        // 1. Lấy giá trị category từ database
+        String category = rs.getString("category");
+
+        // 2. Xử lý an toàn nếu dữ liệu bị NULL
+        if (category == null || category.trim().isEmpty()) {
+            category = "UNCLASSIFIED";
+        }
+
+        // 3. Truyền biến đã xử lý an toàn vào Factory
         return ItemFactory.createItem(
-                rs.getString("category"),
+                category,
                 rs.getInt("id"),
                 rs.getString("name"),
                 rs.getString("description"),

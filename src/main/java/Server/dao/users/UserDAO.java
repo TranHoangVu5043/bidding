@@ -175,6 +175,18 @@ public class UserDAO {
         return null;
     }
 
+    public void updateStatus(int userId, String status) {
+        String sql = "UPDATE users SET status = ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log("updateStatus failed", e);
+        }
+    }
+
     public void updatePassword(int userId, String newHash) {
         String sql = "UPDATE users SET password = ? WHERE id = ?";
 
@@ -285,6 +297,7 @@ public class UserDAO {
             log("deleteSession failed", e);
         }
     }
+
 
     // ===== MAPPER =====
 

@@ -196,4 +196,38 @@ public class UserApi {
             return response;
         }
     }
+
+    // ===== BAN USER =====
+
+    public ApiResponse<Void> banUser(int userId) {
+        try {
+            String responseJson = apiClient.post("/users/" + userId + "/ban", null);
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+
+    // ===== UNBAN USER =====
+
+    public ApiResponse<Void> unbanUser(int userId) {
+        try {
+            String responseJson = apiClient.post("/users/" + userId + "/unban", null);
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
 }

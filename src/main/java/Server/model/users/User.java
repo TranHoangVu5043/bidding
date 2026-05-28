@@ -10,6 +10,7 @@ public abstract class User implements Entity {
     private String email;
     private String role;
     private double balance;
+    private String status;
 
     public User(int id, String username, String password, String email, String role, double balance) {
         this.id = id;

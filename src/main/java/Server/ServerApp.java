@@ -60,11 +60,15 @@ public class ServerApp {
         // Router
         ApiRouter router = new ApiRouter();
 
-        // --- User routes (login + register are public; filter whitelists them) ---
+        // --- User routes ---
         router.register("POST", "/api/users/login",           userController::login);
         router.register("POST", "/api/users/register",        userController::register);
+        router.register("POST", "/api/users/logout",          userController::logout);
         router.register("GET",  "/api/users/me",              userController::getMe);
         router.register("POST", "/api/users/change-password", userController::changePassword);
+        router.register("GET",  "/api/users/all",             userController::getAllUsers);
+        router.register("POST", "/api/users/{id}/ban",        userController::banUser);
+        router.register("POST", "/api/users/{id}/unban",      userController::unbanUser);
 
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
@@ -83,6 +87,7 @@ public class ServerApp {
 
         // --- Item routes ---
         router.register("GET",  "/api/items",          itemController::getMyItems);
+        router.register("GET",  "/api/items/all",      itemController::getAllItems);
         router.register("POST", "/api/items/get",      itemController::getItem);
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);

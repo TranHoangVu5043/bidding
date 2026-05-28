@@ -7,11 +7,9 @@ public class User {
     private String username;
     private String password;
     private String email;
-
     private String role;
-
     private double balance;
-
+    private String status;
     private String storeName;
     private String createdAt;
     private String updatedAt;
@@ -110,5 +108,13 @@ public class User {
 
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
