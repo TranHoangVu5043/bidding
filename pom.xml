@@ -179,4 +179,29 @@
     </plugins>
 
   </build>
+
+  <profiles>
+    <!-- mvn javafx:run              → connects to localhost (default) -->
+    <!-- mvn javafx:run -Prailway    → connects to Railway server      -->
+    <profile>
+      <id>railway</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-maven-plugin</artifactId>
+            <version>0.0.8</version>
+            <configuration>
+              <mainClass>Client.ClientApp</mainClass>
+              <jvmArgs>
+                <jvmArg>-Dserver.http=https://bidding-production-3e9a.up.railway.app</jvmArg>
+                <!-- WebSocket TCP proxy not configured on Railway yet — real-time price updates disabled -->
+              </jvmArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
