@@ -140,6 +140,8 @@ public class UserController {
     private AuctionWebSocketClient wsClient;
 
     private final ObservableList<Order> orderData = FXCollections.observableArrayList();
+    private FilteredList<Order> filteredData  ;
+
     // ══════════════════════════════════════════
     // Initialize
     // ══════════════════════════════════════════
@@ -149,9 +151,13 @@ public class UserController {
         populateUserInfo();
         loadAuctions();
         loadNotifications();
+        setupHistoryTable();
 
         // Re-filter cards whenever the ComboBox value changes
         cmbFilter.valueProperty().addListener((obs, old, val) -> renderAuctionCards(liveAuctions));
+        cbStatusFilter.valueProperty().addListener((observable, oldValue, newValue) -> {
+            applyFilter( filteredData);
+        });
     }
 
     /** Reads the User saved by LoginController and fills every label/field that shows user data. */
@@ -188,6 +194,8 @@ public class UserController {
     @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
     @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
     @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
+    @FXML private void handleHistory()     { switchTab(tabOrderHistory,  "Lịch Sử "); }
+
 
     @FXML
     private void handleSignOut() {
@@ -847,17 +855,19 @@ public class UserController {
     }
     // OrderHistory
     @FXML
-    public void initialize() {
+    public void setupHistoryTable(){
         colId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
         colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
         colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+
         //ComboBox
-        cbStatusFilter.getItems().addAll("Tất cả ", "Thành công ", "Thất bại");
+        cbStatusFilter.getItems().clear();
+        cbStatusFilter.getItems().addAll("Tất cả", "Thành công", "Thất bại");
         cbStatusFilter.getSelectionModel().select("Tất cả");
         //Search
-        FilteredList<Order> filteredData = new FilteredList<>(orderData, p -> true);
+        filteredData = new FilteredList<>(orderData, p -> true);
         cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
             applyFilter(filteredData);
         });
@@ -867,9 +877,9 @@ public class UserController {
         tableOrderHistory.setItems(filteredData);
     }
     private void applyFilter(FilteredList<Order> filteredData) {
+        String status = cbStatusFilter.getValue();
+        String searchText = (txtSearch.getText() == null) ? "" : txtSearch.getText().toLowerCase().trim();
         filteredData.setPredicate(order -> {
-            String status = cbStatusFilter.getValue();
-            String searchText = txtSearch.getText().toLowerCase().trim();
             boolean matchesStatus = (status == null || status.equals("Tất cả"))
                     || (order.getStatus() != null && order.getStatus().equals(status));
             boolean matchesSearch = searchText.isEmpty()
