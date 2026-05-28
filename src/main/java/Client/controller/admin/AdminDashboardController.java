@@ -549,7 +549,7 @@ public class AdminDashboardController {
                 java.util.Map<String, Double> revenueByMonth = new java.util.TreeMap<>();
                 for (Order o : resp.getData()) {
                     if (!"SUCCESS".equalsIgnoreCase(mapOrderStatus(o.getStatus()))) continue;
-                    String month = parseMonth(o.getCreatedAt());
+                    String month = parseMonth(o.getDate());
                     if (month == null) continue;
                     revenueByMonth.merge(month, o.getTotalAmount(), Double::sum);
                 }

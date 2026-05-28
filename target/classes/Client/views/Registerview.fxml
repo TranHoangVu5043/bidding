@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<?import java.lang.String?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="560.0" prefWidth="600.0"
+            style="-fx-background-color: #e8edf8;"
+            xmlns="http://javafx.com/javafx/22"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="Client.controller.auth.RegisterController">
+
+    <stylesheets>
+        <String fx:value="/Client/views/register.css" />
+    </stylesheets>
+
+    <children>
+
+        <!-- Centred card: (600 - 440) / 2 = 80 -->
+        <VBox layoutX="80.0" layoutY="20.0" prefWidth="440.0" spacing="10.0"
+              style="-fx-background-color: WHITE;
+                     -fx-background-radius: 12;
+                     -fx-padding: 28;
+                     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 2);">
+            <children>
+
+                <!-- ── Header ── -->
+                <Label text="Tạo Tài Khoản" textFill="#1a337e">
+                    <font><Font name="System Bold" size="22.0" /></font>
+                </Label>
+                <Label text="Đăng ký để tham gia đấu giá!" textFill="#888888" />
+
+                <!-- ── Two-tab registration form ── -->
+                <!-- TabPane prefWidth=384; two auto-sized tabs fit without overflow arrow -->
+                <TabPane styleClass="seg-tabs" tabClosingPolicy="UNAVAILABLE" prefWidth="384.0">
+                    <tabs>
+
+                        <!-- User / Bidder tab -->
+                        <Tab fx:id="tabUser" text="Người dùng">
+                            <content>
+                                <VBox spacing="6.0" style="-fx-padding: 10 0 4 0;">
+                                    <children>
+                                        <Label text="Họ và tên" />
+                                        <TextField fx:id="txtFullName"
+                                                   prefHeight="38.0" prefWidth="384.0"
+                                                   promptText="Nhập họ và tên"
+                                                   style="-fx-background-radius: 5;" />
+
+                                        <Label text="Email" />
+                                        <TextField fx:id="txtEmail"
+                                                   prefHeight="38.0" prefWidth="384.0"
+                                                   promptText="Nhập địa chỉ email"
+                                                   style="-fx-background-radius: 5;" />
+
+                                        <Label text="Mật khẩu" />
+                                        <PasswordField fx:id="txtPassword"
+                                                       prefHeight="38.0" prefWidth="384.0"
+                                                       promptText="Nhập mật khẩu"
+                                                       style="-fx-background-radius: 5;" />
+                                    </children>
+                                </VBox>
+                            </content>
+                        </Tab>
+
+                        <!-- Seller tab -->
+                        <Tab fx:id="tabSeller" text="Người bán">
+                            <content>
+                                <VBox spacing="6.0" style="-fx-padding: 10 0 4 0;">
+                                    <children>
+                                        <Label text="Họ và tên" />
+                                        <TextField fx:id="txtSellerFullName"
+                                                   prefHeight="38.0" prefWidth="384.0"
+                                                   promptText="Nhập họ và tên"
+                                                   style="-fx-background-radius: 5;" />
+
+                                        <Label text="Tên cửa hàng" />
+                                        <TextField fx:id="txtSellerStoreName"
+                                                   prefHeight="38.0" prefWidth="384.0"
+                                                   promptText="Nhập tên cửa hàng"
+                                                   style="-fx-background-radius: 5;" />
+
+                                        <Label text="Email" />
+                                        <TextField fx:id="txtSellerEmail"
+                                                   prefHeight="38.0" prefWidth="384.0"
+                                                   promptText="Nhập địa chỉ email"
+                                                   style="-fx-background-radius: 5;" />
+
+                                        <Label text="Mật khẩu" />
+                                        <PasswordField fx:id="txtSellerPassword"
+                                                       prefHeight="38.0" prefWidth="384.0"
+                                                       promptText="Nhập mật khẩu"
+                                                       style="-fx-background-radius: 5;" />
+                                    </children>
+                                </VBox>
+                            </content>
+                        </Tab>
+
+                    </tabs>
+                </TabPane>
+
+                <!-- ── Register button ── -->
+                <Button mnemonicParsing="false"
+                        onAction="#handleRegister"
+                        prefHeight="42.0" prefWidth="384.0"
+                        style="-fx-background-color: #FF7F00; -fx-background-radius: 21; -fx-cursor: hand;"
+                        text="Đăng Ký" textFill="WHITE">
+                    <font><Font name="System Bold" size="15.0" /></font>
+                </Button>
+
+                <!-- ── Back-to-login link ── -->
+                <HBox alignment="CENTER" spacing="4.0" style="-fx-padding: 4 0 0 0;">
+                    <children>
+                        <Label text="Đã có tài khoản?" textFill="#888888" />
+                        <Hyperlink onAction="#handleNavigateToLogin"
+                                   text="Đăng nhập ngay" textFill="#1a337e" underline="true" />
+                    </children>
+                </HBox>
+
+            </children>
+        </VBox>
+
+    </children>
+</AnchorPane>
