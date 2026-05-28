@@ -9,6 +9,8 @@ import Client.networking.SessionManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.util.List;
+
 public class UserApi {
 
     private final ApiClient apiClient;
@@ -172,6 +174,56 @@ public class UserApi {
             // Dù lỗi vẫn xóa token — không để user bị kẹt
             SessionManager.clear();
 
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+    // ===== GET ALL USERS =====
+
+    public ApiResponse<List<User>> getAllUsers() {
+        try {
+            String responseJson = apiClient.get("/users/all");
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<List<User>>>() {}.getType()
+            );
+        } catch (Exception e) {
+            ApiResponse<List<User>> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+
+    // ===== BAN USER =====
+
+    public ApiResponse<Void> banUser(int userId) {
+        try {
+            String responseJson = apiClient.post("/users/" + userId + "/ban", null);
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>();
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return response;
+        }
+    }
+
+    // ===== UNBAN USER =====
+
+    public ApiResponse<Void> unbanUser(int userId) {
+        try {
+            String responseJson = apiClient.post("/users/" + userId + "/unban", null);
+            return gson.fromJson(
+                    responseJson,
+                    new TypeToken<ApiResponse<Void>>() {}.getType()
+            );
+        } catch (Exception e) {
             ApiResponse<Void> response = new ApiResponse<>();
             response.setStatus(500);
             response.setMessage(e.getMessage());

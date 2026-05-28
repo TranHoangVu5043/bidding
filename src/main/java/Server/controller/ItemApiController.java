@@ -37,6 +37,20 @@ public class ItemApiController {
             res.error(500, "Server error: " + e.getMessage());
         }
     }
+    // GET /api/items/all
+    public void getAllItems(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+                res.error(403, "Chỉ Admin mới được truy cập."); return;
+            }
+            List<Item> items = itemService.getAllItems();
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", items)));
+        } catch (Exception e) {
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
 
     // POST /api/items/get
     // Body: { "itemId": 1 }

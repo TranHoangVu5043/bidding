@@ -24,6 +24,14 @@ public class ItemApi {
             return error(e);
         }
     }
+    public ApiResponse<List<Item>> getAllItems() {
+        try {
+            String json = apiClient.get("/items/all");
+            return gson.fromJson(json, new TypeToken<ApiResponse<List<Item>>>() {}.getType());
+        } catch (Exception e) {
+            return error(e);
+        }
+    }
 
     public ApiResponse<Item> getItem(int itemId) {
         try {
