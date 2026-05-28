@@ -26,9 +26,6 @@ public class SceneUtil {
             Stage stage = (Stage) btnSource.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle(title);
-            stage.setResizable(true);
-            stage.setMinWidth(900);
-            stage.setMinHeight(620);
             stage.centerOnScreen();
             stage.show();
         } catch (IOException e ) {

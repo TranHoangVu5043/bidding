@@ -31,15 +31,6 @@ public class BidApi {
         }
     }
 
-    public ApiResponse<Void> registerAutoBid(int auctionId, double maxBid, double increment) {
-        try {
-            String json = apiClient.post("/bids/autobid", new AutoBidBody(auctionId, maxBid, increment));
-            return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
-        } catch (Exception e) {
-            return error(e);
-        }
-    }
-
     private <T> ApiResponse<T> error(Exception e) {
         ApiResponse<T> r = new ApiResponse<>();
         r.setStatus(500);
@@ -56,14 +47,5 @@ public class BidApi {
     private static class AuctionIdBody {
         int auctionId;
         AuctionIdBody(int id) { this.auctionId = id; }
-    }
-
-    private static class AutoBidBody {
-        int auctionId;
-        double maxBid;
-        double increment;
-        AutoBidBody(int id, double max, double inc) {
-            this.auctionId = id; this.maxBid = max; this.increment = inc;
-        }
     }
 }

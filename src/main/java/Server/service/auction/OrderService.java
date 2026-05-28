@@ -5,7 +5,7 @@ import Server.model.auction.items.Order;
 
 import java.util.List;
 
-public class OrderService {
+public class    OrderService {
     private final OrderDAO orderDAO;
 
     public OrderService(OrderDAO orderDAO) {

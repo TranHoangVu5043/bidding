@@ -16,7 +16,6 @@ import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
 import Server.service.NotificationService;
 import Server.service.auction.AuctionService;
-import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
 import Server.service.users.UserService;
@@ -49,8 +48,6 @@ public class ServerApp {
         NotificationService notificationService = new NotificationService(notificationDAO);
         AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO, userDAO, notificationService);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
-        AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
-        biddingService.setAutoBidConfigService(autoBidConfigService);
         ItemService itemService = new ItemService(itemDAO);
         OrderService orderService = new OrderService(orderDAO);
 
@@ -82,7 +79,6 @@ public class ServerApp {
         // --- Bid routes ---
         router.register("POST", "/api/bids/place",   bidController::placeBid);
         router.register("POST", "/api/bids/history", bidController::getBidHistory);
-        router.register("POST", "/api/bids/autobid", bidController::registerAutoBid);
 
         // --- Item routes ---
         router.register("GET",  "/api/items",          itemController::getMyItems);

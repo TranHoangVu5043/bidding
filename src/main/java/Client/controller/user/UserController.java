@@ -3,6 +3,7 @@ package Client.controller.user;
 import Client.model.Notification;
 import Client.model.auction.Auction;
 import Client.model.auction.Bid;
+import Client.model.auction.Order;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
@@ -17,6 +18,8 @@ import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -26,6 +29,7 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Modality;
@@ -118,6 +122,16 @@ public class UserController {
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
 
+    // tabOrderHistory
+    @FXML private ComboBox<String> cbStatusFilter;
+    @FXML private TextField         txtSearchField ;
+    @FXML private TableView<Order>  tableOrderHistory;
+    @FXML private TableColumn<Order, Long> colId;
+    @FXML private TableColumn<Order, String> colDate;
+    @FXML private TableColumn<Order, String> colProduct;
+    @FXML private TableColumn<Order, Double> colTotal;
+    @FXML private TableColumn<Order, String> colStatus;
+
     // ══════════════════════════════════════════
     // APIs & Data
     // ══════════════════════════════════════════
@@ -131,6 +145,9 @@ public class UserController {
     private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
+
+    private FilteredList<Order> filteredData;
+    private final ObservableList<Order> orderData = FXCollections.observableArrayList();
 
     // ── Pagination ──────────────────────────────────────────────────────────
     private static final int PAGE_SIZE = 9;
@@ -147,6 +164,7 @@ public class UserController {
         populateUserInfo();
         loadAuctions();
         loadNotifications();
+        setupHistoryTable();
 
         // Re-filter cards whenever the ComboBox value changes; reset to page 0
         cmbFilter.valueProperty().addListener((obs, old, val) -> {
@@ -189,6 +207,8 @@ public class UserController {
     @FXML private void handleNotification() { switchTab(tabNotification, "Thông Báo"); loadNotifications(); }
     @FXML private void handleProfile()      { switchTab(tabProfile,      "Hồ Sơ Cá Nhân"); }
     @FXML private void handleSettings()     { switchTab(tabSettings,     "Cài Đặt"); }
+    @FXML private void handleHistory()     { switchTab(tabOrderHistory,     "Lịch Sử "); }
+
 
     @FXML
     private void handleSignOut() {
@@ -997,8 +1017,55 @@ public class UserController {
             }
         });
     }
+    @FXML
+    private void handleToggleNotification(ActionEvent event) {
+        Button btn = (Button) event.getSource();
+        if (btn.getText().equals("Bật")) {
+            btn.setText("Tắt");
+            btn.setStyle("-fx-background-color: #bdc3c7; -fx-text-fill: white; -fx-background-radius: 15;");
+        } else {
+            btn.setText("Bật");
+            btn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 15;");
+        }
+    }
+    // History
+    @FXML
+    public void setupHistoryTable() {
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
+        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+        //ComboBox
+        cbStatusFilter.getItems().clear();
+        cbStatusFilter.getItems().addAll("Tất cả", "Thành công", "Thất bại");
+        cbStatusFilter.getSelectionModel().select("Tất cả");
+        //Search
+        FilteredList<Order> filteredData = new FilteredList<>(orderData, p -> true);
+        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilter(filteredData);
+        });
+        txtSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            applyFilter(filteredData);
+        });
+        tableOrderHistory.setItems(filteredData);
+    }
+    private void applyFilter(FilteredList<Order> filteredData) {
+        filteredData.setPredicate(order -> {
+            String status = cbStatusFilter.getValue();
+            String searchText = txtSearch.getText().toLowerCase().trim();
+            boolean matchesStatus = (status == null || status.equals("Tất cả"))
+                    || (order.getStatus() != null && order.getStatus().equals(status));
+            boolean matchesSearch = searchText.isEmpty()
+                    || (order.getProductName() != null && order.getProductName().toLowerCase().contains(searchText))
+                    || (String.valueOf(order.getId()).contains(searchText));
 
-    // ══════════════════════════════════════════
+            return matchesStatus && matchesSearch;
+        });
+    }
+
+
+// ══════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════
     private void switchTab(Tab tab, String title) {
