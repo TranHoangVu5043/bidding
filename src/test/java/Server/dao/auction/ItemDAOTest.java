@@ -64,6 +64,20 @@ public class ItemDAOTest {
         assertEquals("Tranh", item.getName());
     }
     @Test
+    public void testFindById_Success() throws Exception {
+        try(Statement stmt = conn.createStatement()) {
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            stmt.execute(sql1);
+        }
+
+        Item item = itemDAO.findById(1);
+
+        assertNotNull(item);
+        assertEquals("Tranh", item.getName());
+        assertEquals(100, item.getOwnerId());
+    }
+    @Test
     public void testFindByOwnerIdSuccess() throws SQLException {
         try(Statement stmt = conn.createStatement()) {
             String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
@@ -74,5 +88,36 @@ public class ItemDAOTest {
         assertNotNull(item);
         assertEquals(1, item.size());
         assertEquals("Tranh", item.get(0).getName());
+    }
+    @Test
+    public void testDeleteItem() throws Exception{
+        try(Statement stmt = conn.createStatement()) {
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            stmt.execute(sql1);
+        }
+        itemDAO.delete(1);
+        Item item = itemDAO.findById(1);
+        assertNull(item);
+        assertDoesNotThrow(()-> itemDAO.delete(2));
+    }
+    @Test
+    public void testUpdateItem() throws Exception{
+        try(Statement stmt = conn.createStatement()) {
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            String sql2 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
+                    "VALUES (2, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            stmt.execute(sql1);
+            stmt.execute(sql2);
+        }
+        Item update1 = new Art(1, "Ảnh", "Đẹp", 100, "100", "100", 120, 12);
+        Item update2 = new Art(3, "Ảnh", "Đẹp", 100, "100", "100", 120, 12);
+        itemDAO.update(update1);
+        Item item = itemDAO.findById(1);
+        assertNotNull(item);
+        assertEquals("Ảnh", item.getName());
+        assertDoesNotThrow(()->itemDAO.findById(3));
+
     }
 }
