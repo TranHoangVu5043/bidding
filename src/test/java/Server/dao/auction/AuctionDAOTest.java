@@ -51,7 +51,7 @@ public class AuctionDAOTest {
     public void testUpdateCurrentPrice_Success() throws Exception {
         int auctionId = 100;
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-        Timestamp tomorrow = Timestamp.valueOf(LocalDateTime.now().plusDays(1));
+        Timestamp tomorrow = Timestamp.valueOf(LocalDateTime.now().plusDays(9));
 
         try (Statement stmt = conn.createStatement()) {
             String sql = "INSERT INTO auctions (id, item_id, owner_id, START_PRICE, starting_price, current_price, start_time, end_time, status) " +
