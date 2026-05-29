@@ -1,28 +1,34 @@
 package Client.controller.seller;
 
+import Client.model.Notification;
 import Client.model.auction.Auction;
-
 import Client.model.item.Item;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
 import Client.networking.endpoints.AuctionApi;
 import Client.networking.endpoints.ItemApi;
+import Client.networking.endpoints.NotificationApi;
 import Client.networking.endpoints.UserApi;
 import Client.util.SceneUtil;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.chart.*;
+import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 
 import java.util.List;
 
@@ -32,8 +38,6 @@ public class SellerController {
     @FXML private FlowPane inventoryFlowPane;
     @FXML private VBox     historyVBox;
     private Item selectedItem; // tracks which item is selected for auction
-    @FXML
-    private BarChart<String, Number> chartRevenueBar;
 
     // ── Add-product tab fields ──
     @FXML private TextField  txtName;
@@ -99,10 +103,36 @@ public class SellerController {
     @FXML private ComboBox<String> cmbHistoryType;
     @FXML private ComboBox<String> cmbHistoryDate;
     @FXML private AreaChart<String, Number> chartRevenueArea;
+
+    // ── Top bar ──
+    @FXML private Label lblBalance;
+
+    // ── Notification sidebar button + badge ──
+    @FXML private Button btnNotification;
+    @FXML private Label  lblNotifBadge;
+    @FXML private Tab    tabNotification;
+    @FXML private VBox   notificationList;
+    @FXML private Button btnNotifAll;
+    @FXML private Button btnNotifUnread;
+    @FXML private Button btnNotifAuction;
+    @FXML private Button btnNotifOrder;
+
+    // ── Settings sidebar button + tab ──
+    @FXML private Button btnSettings;
+    @FXML private Tab    tabSettings;
+    @FXML private Button toggleAuctionNotif;
+    @FXML private Button toggleEmailNotif;
+    @FXML private Button btnDeleteAccount;
+
     // ── Instance các Api kết nối trực tiếp Backend ──
-    private final ItemApi    itemApi    = new ItemApi();
-    private final AuctionApi auctionApi = new AuctionApi();
-    private final UserApi    userApi    = new UserApi();
+    private final ItemApi         itemApi    = new ItemApi();
+    private final AuctionApi      auctionApi = new AuctionApi();
+    private final UserApi         userApi    = new UserApi();
+    private final NotificationApi notifApi   = new NotificationApi();
+
+    // ── Notification state ──
+    private volatile List<Notification> cachedNotifications = List.of();
+    private Thread notifPollerThread;
 
     // ── Các danh sách dữ liệu ObservableList & FilteredList ──
     private final ObservableList<Item>    masterData     = FXCollections.observableArrayList();
@@ -164,6 +194,9 @@ public class SellerController {
         if (lblShopName   != null) lblShopName.setText(name);
         if (lblSellerName != null) lblSellerName.setText(name);
         if (txtShopName   != null) txtShopName.setText(name);
+        updateBalanceLabel(user.getBalance());
+        applyToggleState(toggleAuctionNotif, user.isNotifAuction());
+        applyToggleState(toggleEmailNotif,   user.isNotifEmail());
     }
 
     // ── Tải danh sách sản phẩm  ──
@@ -223,9 +256,7 @@ public class SellerController {
                     if (myVersion != auctionLoadVersion) return;
                     if (res != null && res.getStatus() == 200 && res.getData() != null) {
                         // Strip cancelled — they live in History, not the Auction tab
-                        sellerAuctions.setAll(res.getData().stream()
-                                .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
-                                .toList());
+                        sellerAuctions.setAll(res.getData());
                         updateAuctionStats();
                         renderAuctionCards(sellerAuctions);
                         applyFilter(txtSearch != null ? txtSearch.getText() : "");
@@ -386,14 +417,14 @@ public class SellerController {
         StackPane imageArea = new StackPane(iconLabel);
         imageArea.setPrefSize(170, 125);
         imageArea.setStyle("-fx-background-color: " + categoryGradient(category) + ";" +
-                "-fx-background-radius: 10 10 0 0;");
+                           "-fx-background-radius: 10 10 0 0;");
 
         // ── Price badge ──
         Label priceLabel = new Label(String.format("$ %,.0f", auction.getCurrentPrice()));
         priceLabel.setMaxWidth(Double.MAX_VALUE);
         priceLabel.setAlignment(Pos.CENTER);
         priceLabel.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;" +
-                "-fx-font-weight: bold; -fx-font-size: 13; -fx-padding: 5 10;");
+                            "-fx-font-weight: bold; -fx-font-size: 13; -fx-padding: 5 10;");
 
         // ── Item name ──
         Label nameLabel = new Label(itemName);
@@ -404,8 +435,8 @@ public class SellerController {
         // ── Status badge ──
         Label statusLabel = new Label(auction.getStatus());
         statusLabel.setStyle("-fx-background-color: " + statusColor(auction.getStatus()) + ";" +
-                "-fx-text-fill: white; -fx-font-size: 10; -fx-font-weight: bold;" +
-                "-fx-padding: 2 7; -fx-background-radius: 4;");
+                             "-fx-text-fill: white; -fx-font-size: 10; -fx-font-weight: bold;" +
+                             "-fx-padding: 2 7; -fx-background-radius: 4;");
 
         HBox statusBox = new HBox(statusLabel);
         statusBox.setPadding(new Insets(4, 0, 0, 0));
@@ -418,8 +449,8 @@ public class SellerController {
         VBox card = new VBox(imageArea, priceLabel, info);
         card.setPrefWidth(170);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 8, 0, 0, 3);" +
-                "-fx-cursor: hand;");
+                      "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 8, 0, 0, 3);" +
+                      "-fx-cursor: hand;");
         card.setOnMouseClicked(e -> showSellerAuctionDetail(auction));
         return card;
     }
@@ -471,11 +502,11 @@ public class SellerController {
                 selectedItem = item;
                 // Highlight selected card, reset others
                 inventoryFlowPane.getChildren().forEach(n -> n.setStyle(
-                        "-fx-background-color: white; -fx-background-radius: 10;" +
-                                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;"));
+                    "-fx-background-color: white; -fx-background-radius: 10;" +
+                    "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;"));
                 card.setStyle("-fx-background-color: #eff6ff; -fx-background-radius: 10;" +
-                        "-fx-border-color: #3b82f6; -fx-border-radius: 10; -fx-border-width: 2;" +
-                        "-fx-effect: dropshadow(gaussian,rgba(59,130,246,0.3),10,0,0,3); -fx-cursor: hand;");
+                    "-fx-border-color: #3b82f6; -fx-border-radius: 10; -fx-border-width: 2;" +
+                    "-fx-effect: dropshadow(gaussian,rgba(59,130,246,0.3),10,0,0,3); -fx-cursor: hand;");
                 // Show detail popup
                 showItemDetail(item);
             });
@@ -1162,13 +1193,260 @@ public class SellerController {
     @FXML public void showHistory()      { switchTab(tabHistory,      "Lịch Sử Giao Dịch", btnHistory);    loadHistory(); }
     @FXML public void showProfile()      { switchTab(tabProfile,      "Hồ Sơ Người Bán",   btnProfile); }
 
+    @FXML public void showNotification() {
+        switchTab(tabNotification, "Thông Báo", btnNotification);
+        loadNotifications();
+    }
+
+    @FXML public void showSettings() {
+        switchTab(tabSettings, "Cài Đặt", btnSettings);
+        User user = SessionManager.getCurrentUser();
+        if (user != null) {
+            applyToggleState(toggleAuctionNotif, user.isNotifAuction());
+            applyToggleState(toggleEmailNotif,   user.isNotifEmail());
+        }
+    }
+
     @FXML
     public void showLogout() {
+        if (notifPollerThread != null) notifPollerThread.interrupt();
         SessionManager.clear();
         SceneUtil.switchToScene(btnLogout, "/Client/view/Loginview.fxml", "Login");
     }
 
     @FXML private void handleSaveShop()    { SceneUtil.showAlert("Thành công", "Thông tin cửa hàng đã được lưu lại."); }
+
+    // ══════════════════════════════════════════
+    // Notification Logic
+    // ══════════════════════════════════════════
+
+    private void startNotifPoller() {
+        notifPollerThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    ApiResponse<List<Notification>> resp = notifApi.getNotifications();
+                    if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                        List<Notification> fresh = resp.getData();
+                        long unread = fresh.stream().filter(n -> !n.isRead()).count();
+                        boolean countChanged = fresh.size() != cachedNotifications.size();
+                        Platform.runLater(() -> {
+                            if (lblNotifBadge != null)
+                                lblNotifBadge.setText(unread > 0 ? String.valueOf(unread) : "0");
+                            if (countChanged) {
+                                cachedNotifications = fresh;
+                                Tab sel = mainTabPane != null
+                                        ? mainTabPane.getSelectionModel().getSelectedItem() : null;
+                                if (sel == tabNotification) renderNotifications(cachedNotifications);
+                            }
+                        });
+                    }
+                    Thread.sleep(30_000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception ignored) {}
+            }
+        });
+        notifPollerThread.setDaemon(true);
+        notifPollerThread.start();
+    }
+
+    private void loadNotifications() {
+        if (notificationList == null) return;
+        new Thread(() -> {
+            ApiResponse<List<Notification>> resp = notifApi.getNotifications();
+            Platform.runLater(() -> {
+                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                    cachedNotifications = resp.getData();
+                    long unread = cachedNotifications.stream().filter(n -> !n.isRead()).count();
+                    if (lblNotifBadge != null) lblNotifBadge.setText(unread > 0 ? String.valueOf(unread) : "0");
+                } else {
+                    cachedNotifications = List.of();
+                }
+                setActiveNotifFilter(btnNotifAll);
+                renderNotifications(cachedNotifications);
+            });
+        }).start();
+    }
+
+    private void renderNotifications(List<Notification> list) {
+        if (notificationList == null) return;
+        notificationList.getChildren().clear();
+        if (list == null || list.isEmpty()) {
+            Label empty = new Label("Không có thông báo nào.");
+            empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
+            notificationList.getChildren().add(empty);
+            return;
+        }
+        for (Notification n : list) notificationList.getChildren().add(buildNotifRow(n));
+    }
+
+    private HBox buildNotifRow(Notification n) {
+        Label icon = new Label(n.getMessage() != null && n.getMessage().contains("hủy") ? "🚫" : "🔔");
+        icon.setStyle("-fx-font-size: 20;");
+
+        Label msg = new Label(n.getMessage());
+        msg.setWrapText(true);
+        msg.setMaxWidth(500);
+        msg.setStyle("-fx-font-size: 12; -fx-text-fill: " + (n.isRead() ? "#6B7280" : "#1e293b") + ";");
+        HBox.setHgrow(msg, javafx.scene.layout.Priority.ALWAYS);
+
+        Label time = new Label(formatNotifTime(n.getCreatedAt()));
+        time.setStyle("-fx-font-size: 10; -fx-text-fill: #9CA3AF;");
+
+        HBox row = new HBox(12, icon, msg, time);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12));
+        String bg     = n.isRead() ? "white"    : "#FFF7ED";
+        String border = n.isRead() ? "#E5E7EB"  : "#FED7AA";
+        row.setStyle("-fx-background-color: " + bg + "; -fx-background-radius: 10; " +
+                "-fx-border-color: " + border + "; -fx-border-radius: 10; -fx-border-width: 1;");
+        return row;
+    }
+
+    private String formatNotifTime(String isoTime) {
+        if (isoTime == null) return "";
+        try {
+            java.time.LocalDateTime dt   = java.time.LocalDateTime.parse(isoTime);
+            java.time.Duration      diff = java.time.Duration.between(dt, java.time.LocalDateTime.now());
+            if (diff.toMinutes() < 1)  return "Vừa xong";
+            if (diff.toMinutes() < 60) return diff.toMinutes() + " phút trước";
+            if (diff.toHours()   < 24) return diff.toHours()   + " giờ trước";
+            return diff.toDays() + " ngày trước";
+        } catch (Exception e) { return isoTime; }
+    }
+
+    @FXML private void handleMarkAllRead() {
+        new Thread(() -> {
+            notifApi.markAllRead();
+            Platform.runLater(this::loadNotifications);
+        }).start();
+    }
+
+    @FXML private void filterNotifAll() {
+        setActiveNotifFilter(btnNotifAll);
+        renderNotifications(cachedNotifications);
+    }
+
+    @FXML private void filterNotifUnread() {
+        setActiveNotifFilter(btnNotifUnread);
+        renderNotifications(cachedNotifications.stream().filter(n -> !n.isRead()).toList());
+    }
+
+    @FXML private void filterNotifAuction() {
+        setActiveNotifFilter(btnNotifAuction);
+        renderNotifications(cachedNotifications.stream()
+                .filter(n -> isAuctionNotif(n.getMessage())).toList());
+    }
+
+    @FXML private void filterNotifOrder() {
+        setActiveNotifFilter(btnNotifOrder);
+        renderNotifications(cachedNotifications.stream()
+                .filter(n -> !isAuctionNotif(n.getMessage())).toList());
+    }
+
+    private boolean isAuctionNotif(String msg) {
+        if (msg == null) return false;
+        String lower = msg.toLowerCase();
+        return lower.contains("đấu giá") || lower.contains("auction")
+                || lower.contains("vượt giá") || lower.contains("thắng")
+                || lower.contains("giá hiện tại") || msg.contains("🎉") || msg.contains("📢");
+    }
+
+    private void setActiveNotifFilter(Button active) {
+        Button[] filters = { btnNotifAll, btnNotifUnread, btnNotifAuction, btnNotifOrder };
+        for (Button btn : filters) {
+            if (btn == null) continue;
+            if (btn == active) {
+                btn.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; "
+                        + "-fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;");
+            } else {
+                btn.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #374151; "
+                        + "-fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;");
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════
+    // Settings Logic
+    // ══════════════════════════════════════════
+
+    private void applyToggleState(Button btn, boolean on) {
+        if (btn == null) return;
+        btn.setText(on ? "Bật" : "Tắt");
+        btn.setStyle("-fx-background-color: " + (on ? "#16A34A" : "#9CA3AF") + "; -fx-text-fill: white; "
+                + "-fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;");
+    }
+
+    @FXML
+    private void handleToggleNotification(ActionEvent event) {
+        Button btn = (Button) event.getSource();
+        boolean turningOn = btn.getText().equals("Tắt");
+        applyToggleState(btn, turningOn);
+
+        if (btn != toggleAuctionNotif && btn != toggleEmailNotif) return;
+
+        User user = SessionManager.getCurrentUser();
+        if (user == null) return;
+
+        boolean notifAuction = toggleAuctionNotif != null && toggleAuctionNotif.getText().equals("Bật");
+        boolean notifEmail   = toggleEmailNotif   != null && toggleEmailNotif.getText().equals("Bật");
+
+        user.setNotifAuction(notifAuction);
+        user.setNotifEmail(notifEmail);
+
+        new Thread(() -> {
+            ApiResponse<Void> resp = userApi.updatePreferences(notifAuction, notifEmail);
+            if (resp == null || resp.getStatus() != 200) {
+                Platform.runLater(() -> {
+                    applyToggleState(btn, !turningOn);
+                    if (btn == toggleAuctionNotif) user.setNotifAuction(!turningOn);
+                    else                           user.setNotifEmail(!turningOn);
+                    SceneUtil.showAlert("Lỗi", "Không thể lưu tùy chọn thông báo.");
+                });
+            }
+        }).start();
+    }
+
+    @FXML
+    private void handleDeleteAccount() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Xóa tài khoản");
+        confirm.setHeaderText("Bạn có chắc muốn xóa tài khoản?");
+        confirm.setContentText("Hành động này không thể hoàn tác. Toàn bộ dữ liệu sẽ bị xóa vĩnh viễn.");
+        confirm.showAndWait().ifPresent(response -> {
+            if (response != ButtonType.OK) return;
+            if (btnDeleteAccount != null) btnDeleteAccount.setDisable(true);
+            new Thread(() -> {
+                ApiResponse<Void> resp = userApi.deleteAccount();
+                Platform.runLater(() -> {
+                    if (btnDeleteAccount != null) btnDeleteAccount.setDisable(false);
+                    if (resp != null && resp.getStatus() == 200) {
+                        if (notifPollerThread != null) notifPollerThread.interrupt();
+                        SessionManager.clear();
+                        SceneUtil.switchToScene(btnLogout, "/Client/views/LoginView.fxml", "Login");
+                    } else {
+                        String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                        SceneUtil.showAlert("Lỗi", "Không thể xóa tài khoản: " + msg);
+                    }
+                });
+            }).start();
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // Helpers
+    // ══════════════════════════════════════════
+
+    private static int statusPriority(String s) {
+        if (s == null) return 3;
+        return switch (s.toUpperCase()) {
+            case "ACTIVE"   -> 0;
+            case "UPCOMING" -> 1;
+            case "FINISHED" -> 2;
+            default         -> 3;
+        };
+    }
 
     // ── Tính năng Đổi mật khẩu  ──
     @FXML
@@ -1223,9 +1501,11 @@ public class SellerController {
     }
 
     private void highlightButton(Button active) {
+        // Gom các nút của Seller vào mảng
         Button[] allButtons = {
                 btnDashboard, btnInventory, btnAddProduct,
-                btnAuctions, btnRevenue, btnHistory, btnProfile
+                btnAuctions, btnHistory, btnProfile,
+                btnNotification, btnSettings, btnRevenue
         };
 
         for (Button btn : allButtons) {
@@ -1237,5 +1517,92 @@ public class SellerController {
         if (active != null) {
             active.setStyle(ACTIVE_STYLE);
         }
+    }
+
+    // ══════════════════════════════════════════
+    // Balance & Deposit
+    // ══════════════════════════════════════════
+
+    private void updateBalanceLabel(double balance) {
+        if (lblBalance != null)
+            lblBalance.setText(String.format("%,.0f ₫", balance));
+    }
+
+    @FXML
+    private void handleDeposit() {
+        User user = SessionManager.getCurrentUser();
+        double currentBalance = user != null ? user.getBalance() : 0;
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("💰 Nạp Tiền");
+        dialog.setHeaderText(null);
+
+        Label lblCurrent = new Label(String.format("Số dư hiện tại: %,.0f ₫", currentBalance));
+        lblCurrent.setStyle("-fx-font-size: 13; -fx-text-fill: #374151; -fx-padding: 0 0 4 0;");
+
+        Label lblHint = new Label("Chọn mệnh giá hoặc nhập số tiền tùy ý:");
+        lblHint.setStyle("-fx-font-size: 12; -fx-text-fill: #6B7280;");
+
+        TextField txtAmount = new TextField();
+        txtAmount.setPromptText("Ví dụ: 500000");
+        txtAmount.setStyle("-fx-background-radius: 8; -fx-padding: 9; -fx-font-size: 13;");
+
+        double[] presets = {100_000, 500_000, 1_000_000, 5_000_000};
+        String[] labels  = {"100.000 ₫", "500.000 ₫", "1.000.000 ₫", "5.000.000 ₫"};
+        HBox presetRow = new HBox(8);
+        for (int i = 0; i < presets.length; i++) {
+            final double val = presets[i];
+            Button btn = new Button(labels[i]);
+            btn.setStyle("-fx-background-color: #FFF7ED; -fx-text-fill: #f97316; "
+                    + "-fx-background-radius: 8; -fx-padding: 6 12; -fx-cursor: hand; -fx-font-size: 12;");
+            btn.setOnAction(e -> txtAmount.setText(String.valueOf((long) val)));
+            presetRow.getChildren().add(btn);
+        }
+
+        VBox content = new VBox(10, lblCurrent, new Separator(), lblHint, presetRow, txtAmount);
+        content.setPadding(new Insets(16, 20, 4, 20));
+        content.setPrefWidth(420);
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setStyle("-fx-background-color: white;");
+
+        Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okBtn.setText("Xác nhận nạp tiền");
+        okBtn.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;");
+
+        Platform.runLater(txtAmount::requestFocus);
+
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+            String raw = txtAmount.getText().replace(",", "").replace(".", "").trim();
+            double amount;
+            try {
+                amount = Double.parseDouble(raw);
+            } catch (NumberFormatException ex) {
+                SceneUtil.showAlert("Lỗi nhập liệu", "Vui lòng nhập số tiền hợp lệ.");
+                return;
+            }
+            if (amount <= 0) {
+                SceneUtil.showAlert("Số tiền không hợp lệ", "Số tiền nạp phải lớn hơn 0.");
+                return;
+            }
+
+            new Thread(() -> {
+                ApiResponse<Double> resp = userApi.deposit(amount);
+                Platform.runLater(() -> {
+                    if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                        double newBalance = resp.getData();
+                        if (user != null) user.setBalance(newBalance);
+                        updateBalanceLabel(newBalance);
+                        SceneUtil.showAlert("Nạp tiền thành công",
+                                String.format("Đã nạp %,.0f ₫\nSố dư mới: %,.0f ₫", amount, newBalance));
+                    } else {
+                        String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                        SceneUtil.showAlert("Nạp tiền thất bại", msg);
+                    }
+                });
+            }).start();
+        });
     }
 }

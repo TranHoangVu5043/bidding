@@ -7,12 +7,17 @@ public class User {
     private String username;
     private String password;
     private String email;
+
     private String role;
+
     private double balance;
+
+    private String  storeName;
+    private String  createdAt;
+    private String  updatedAt;
+    private boolean notifAuction = true;
+    private boolean notifEmail   = false;
     private String status;
-    private String storeName;
-    private String createdAt;
-    private String updatedAt;
 
     public User() {
     }
@@ -109,12 +114,13 @@ public class User {
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
-    public String getStatus() {
-        return status;
-    }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public String getStatus() { return status; }
+    public void   setStatus(String status) { this.status = status; }
+
+    public boolean isNotifAuction() { return notifAuction; }
+    public void    setNotifAuction(boolean notifAuction) { this.notifAuction = notifAuction; }
+
+    public boolean isNotifEmail() { return notifEmail; }
+    public void    setNotifEmail(boolean notifEmail) { this.notifEmail = notifEmail; }
 }

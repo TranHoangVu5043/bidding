@@ -15,6 +15,8 @@ import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.NotificationApi;
 import Client.networking.endpoints.UserApi;
 import Client.util.SceneUtil;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -46,6 +48,7 @@ public class UserController {
     @FXML private TextField txtSearch;
     @FXML private Button    btnNotifTop;
     @FXML private Label     lblNotifCount;
+    @FXML private Label     lblBalance;
     @FXML private Label     lblUsername;
     @FXML private Circle    avatarCircle;
 
@@ -139,12 +142,25 @@ public class UserController {
     /** Whichever list is currently rendered — used by pagination. */
     private List<Auction> currentDisplayList = liveAuctions;
     /** auctionId → the price Label inside that card, for targeted live updates */
-    private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>     livePriceLabels  = new ConcurrentHashMap<>();
+    /** auctionId → the time-remaining Label inside that card, updated on anti-snipe reset */
+    private final Map<Integer, Label>     liveTimeLabels   = new ConcurrentHashMap<>();
+    /** auctionId → the status badge Label ("• Đang diễn ra") on the card */
+    private final Map<Integer, Label>     liveStatusLabels = new ConcurrentHashMap<>();
+    /** auctionId → the "Đặt giá ngay" Button on the card */
+    private final Map<Integer, Button>    liveBidButtons   = new ConcurrentHashMap<>();
+    /** auctionId → the "Đặt giá tự động" Button on the card */
+    private final Map<Integer, Button>    liveAutoBidBtns  = new ConcurrentHashMap<>();
+    /** Ticks every second to keep countdown labels fresh and flip expired cards to FINISHED state. */
+    private Timeline countdownTicker;
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
 
     /** Cached bid history items so the filter ComboBox can re-filter without a network call. */
     private List<BidHistoryItem> cachedBidHistory = List.of();
+
+    /** Cached notifications so filter buttons can re-render without a network call. */
+    private List<Notification> cachedNotifications = List.of();
 
     /** Background thread that polls the notification count every 30 s to keep the badge fresh. */
     private Thread notifPollerThread;
@@ -195,15 +211,29 @@ public class UserController {
                 }
                 ApiResponse<List<Notification>> resp = notifApi.getNotifications();
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    long unread = resp.getData().stream().filter(n -> !n.isRead()).count();
+                    List<Notification> fresh = resp.getData();
+                    long unread = fresh.stream().filter(n -> !n.isRead()).count();
                     Platform.runLater(() -> {
+                        // Always update the badge
                         if (lblNotifCount != null)
                             lblNotifCount.setText(unread > 0 ? String.valueOf(unread) : "0");
+
+                        // If new notifications arrived, update the cache and re-render the list
+                        // only if the count changed (avoids unnecessary redraws)
+                        if (fresh.size() != cachedNotifications.size()) {
+                            cachedNotifications = fresh;
+                            // Re-render only when the notification tab is currently selected
+                            if (mainTabPane != null && tabNotification != null
+                                    && mainTabPane.getSelectionModel().getSelectedItem() == tabNotification) {
+                                setActiveNotifFilter(btnNotifAll);
+                                renderNotifications(cachedNotifications);
+                            }
+                        }
                     });
                 }
             }
         });
-        notifPollerThread.setDaemon(true);   // dies when the JVM exits
+        notifPollerThread.setDaemon(true);
         notifPollerThread.setName("notif-poller");
         notifPollerThread.start();
     }
@@ -222,6 +252,26 @@ public class UserController {
         if (lblProfileEmail != null) lblProfileEmail.setText(email);
         if (txtFullName    != null) txtFullName.setText(displayName);
         if (txtEmail       != null) txtEmail.setText(email);
+        updateBalanceLabel(user.getBalance());
+
+        // Apply saved notification preferences to the toggle buttons
+        applyToggleState(toggleAuctionNotif, user.isNotifAuction());
+        applyToggleState(toggleEmailNotif,   user.isNotifEmail());
+        // toggleOrderNotif and toggle2FA are UI-only (no backend), keep their initial FXML state
+    }
+
+    /** Sets a toggle button's text and colour to match the given on/off state. */
+    private void applyToggleState(Button btn, boolean on) {
+        if (btn == null) return;
+        if (on) {
+            btn.setText("Bật");
+            btn.setStyle("-fx-background-color: #16A34A; -fx-text-fill: white; "
+                    + "-fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;");
+        } else {
+            btn.setText("Tắt");
+            btn.setStyle("-fx-background-color: #9CA3AF; -fx-text-fill: white; "
+                    + "-fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;");
+        }
     }
 
     // ══════════════════════════════════════════
@@ -284,12 +334,19 @@ public class UserController {
 
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
                     liveAuctions.setAll(response.getData());
+                    // Stop any running ticker before clearing maps
+                    if (countdownTicker != null) { countdownTicker.stop(); countdownTicker = null; }
                     livePriceLabels.clear();
+                    liveTimeLabels.clear();
+                    liveStatusLabels.clear();
+                    liveBidButtons.clear();
+                    liveAutoBidBtns.clear();
                     currentDisplayList = liveAuctions;
                     currentPage = 0;
                     renderAuctionCards(currentDisplayList);
                     updateAuctionStats();
                     connectWebSocket();   // subscribe to all active auctions
+                    startCountdownTicker(); // tick every second to keep timers fresh
                 } else {
                     auctionFlowPane.getChildren().clear();
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
@@ -352,18 +409,41 @@ public class UserController {
         // Close a stale (not-yet-open or errored) connection before creating a new one
         if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
 
-        wsClient = new AuctionWebSocketClient((auctionId, newPrice) -> {
+        wsClient = new AuctionWebSocketClient(update -> {
+            int    auctionId  = update.auctionId();
+            double newPrice   = update.newPrice();
+            String newEndTime = update.newEndTime();
+
             // Update the in-memory auction object
             liveAuctions.stream()
                     .filter(a -> a.getId() == auctionId)
                     .findFirst()
-                    .ifPresent(a -> a.setCurrentPrice(newPrice));
+                    .ifPresent(a -> {
+                        a.setCurrentPrice(newPrice);
+                        if (newEndTime != null) a.setEndTime(newEndTime);
+                    });
 
-            // Update only the price label for that card — no full re-render
-            Label lbl = livePriceLabels.get(auctionId);
-            if (lbl != null) {
-                lbl.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
-                lbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #16A34A;");
+            // Update price label — no full re-render needed
+            Label priceLabel = livePriceLabels.get(auctionId);
+            if (priceLabel != null) {
+                priceLabel.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
+                priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #16A34A;");
+            }
+
+            // Anti-snipe: if the server reset the timer, update the time label live
+            if (newEndTime != null) {
+                Label timeLabel = liveTimeLabels.get(auctionId);
+                if (timeLabel != null) {
+                    timeLabel.setUserData(newEndTime);   // keep ticker in sync
+                    timeLabel.setText("🕒 " + formatTimeRemaining(newEndTime));
+                    // Flash orange briefly to draw attention to the reset
+                    timeLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #D97706; -fx-font-weight: bold;");
+                    javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                            javafx.util.Duration.seconds(3));
+                    pause.setOnFinished(e -> timeLabel.setStyle(
+                            "-fx-font-size: 11; -fx-text-fill: #0066CC;"));
+                    pause.play();
+                }
             }
         });
 
@@ -381,6 +461,68 @@ public class UserController {
         }).start();
     }
 
+    /**
+     * Starts a 1-second JavaFX Timeline that:
+     * <ol>
+     *   <li>Updates every registered time label with the current remaining time.</li>
+     *   <li>When an auction's end time is reached, flips its card to a finished state
+     *       (status badge, disabled buttons) without requiring a full reload.</li>
+     * </ol>
+     */
+    private void startCountdownTicker() {
+        countdownTicker = new Timeline(new KeyFrame(javafx.util.Duration.seconds(1), e -> {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            // Iterate over a snapshot to avoid ConcurrentModificationException
+            new java.util.HashMap<>(liveTimeLabels).forEach((auctionId, timeLabel) -> {
+                String endTimeStr = (String) timeLabel.getUserData();
+                if (endTimeStr == null) return;
+
+                try {
+                    java.time.LocalDateTime endTime = java.time.LocalDateTime.parse(endTimeStr);
+                    if (!now.isBefore(endTime)) {
+                        // Auction just expired — flip the card UI
+                        timeLabel.setText("🕒 Đã kết thúc");
+                        timeLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+                        Label statusLabel = liveStatusLabels.get(auctionId);
+                        if (statusLabel != null) {
+                            statusLabel.setText("✓ Đã kết thúc");
+                            statusLabel.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;");
+                        }
+
+                        Button bidBtn = liveBidButtons.get(auctionId);
+                        if (bidBtn != null) {
+                            bidBtn.setDisable(true);
+                            bidBtn.setStyle("-fx-background-color: #9CA3AF; -fx-text-fill: white; " +
+                                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8;");
+                        }
+
+                        Button autoBidBtn = liveAutoBidBtns.get(auctionId);
+                        if (autoBidBtn != null) {
+                            autoBidBtn.setDisable(true);
+                            autoBidBtn.setStyle("-fx-background-color: #9CA3AF; -fx-text-fill: white; " +
+                                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 7;");
+                        }
+
+                        // Remove from all live maps — no more updates needed for this auction
+                        liveTimeLabels.remove(auctionId);
+                        liveStatusLabels.remove(auctionId);
+                        livePriceLabels.remove(auctionId);
+                        liveBidButtons.remove(auctionId);
+                        liveAutoBidBtns.remove(auctionId);
+                    } else {
+                        // Still running — refresh the label text
+                        timeLabel.setText("🕒 " + formatTimeRemaining(endTimeStr));
+                    }
+                } catch (Exception ex) {
+                    // Unparseable endTime — leave label as-is
+                }
+            });
+        }));
+        countdownTicker.setCycleCount(Timeline.INDEFINITE);
+        countdownTicker.play();
+    }
+
     /** Applies the current filter + current page and rebuilds the FlowPane cards. Must run on FX thread. */
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
@@ -389,15 +531,15 @@ public class UserController {
         String filter = cmbFilter.getValue();
         filteredAuctions = auctions.stream().filter(a -> {
             String s = a.getStatus() != null ? a.getStatus().toUpperCase() : "";
-            if ("CANCELLED".equalsIgnoreCase(s) && (filter == null || filter.equals("Tất cả"))) return false;
             if (filter == null || filter.equals("Tất cả")) return true;
             return switch (filter) {
                 case "Đang chạy"   -> s.equals("ACTIVE");
                 case "Sắp diễn ra" -> s.equals("UPCOMING");
-                case "Đã kết thúc" -> s.equals("FINISHED") || s.equals("CANCELLED");
+                case "Đã kết thúc" -> s.equals("FINISHED");
                 default -> true;
             };
-        }).collect(Collectors.toList());
+        }).sorted(java.util.Comparator.comparingInt(a -> statusPriority(a.getStatus())))
+          .collect(Collectors.toList());
 
         if (filteredAuctions.isEmpty()) {
             Label empty = new Label("Không có phiên đấu giá nào phù hợp.");
@@ -419,6 +561,15 @@ public class UserController {
             auctionFlowPane.getChildren().add(buildAuctionCard(auction));
         }
         updatePaginationControls(currentPage, totalPages);
+    }
+
+    private static int statusPriority(String s) {
+        if (s == null) return 2;
+        return switch (s.toUpperCase()) {
+            case "ACTIVE"   -> 0;
+            case "UPCOMING" -> 1;
+            default         -> 2; // FINISHED and anything else sink to the bottom
+        };
     }
 
     private void updatePaginationControls(int page, int total) {
@@ -491,11 +642,19 @@ public class UserController {
                 "Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #D32F2F;");
         // Register for live WebSocket updates
-        if ("ACTIVE".equals(status)) livePriceLabels.put(auction.getId(), lblCurrentPrice);
+        if ("ACTIVE".equals(status)) {
+            livePriceLabels.put(auction.getId(), lblCurrentPrice);
+            liveStatusLabels.put(auction.getId(), lblStatus);
+        }
 
         // ── Time remaining ──
         Label lblTime = new Label("🕒 " + formatTimeRemaining(auction.getEndTime()));
         lblTime.setStyle("-fx-font-size: 11; -fx-text-fill: #0066CC;");
+        // Register for live anti-snipe timer resets
+        if ("ACTIVE".equals(status)) liveTimeLabels.put(auction.getId(), lblTime);
+
+        // Store auction endTime on the label as user data for the countdown ticker
+        lblTime.setUserData(auction.getEndTime());
 
         // ── Place bid button (active only for ACTIVE auctions) ──
         boolean canBid = "ACTIVE".equals(status);
@@ -507,6 +666,7 @@ public class UserController {
                 "-fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8;");
         if (canBid) {
             btnBid.setOnAction(e -> handlePlaceBid(auction));
+            liveBidButtons.put(auction.getId(), btnBid);
         }
 
         // ── Auto-bid button (active auctions only) ──
@@ -518,6 +678,7 @@ public class UserController {
                 "-fx-background-radius: 8; -fx-cursor: " + (canBid ? "hand" : "default") + "; -fx-padding: 7;");
         if (canBid) {
             btnAutoBid.setOnAction(e -> handleAutoBid(auction));
+            liveAutoBidBtns.put(auction.getId(), btnAutoBid);
         }
 
         // ── Bid history button ──
@@ -591,12 +752,19 @@ public class UserController {
                 }
 
                 new Thread(() -> {
-                    ApiResponse<Void> resp = bidApi.placeBid(auction.getId(), amount);
+                    ApiResponse<Double> resp = bidApi.placeBid(auction.getId(), amount);
                     Platform.runLater(() -> {
                         if (resp != null && resp.getStatus() == 201) {
+                            // Update balance in session and top-bar chip
+                            if (resp.getData() != null) {
+                                double newBalance = resp.getData();
+                                User u = SessionManager.getCurrentUser();
+                                if (u != null) u.setBalance(newBalance);
+                                updateBalanceLabel(newBalance);
+                            }
                             showAlert(Alert.AlertType.INFORMATION, "Đặt giá thành công",
                                     String.format("Bạn đã đặt giá %,.0f ₫ thành công!", amount));
-                            loadAuctions(); // Refresh to reflect new current price
+                            loadAuctions();
                         } else {
                             String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
                             showAlert(Alert.AlertType.ERROR, "Đặt giá thất bại", msg);
@@ -976,31 +1144,89 @@ public class UserController {
             Platform.runLater(this::loadNotifications);
         }).start();
     }
-    @FXML private void filterNotifAll()      { /* TODO */ }
-    @FXML private void filterNotifUnread()   { /* TODO */ }
-    @FXML private void filterNotifAuction()  { /* TODO */ }
-    @FXML private void filterNotifOrder()    { /* TODO */ }
+    @FXML private void filterNotifAll() {
+        setActiveNotifFilter(btnNotifAll);
+        renderNotifications(cachedNotifications);
+    }
+
+    @FXML private void filterNotifUnread() {
+        setActiveNotifFilter(btnNotifUnread);
+        List<Notification> unread = cachedNotifications.stream()
+                .filter(n -> !n.isRead()).toList();
+        renderNotifications(unread);
+    }
+
+    @FXML private void filterNotifAuction() {
+        setActiveNotifFilter(btnNotifAuction);
+        List<Notification> auction = cachedNotifications.stream()
+                .filter(n -> isAuctionNotif(n.getMessage())).toList();
+        renderNotifications(auction);
+    }
+
+    @FXML private void filterNotifOrder() {
+        setActiveNotifFilter(btnNotifOrder);
+        List<Notification> other = cachedNotifications.stream()
+                .filter(n -> !isAuctionNotif(n.getMessage())).toList();
+        renderNotifications(other);
+    }
+
+    /** Returns true if the message is auction-related (outbid / win / price updates). */
+    private boolean isAuctionNotif(String msg) {
+        if (msg == null) return false;
+        String lower = msg.toLowerCase();
+        return lower.contains("đấu giá") || lower.contains("auction")
+                || lower.contains("vượt giá") || lower.contains("thắng")
+                || lower.contains("giá hiện tại") || msg.contains("🎉") || msg.contains("📢");
+    }
+
+    /** Visually highlights the active filter button and resets all others. */
+    private void setActiveNotifFilter(Button active) {
+        Button[] filters = { btnNotifAll, btnNotifUnread, btnNotifAuction, btnNotifOrder };
+        for (Button btn : filters) {
+            if (btn == null) continue;
+            if (btn == active) {
+                btn.setStyle("-fx-background-color: #0066CC; -fx-text-fill: white; "
+                        + "-fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;");
+            } else {
+                btn.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #374151; "
+                        + "-fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;");
+            }
+        }
+    }
 
     private void loadNotifications() {
         if (notificationList == null) return;
         new Thread(() -> {
             ApiResponse<List<Notification>> resp = notifApi.getNotifications();
             Platform.runLater(() -> {
-                notificationList.getChildren().clear();
-                if (resp == null || resp.getStatus() != 200 || resp.getData() == null || resp.getData().isEmpty()) {
-                    Label empty = new Label("Không có thông báo nào.");
-                    empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
-                    notificationList.getChildren().add(empty);
+                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                    cachedNotifications = resp.getData();
+                    long unread = cachedNotifications.stream().filter(n -> !n.isRead()).count();
+                    if (lblNotifCount != null) lblNotifCount.setText(unread > 0 ? String.valueOf(unread) : "0");
+                } else {
+                    cachedNotifications = List.of();
                     if (lblNotifCount != null) lblNotifCount.setText("0");
-                    return;
                 }
-                long unread = resp.getData().stream().filter(n -> !n.isRead()).count();
-                if (lblNotifCount != null) lblNotifCount.setText(unread > 0 ? String.valueOf(unread) : "0");
-                for (Notification n : resp.getData()) {
-                    notificationList.getChildren().add(buildNotifRow(n));
-                }
+                // Reset to "All" filter and render
+                setActiveNotifFilter(btnNotifAll);
+                renderNotifications(cachedNotifications);
             });
         }).start();
+    }
+
+    /** Renders the given list into the notification VBox. */
+    private void renderNotifications(List<Notification> list) {
+        if (notificationList == null) return;
+        notificationList.getChildren().clear();
+        if (list == null || list.isEmpty()) {
+            Label empty = new Label("Không có thông báo nào.");
+            empty.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 13; -fx-padding: 20;");
+            notificationList.getChildren().add(empty);
+            return;
+        }
+        for (Notification n : list) {
+            notificationList.getChildren().add(buildNotifRow(n));
+        }
     }
 
     private HBox buildNotifRow(Notification n) {
@@ -1115,28 +1341,155 @@ public class UserController {
     @FXML
     private void handleDeleteAccount() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xác nhận");
-        confirm.setHeaderText(null);
-        confirm.setContentText("Bạn có chắc muốn xóa tài khoản? Hành động này không thể hoàn tác.");
+        confirm.setTitle("Xóa tài khoản");
+        confirm.setHeaderText("Bạn có chắc muốn xóa tài khoản?");
+        confirm.setContentText("Hành động này không thể hoàn tác. Toàn bộ dữ liệu của bạn sẽ bị xóa vĩnh viễn.");
         confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                // TODO: send delete request to server
-                SessionManager.clear();
-                SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
-            }
+            if (response != ButtonType.OK) return;
+
+            btnDeleteAccount.setDisable(true);
+            new Thread(() -> {
+                ApiResponse<Void> resp = userApi.deleteAccount();
+                Platform.runLater(() -> {
+                    btnDeleteAccount.setDisable(false);
+                    if (resp != null && resp.getStatus() == 200) {
+                        if (wsClient != null) wsClient.closeConnection();
+                        if (notifPollerThread != null) notifPollerThread.interrupt();
+                        SessionManager.clear();
+                        SceneUtil.switchToScene(btnDeleteAccount, "/Client/views/LoginView.fxml", "Login");
+                    } else {
+                        String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể xóa tài khoản: " + msg);
+                    }
+                });
+            }).start();
         });
     }
+
     @FXML
     private void handleToggleNotification(ActionEvent event) {
         Button btn = (Button) event.getSource();
-        if (btn.getText().equals("Bật")) {
-            btn.setText("Tắt");
-            btn.setStyle("-fx-background-color: #bdc3c7; -fx-text-fill: white; -fx-background-radius: 15;");
-        } else {
-            btn.setText("Bật");
-            btn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-background-radius: 15;");
-        }
+        boolean turningOn = btn.getText().equals("Tắt"); // currently off → turning on
+        applyToggleState(btn, turningOn);
+
+        // Only persist changes for auction and email toggles (order + 2FA are UI-only)
+        if (btn != toggleAuctionNotif && btn != toggleEmailNotif) return;
+
+        User user = SessionManager.getCurrentUser();
+        if (user == null) return;
+
+        // Compute new prefs from the current button states after toggling
+        boolean notifAuction = toggleAuctionNotif != null && toggleAuctionNotif.getText().equals("Bật");
+        boolean notifEmail   = toggleEmailNotif   != null && toggleEmailNotif.getText().equals("Bật");
+
+        // Update local session so the state is correct if the user re-opens settings
+        user.setNotifAuction(notifAuction);
+        user.setNotifEmail(notifEmail);
+
+        new Thread(() -> {
+            ApiResponse<Void> resp = userApi.updatePreferences(notifAuction, notifEmail);
+            if (resp == null || resp.getStatus() != 200) {
+                // Revert UI on failure
+                Platform.runLater(() -> {
+                    applyToggleState(btn, !turningOn);
+                    if (btn == toggleAuctionNotif) user.setNotifAuction(!turningOn);
+                    else                           user.setNotifEmail(!turningOn);
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu tùy chọn thông báo.");
+                });
+            }
+        }).start();
     }
+    // ══════════════════════════════════════════
+    // Balance & Deposit
+    // ══════════════════════════════════════════
+
+    /** Updates the balance chip in the top bar. Must be called on the FX thread. */
+    private void updateBalanceLabel(double balance) {
+        if (lblBalance != null)
+            lblBalance.setText(String.format("%,.0f ₫", balance));
+    }
+
+    @FXML
+    private void handleDeposit() {
+        User user = SessionManager.getCurrentUser();
+        double currentBalance = user != null ? user.getBalance() : 0;
+
+        // ── Dialog layout ──
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("💰 Nạp Tiền");
+        dialog.setHeaderText(null);
+
+        // Current balance display
+        Label lblCurrent = new Label(String.format("Số dư hiện tại: %,.0f ₫", currentBalance));
+        lblCurrent.setStyle("-fx-font-size: 13; -fx-text-fill: #374151; -fx-padding: 0 0 4 0;");
+
+        Label lblHint = new Label("Chọn mệnh giá hoặc nhập số tiền tùy ý:");
+        lblHint.setStyle("-fx-font-size: 12; -fx-text-fill: #6B7280;");
+
+        // Quick-amount buttons
+        TextField txtAmount = new TextField();
+        txtAmount.setPromptText("Ví dụ: 500000");
+        txtAmount.setStyle("-fx-background-radius: 8; -fx-padding: 9; -fx-font-size: 13;");
+
+        double[] presets = {100_000, 500_000, 1_000_000, 5_000_000};
+        String[] labels  = {"100.000 ₫", "500.000 ₫", "1.000.000 ₫", "5.000.000 ₫"};
+        HBox presetRow = new HBox(8);
+        for (int i = 0; i < presets.length; i++) {
+            final double val = presets[i];
+            Button btn = new Button(labels[i]);
+            btn.setStyle("-fx-background-color: #EFF6FF; -fx-text-fill: #0066CC; "
+                    + "-fx-background-radius: 8; -fx-padding: 6 12; -fx-cursor: hand; -fx-font-size: 12;");
+            btn.setOnAction(e -> txtAmount.setText(String.valueOf((long) val)));
+            presetRow.getChildren().add(btn);
+        }
+
+        VBox content = new VBox(10, lblCurrent, new Separator(), lblHint, presetRow, txtAmount);
+        content.setPadding(new Insets(16, 20, 4, 20));
+        content.setPrefWidth(420);
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setStyle("-fx-background-color: white;");
+
+        Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okBtn.setText("Xác nhận nạp tiền");
+        okBtn.setStyle("-fx-background-color: #16A34A; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;");
+
+        Platform.runLater(txtAmount::requestFocus);
+
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+            String raw = txtAmount.getText().replace(",", "").replace(".", "").trim();
+            double amount;
+            try {
+                amount = Double.parseDouble(raw);
+            } catch (NumberFormatException ex) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi nhập liệu", "Vui lòng nhập số tiền hợp lệ.");
+                return;
+            }
+            if (amount <= 0) {
+                showAlert(Alert.AlertType.WARNING, "Số tiền không hợp lệ", "Số tiền nạp phải lớn hơn 0.");
+                return;
+            }
+
+            new Thread(() -> {
+                ApiResponse<Double> resp = userApi.deposit(amount);
+                Platform.runLater(() -> {
+                    if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
+                        double newBalance = resp.getData();
+                        if (user != null) user.setBalance(newBalance);
+                        updateBalanceLabel(newBalance);
+                        showAlert(Alert.AlertType.INFORMATION, "Nạp tiền thành công",
+                                String.format("Đã nạp %,.0f ₫\nSố dư mới: %,.0f ₫", amount, newBalance));
+                    } else {
+                        String msg = resp != null ? resp.getMessage() : "Mất kết nối tới Server";
+                        showAlert(Alert.AlertType.ERROR, "Nạp tiền thất bại", msg);
+                    }
+                });
+            }).start();
+        });
+    }
+
     // ══════════════════════════════════════════
     // Bid History
     // ══════════════════════════════════════════
@@ -1203,6 +1556,11 @@ public class UserController {
         Label lblTitle = new Label("Phiên đấu giá #" + (a != null ? a.getId() : "?"));
         lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
 
+        String itemStr = (a != null && a.getItemName() != null && !a.getItemName().isBlank())
+                ? a.getItemName() : (a != null ? "Mặt hàng #" + a.getItemId() : "—");
+        Label lblItem = new Label("📦 " + itemStr);
+        lblItem.setStyle("-fx-font-size: 12; -fx-text-fill: #374151; -fx-font-weight: bold;");
+
         String sellerStr = (a != null && a.getSellerName() != null) ? a.getSellerName() : "—";
         Label lblSeller = new Label("🏪 " + sellerStr);
         lblSeller.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
@@ -1221,7 +1579,7 @@ public class UserController {
         Label lblCount = new Label("🔢 Số lần đặt giá: " + item.getMyBidCount());
         lblCount.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
 
-        VBox infoBox = new VBox(5, lblTitle, lblSeller, lblEndDate, lblMyBid, lblWinPrice, lblCount);
+        VBox infoBox = new VBox(5, lblTitle, lblItem, lblSeller, lblEndDate, lblMyBid, lblWinPrice, lblCount);
         HBox.setHgrow(infoBox, javafx.scene.layout.Priority.ALWAYS);
 
         // ── Left colour bar ──

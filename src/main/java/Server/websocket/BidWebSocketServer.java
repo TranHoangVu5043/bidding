@@ -99,7 +99,10 @@ public class BidWebSocketServer extends WebSocketServer {
      * Broadcast a bid update to every client subscribed to this auction.
      * Called by BiddingService after a successful bid commit.
      */
-    public void broadcastBidUpdate(int auctionId, double currentPrice, int userId, double amount) {
+    /**
+     * @param newEndTime ISO-8601 string of the reset end-time when anti-snipe fired, or {@code null}.
+     */
+    public void broadcastBidUpdate(int auctionId, double currentPrice, int userId, double amount, String newEndTime) {
         Set<WebSocket> room = rooms.get(auctionId);
         if (room == null || room.isEmpty()) return;
 
@@ -109,6 +112,7 @@ public class BidWebSocketServer extends WebSocketServer {
         payload.addProperty("currentPrice", currentPrice);
         payload.addProperty("userId",       userId);
         payload.addProperty("amount",       amount);
+        if (newEndTime != null) payload.addProperty("newEndTime", newEndTime);
         String json = gson.toJson(payload);
 
         room.stream()

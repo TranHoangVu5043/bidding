@@ -9,39 +9,14 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class UserService {
 
     private final UserDAO userDAO;
 
-    // ── In-memory session cache ──────────────────────────────────────────────
-    // Eliminates the findUserByToken() DB round-trip on every authenticated
-    // request.  Entries expire after 10 minutes; logout evicts immediately.
-    private static final long CACHE_TTL_MS = 10 * 60 * 1000L; // 10 min
-
-    private record CacheEntry(User user, long cachedAt) {}
-
-    private final Map<String, CacheEntry> sessionCache = new ConcurrentHashMap<>();
-
     public UserService(UserDAO userDAO) {
         this.userDAO = userDAO;
-    }
-
-    private void cacheToken(String token, User user) {
-        sessionCache.put(token, new CacheEntry(user, System.currentTimeMillis()));
-    }
-
-    private User getCached(String token) {
-        CacheEntry e = sessionCache.get(token);
-        if (e == null) return null;
-        if (System.currentTimeMillis() - e.cachedAt() > CACHE_TTL_MS) {
-            sessionCache.remove(token);
-            return null;
-        }
-        return e.user();
     }
 
     public boolean register(UserRequestDTO req) {
@@ -50,13 +25,14 @@ public class UserService {
             return false;
         }
 
-        // Cost 10 ≈ 100 ms — still secure, 4× faster than cost 12 (≈ 400 ms)
-        String hash = BCrypt.withDefaults().hashToString(10, req.getPassword().toCharArray());
+        String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
 
-        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), req.getRole(), 0, req.getStoreName());
+        String role = (req.getRole() != null && !req.getRole().isBlank()) ? req.getRole() : "USER";
+        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), role, 0, req.getStoreName(), "ACTIVE");
         User user = UserFactory.createUser(userRow);
 
-        userDAO.createUser(user);
+        int newId = userDAO.createUser(user);
+        if (newId > 0) userDAO.createDefaultSettings(newId);
 
         return true;
     }
@@ -81,27 +57,17 @@ public class UserService {
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(24);
 
         userDAO.createSession(user.getId(), token, expiresAt);
-        cacheToken(token, user);  // warm the cache immediately — first request is free
 
         return token;
     }
 
     public User authenticate(String token) {
         if (token == null || token.isEmpty()) return null;
-
-        // Fast path: return cached user without touching the DB
-        User cached = getCached(token);
-        if (cached != null) return cached;
-
-        // Slow path: DB lookup (only on first call or after cache expiry)
-        User user = userDAO.findUserByToken(token);
-        if (user != null) cacheToken(token, user);
-        return user;
+        return userDAO.findUserByToken(token);
     }
 
     public void logout(String token) {
         if (token != null) {
-            sessionCache.remove(token);  // evict immediately on logout
             userDAO.deleteSession(token);
         }
     }
@@ -110,12 +76,35 @@ public class UserService {
         return userDAO.findById(id);
     }
 
-    public void setUserStatus(int userId, String status) {
-        userDAO.updateStatus(userId, status);
-    }
     public List<User> getAllUsers() {
         return userDAO.findAll();
     }
+
+    public void setUserStatus(int userId, String status) {
+        userDAO.updateStatus(userId, status);
+    }
+
+    public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
+        userDAO.updateNotifPrefs(userId, notifAuction, notifEmail);
+    }
+
+    public void deleteAccount(int userId) {
+        userDAO.deleteAllSessions(userId);
+        userDAO.deleteUser(userId);
+    }
+
+    /**
+     * Adds {@code amount} to the user's balance and returns the new balance.
+     * @throws IllegalArgumentException if amount ≤ 0 or exceeds the single-deposit cap.
+     */
+    public double deposit(int userId, double amount) {
+        if (amount <= 0) throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0.");
+        if (amount > 1_000_000_000) throw new IllegalArgumentException("Số tiền nạp tối đa 1.000.000.000 ₫ mỗi lần.");
+        userDAO.addBalance(userId, amount);
+        User updated = userDAO.findById(userId);
+        return updated != null ? updated.getBalance() : 0;
+    }
+
     public boolean changePassword(User currentUser, String oldPassword, String newPassword) {
         if (oldPassword == null || oldPassword.isBlank()) {
             throw new IllegalArgumentException("Mật khẩu cũ không được để trống.");

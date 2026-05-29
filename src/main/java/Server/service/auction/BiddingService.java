@@ -104,25 +104,32 @@ public class BiddingService {
                 User user = userDAO.findById(conn, userId);
                 if (user == null) throw new RuntimeException("User not found");
 
-                if (user.getBalance() < amount) {
-                    throw new RuntimeException("Insufficient balance");
+                // Only charge the increment above the user's existing highest bid on this auction.
+                double previousBid = bidDAO.getMaxBidByUser(conn, userId, auctionId);
+                double extra = amount - previousBid;
+                if (extra <= 0) extra = amount; // safety: treat as fresh bid if calc is wrong
+
+                if (user.getBalance() < extra) {
+                    throw new RuntimeException(
+                        String.format("Số dư không đủ. Bạn cần thêm %,.0f ₫ để đặt giá này.", extra - user.getBalance()));
                 }
 
                 // Remember previous leader BEFORE inserting the new bid
                 Integer previousLeader = bidDAO.findHighestBidder(auctionId);
 
                 // All three writes share the same connection and will commit or rollback together.
-                userDAO.updateBalance(conn, userId, user.getBalance() - amount);
+
+                userDAO.updateBalance(conn, userId, user.getBalance() - extra);
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
 
-                //snipping
+                // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
                 LocalDateTime now = LocalDateTime.now();
-                long finalminutes = 5;
-                long extendminutes = 3;
-                if (now.isAfter(auction.getEndTime().minusMinutes(finalminutes)) && now.isBefore(auction.getEndTime())){
-                    LocalDateTime newEndtime = auction.getEndTime().plusMinutes(extendminutes);
-                    bidDAO.updateEndtime(conn, auctionId, newEndtime);
+                String newEndTimeIso = null;
+                if (now.isAfter(auction.getEndTime().minusMinutes(2)) && now.isBefore(auction.getEndTime())) {
+                    LocalDateTime resetTo = now.plusMinutes(2);
+                    bidDAO.updateEndtime(conn, auctionId, resetTo);
+                    newEndTimeIso = resetTo.toString();
                 }
 
                 conn.commit();
@@ -134,8 +141,8 @@ public class BiddingService {
                             auctionId, amount));
                 }
 
-                // Broadcast real-time update to all WebSocket subscribers
-                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount);
+                // Broadcast real-time update (includes new end-time when anti-snipe fired)
+                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, newEndTimeIso);
 
                 if (autoBidConfigService != null)
                     autoBidConfigService.triggerAutoBidding(auctionId);
@@ -173,22 +180,24 @@ public class BiddingService {
         User user = userDAO.findById(conn, userId);
         if (user == null) throw new RuntimeException("User not found");
 
-        if (user.getBalance() < price) {
-            throw new RuntimeException("Insufficient balance for Bot ");
+        // Only charge the increment above the user's existing highest bid on this auction.
+        double previousBid = bidDAO.getMaxBidByUser(conn, userId, auctionId);
+        double extra = price - previousBid;
+        if (extra <= 0) extra = price; // safety fallback
+
+        if (user.getBalance() < extra) {
+            throw new RuntimeException("Insufficient balance for auto-bid");
         }
 
         // All three writes share the same connection and will commit or rollback together.
-//        userDAO.updateBalance(conn, userId, user.getBalance() - price);  //để không trừ mất tiền của người dùng
+        userDAO.updateBalance(conn, userId, user.getBalance() - extra);
         auctionDAO.updateCurrentPrice(conn, auctionId, price);
         bidDAO.create(conn, userId, auctionId, price);
 
-        //snipping
+        // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
         LocalDateTime now = LocalDateTime.now();
-        long finalminutes = 5;
-        long extendminutes = 3;
-        if (now.isAfter(auction.getEndTime().minusMinutes(finalminutes)) && now.isBefore(auction.getEndTime())) {
-            LocalDateTime newEndtime = auction.getEndTime().plusMinutes(extendminutes);
-            bidDAO.updateEndtime(conn, auctionId, newEndtime);
+        if (now.isAfter(auction.getEndTime().minusMinutes(2)) && now.isBefore(auction.getEndTime())) {
+            bidDAO.updateEndtime(conn, auctionId, now.plusMinutes(2));
         }
     }
     public double getCurrentPriceforUpdate(Connection conn, int auctionId) throws Exception{

@@ -96,9 +96,7 @@ public class AuctionApiController {
     // No body needed — returns all auctions
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
-            List<Auction> auctions = auctionService.getAllAuctions().stream()
-                    .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
-                    .toList();
+            List<Auction> auctions = auctionService.getAllAuctions();
             List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {

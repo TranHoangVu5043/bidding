@@ -94,6 +94,30 @@ public class BidDAO {
         return 0;
     }
 
+    /** Deletes all bids for an auction (call before deleting the auction row). */
+    public void deleteByAuctionId(int auctionId) {
+        String sql = "DELETE FROM bids WHERE auction_id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("[ERROR] deleteByAuctionId failed: " + e.getMessage());
+        }
+    }
+
+    /** Transaction-aware version — caller owns the connection. */
+    public double getMaxBidByUser(Connection conn, int userId, int auctionId) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(amount), 0) FROM bids WHERE user_id = ? AND auction_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, auctionId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getDouble(1);
+        }
+        return 0;
+    }
+
     public int getBidCountByUser(int userId, int auctionId) {
         String sql = "SELECT COUNT(*) FROM bids WHERE user_id = ? AND auction_id = ?";
         try (Connection conn = dataSource.getConnection();

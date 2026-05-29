@@ -7,5 +7,6 @@ public record UserRow(
         String email,
         String role,
         double balance,
-        String storeName
+        String storeName,
+        String status
 ) {}

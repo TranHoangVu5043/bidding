@@ -18,10 +18,10 @@ public class BidApi {
     private final ApiClient apiClient = new ApiClient();
     private final Gson gson = new Gson();
 
-    public ApiResponse<Void> placeBid(int auctionId, double amount) {
+    public ApiResponse<Double> placeBid(int auctionId, double amount) {
         try {
             String json = apiClient.post("/bids/place", new PlaceBidBody(auctionId, amount));
-            return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
+            return gson.fromJson(json, new TypeToken<ApiResponse<Double>>() {}.getType());
         } catch (Exception e) {
             return error(e);
         }

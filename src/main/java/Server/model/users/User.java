@@ -9,8 +9,8 @@ public abstract class User implements Entity {
     private String password;
     private String email;
     private String role;
-    private double balance;
-    private String status;
+    private double  balance;
+    private String  status;
 
     public User(int id, String username, String password, String email, String role, double balance) {
         this.id = id;
@@ -55,10 +55,12 @@ public abstract class User implements Entity {
         return role;
     }
 
+    public String getStatus() { return status; }
+    public void   setStatus(String status) { this.status = status; }
+
     public double getBalance() {
         return balance;
     }
-
 
     @Override
     public abstract void displayInfo();

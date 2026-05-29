@@ -27,6 +27,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
+<?import javafx.scene.layout.StackPane?>
 <BorderPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F9FAFB;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.seller.SellerController">
 
     <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->
@@ -60,6 +61,10 @@
 
                 <Button fx:id="btnProfile" maxWidth="Infinity" mnemonicParsing="false" onAction="#showProfile" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="👤  Profile" textFill="#CBD5E1" />
 
+                <Button fx:id="btnNotification" maxWidth="Infinity" mnemonicParsing="false" onAction="#showNotification" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="🔔  Notifications" textFill="#CBD5E1" />
+
+                <Button fx:id="btnSettings" maxWidth="Infinity" mnemonicParsing="false" onAction="#showSettings" style="-fx-background-color: transparent; -fx-background-radius: 8;                                -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;" text="⚙  Settings" textFill="#CBD5E1" />
+
                 <Region VBox.vgrow="ALWAYS" />
                 <Separator opacity="0.2" />
 
@@ -80,6 +85,20 @@
                 <padding><Insets left="20" right="20" /></padding>
                 <Label fx:id="lblPageTitle" style="-fx-font-weight: bold; -fx-font-size: 17;" text="Dashboard" />
                 <Region HBox.hgrow="ALWAYS" />
+                <!-- Balance chip -->
+                <HBox alignment="CENTER" onMouseClicked="#handleDeposit" spacing="5"
+                      style="-fx-background-color: #FFF7ED; -fx-background-radius: 20;
+                             -fx-border-color: #FED7AA; -fx-border-radius: 20; -fx-border-width: 1;
+                             -fx-padding: 5 12; -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 13;" text="💰" />
+                    <Label fx:id="lblBalance" style="-fx-font-weight: bold; -fx-font-size: 12; -fx-text-fill: #f97316;" text="0 ₫" />
+                </HBox>
+
+                <StackPane>
+                    <Button onAction="#showNotification" prefHeight="38" prefWidth="38"
+                            style="-fx-background-color: #F0F4F8; -fx-background-radius: 20; -fx-cursor: hand; -fx-font-size: 15;" text="🔔" />
+                    <Label fx:id="lblNotifBadge" style="-fx-background-color: #f97316; -fx-text-fill: white;                                   -fx-font-size: 9; -fx-font-weight: bold;                                   -fx-background-radius: 8; -fx-padding: 1 4;" text="0" translateX="4" translateY="-4" StackPane.alignment="TOP_RIGHT" />
+                </StackPane>
                 <HBox alignment="CENTER" spacing="6" style="-fx-cursor: hand;">
                     <Circle fill="#f97316" radius="16.0" stroke="#fed7aa" strokeWidth="2" />
                     <Label fx:id="lblSellerName" style="-fx-font-weight: bold; -fx-font-size: 13;" text="My Shop" />
@@ -357,6 +376,63 @@
                                         </VBox>
                                     </HBox>
                                     <Button onAction="#handleChangePw" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                                    -fx-background-radius: 8; -fx-padding: 10 24; -fx-cursor: hand;" text="Đổi mật khẩu" />
+                                </VBox>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </Tab>
+
+                <!-- TAB: NOTIFICATION -->
+                <Tab fx:id="tabNotification" text="">
+                    <VBox spacing="15" style="-fx-padding: 25;">
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🔔 Thông Báo" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button fx:id="btnMarkAllRead" onAction="#handleMarkAllRead" style="-fx-background-color: transparent; -fx-text-fill: #f97316;                                            -fx-font-size: 12; -fx-cursor: hand;" text="Đánh dấu tất cả đã đọc" />
+                        </HBox>
+
+                        <HBox spacing="8">
+                            <Button fx:id="btnNotifAll" onAction="#filterNotifAll" style="-fx-background-color: #f97316; -fx-text-fill: white;                                            -fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;" text="Tất cả" />
+                            <Button fx:id="btnNotifUnread" onAction="#filterNotifUnread" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                            -fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;" text="Chưa đọc" />
+                            <Button fx:id="btnNotifAuction" onAction="#filterNotifAuction" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                            -fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;" text="Đấu giá" />
+                            <Button fx:id="btnNotifOrder" onAction="#filterNotifOrder" style="-fx-background-color: #F3F4F6; -fx-text-fill: #374151;                                            -fx-background-radius: 20; -fx-padding: 5 15; -fx-cursor: hand;" text="Khác" />
+                        </HBox>
+
+                        <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;" VBox.vgrow="ALWAYS">
+                            <content>
+                                <VBox fx:id="notificationList" spacing="8" style="-fx-padding: 5;" />
+                            </content>
+                        </ScrollPane>
+                    </VBox>
+                </Tab>
+
+                <!-- TAB: SETTINGS -->
+                <Tab fx:id="tabSettings" text="">
+                    <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                        <content>
+                            <VBox spacing="20" style="-fx-padding: 25; -fx-max-width: 600;">
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="⚙ Cài Đặt" />
+
+                                <!-- Notification preferences -->
+                                <VBox spacing="12" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Tùy chọn thông báo" />
+                                    <Separator />
+                                    <HBox alignment="CENTER_LEFT" spacing="10">
+                                        <Label style="-fx-text-fill: #374151;" text="Thông báo đấu giá" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="toggleAuctionNotif" onAction="#handleToggleNotification" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Bật" />
+                                    </HBox>
+                                    <HBox alignment="CENTER_LEFT" spacing="10">
+                                        <Label style="-fx-text-fill: #374151;" text="Email thông báo" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="toggleEmailNotif" onAction="#handleToggleNotification" style="-fx-background-color: #9CA3AF; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Tắt" />
+                                    </HBox>
+                                </VBox>
+
+                                <!-- Danger zone -->
+                                <VBox spacing="12" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #B91C1C;" text="⚠ Vùng nguy hiểm" />
+                                    <Separator />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 12;" text="Xóa tài khoản sẽ xóa vĩnh viễn toàn bộ dữ liệu của bạn." wrapText="true" />
+                                    <Button fx:id="btnDeleteAccount" maxWidth="Infinity" onAction="#handleDeleteAccount" style="-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C;                                                    -fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand;" text="Xóa tài khoản" />
                                 </VBox>
                             </VBox>
                         </content>

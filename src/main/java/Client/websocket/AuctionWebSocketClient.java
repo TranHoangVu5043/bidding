@@ -1,136 +1,97 @@
 package Client.websocket;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import javafx.application.Platform;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.function.Consumer;
 
 /**
- * WebSocket client kết nối tới BidWebSocketServer.
- * Nhận real-time bid updates và callback lên UI thread.
+ * Single persistent WebSocket connection for the main auction floor.
+ * Supports subscribing to multiple auction rooms on one connection.
+ *
+ * Usage:
+ *   client = new AuctionWebSocketClient(update -> handleUpdate(update));
+ *   client.connect();                    // non-blocking, safe to call on FX thread
+ *   client.subscribe(5);                 // subscribe to auction #5
+ *   client.subscribe(7);                 // subscribe to auction #7
+ *   ...
+ *   client.closeConnection();            // on sign-out or scene change
  */
 public class AuctionWebSocketClient extends WebSocketClient {
 
-    private static final String SERVER_URI = "ws://localhost:8081";
+    private static final String WS_URL = Client.networking.ServerConfig.WS_URL;
 
     /**
-     * Callback interface — gọi khi nhận BID_UPDATE từ server.
-     * Chạy trên JavaFX Application Thread (Platform.runLater đã được xử lý bên trong).
+     * Called on the JavaFX thread whenever a bid_update arrives.
+     * Carries auctionId, newPrice, and optionally a new end-time (anti-snipe reset).
      */
-    public interface BidUpdateCallback {
-        void onBidUpdate(int auctionId, double newPrice);
+    private final Consumer<BidUpdate> onBidUpdate;
+
+    public AuctionWebSocketClient(Consumer<BidUpdate> onBidUpdate) {
+        super(URI.create(WS_URL));
+        this.onBidUpdate = onBidUpdate;
     }
 
-    private final BidUpdateCallback callback;
-
-    public AuctionWebSocketClient(BidUpdateCallback callback) {
-        super(toUri(SERVER_URI));
-        this.callback = callback;
-    }
-
-    // ══════════════════════════════════════════
-    //  WebSocketClient callbacks
-    // ══════════════════════════════════════════
+    // ── WebSocketClient callbacks ────────────────────────────────────────
 
     @Override
     public void onOpen(ServerHandshake handshake) {
-        System.out.println("[WS Client] Kết nối tới server thành công: " + SERVER_URI);
+        System.out.println("[WS Client] Connected to " + WS_URL);
     }
 
     @Override
     public void onMessage(String message) {
-        System.out.println("[WS Client] Nhận: " + message);
         try {
-            // Parse JSON thủ công — tránh phụ thuộc thêm thư viện
-            // Expected format: {"type":"BID_UPDATE","auctionId":1,"newPrice":500000,"bidder":"...","amount":500000}
-            if (message.contains("\"BID_UPDATE\"")) {
-                int auctionId = parseIntField(message, "auctionId");
-                double newPrice = parseDoubleField(message, "newPrice");
-                if (auctionId >= 0 && callback != null) {
-                    javafx.application.Platform.runLater(() -> callback.onBidUpdate(auctionId, newPrice));
-                }
-            } else if (message.contains("\"AUCTION_ENDED\"")) {
-                System.out.println("[WS Client] Phiên đấu giá đã kết thúc: " + message);
-                // Có thể mở rộng thêm callback cho AUCTION_ENDED nếu cần
-            }
+            JsonObject json = JsonParser.parseString(message).getAsJsonObject();
+            if (!"bid_update".equals(json.get("type").getAsString())) return;
+
+            int    auctionId  = json.get("auctionId").getAsInt();
+            double newPrice   = json.get("currentPrice").getAsDouble();
+            String newEndTime = json.has("newEndTime") && !json.get("newEndTime").isJsonNull()
+                    ? json.get("newEndTime").getAsString() : null;
+
+            Platform.runLater(() -> onBidUpdate.accept(new BidUpdate(auctionId, newPrice, newEndTime)));
         } catch (Exception e) {
-            System.err.println("[WS Client] Lỗi parse message: " + e.getMessage());
+            System.err.println("[WS Client] Parse error: " + e.getMessage());
         }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        System.out.println("[WS Client] Ngắt kết nối — code: " + code + ", lý do: " + reason);
+        System.out.println("[WS Client] Disconnected (code=" + code + ", reason=" + reason + ")");
     }
 
     @Override
     public void onError(Exception ex) {
-        System.err.println("[WS Client] Lỗi WebSocket: " + ex.getMessage());
+        System.err.println("[WS Client] Error: " + ex.getMessage());
     }
 
-    // ══════════════════════════════════════════
-    //  Public API
-    // ══════════════════════════════════════════
+    // ── Public API ───────────────────────────────────────────────────────
 
-    /**
-     * Đăng ký nhận update cho một phiên đấu giá cụ thể.
-     * Gửi message: {"type":"SUBSCRIBE","auctionId":123}
-     */
+    /** Subscribe to live updates for one auction room. */
     public void subscribe(int auctionId) {
-        if (isOpen()) {
-            send("{\"type\":\"SUBSCRIBE\",\"auctionId\":" + auctionId + "}");
-            System.out.println("[WS Client] Subscribed to auction #" + auctionId);
-        } else {
-            System.err.println("[WS Client] Chưa kết nối — không thể subscribe auction #" + auctionId);
-        }
+        if (!isOpen()) return;
+        JsonObject msg = new JsonObject();
+        msg.addProperty("type",      "subscribe");
+        msg.addProperty("auctionId", auctionId);
+        send(msg.toString());
     }
 
-    /**
-     * Đóng kết nối WebSocket an toàn.
-     */
+    /** Unsubscribe from one auction room. */
+    public void unsubscribe(int auctionId) {
+        if (!isOpen()) return;
+        JsonObject msg = new JsonObject();
+        msg.addProperty("type",      "unsubscribe");
+        msg.addProperty("auctionId", auctionId);
+        send(msg.toString());
+    }
+
+    /** Gracefully close the connection. Safe to call even if already closed. */
     public void closeConnection() {
-        if (!isClosed()) {
-            close();
-            System.out.println("[WS Client] Đã đóng kết nối.");
-        }
-    }
-
-    // ══════════════════════════════════════════
-    //  Helpers
-    // ══════════════════════════════════════════
-
-    private static URI toUri(String uri) {
-        try {
-            return new URI(uri);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("URI WebSocket không hợp lệ: " + uri, e);
-        }
-    }
-
-    /** Trích giá trị int từ JSON string đơn giản. */
-    private int parseIntField(String json, String field) {
-        try {
-            String key = "\"" + field + "\":";
-            int start = json.indexOf(key) + key.length();
-            int end = json.indexOf(",", start);
-            if (end == -1) end = json.indexOf("}", start);
-            return Integer.parseInt(json.substring(start, end).trim());
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
-    /** Trích giá trị double từ JSON string đơn giản. */
-    private double parseDoubleField(String json, String field) {
-        try {
-            String key = "\"" + field + "\":";
-            int start = json.indexOf(key) + key.length();
-            int end = json.indexOf(",", start);
-            if (end == -1) end = json.indexOf("}", start);
-            return Double.parseDouble(json.substring(start, end).trim());
-        } catch (Exception e) {
-            return 0;
-        }
+        if (isOpen()) close();
     }
 }

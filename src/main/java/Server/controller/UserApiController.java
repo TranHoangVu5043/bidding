@@ -1,6 +1,8 @@
 package Server.controller;
 
 import Server.controller.responseObjects.ApiResponse;
+import Server.dto.requests.DepositRequest;
+import Server.dto.requests.NotifPrefsRequest;
 import Server.dto.requests.UserRequestDTO;
 import Server.exception.AuthException;
 import Server.exception.ConflictException;
@@ -261,6 +263,63 @@ public class UserApiController {
             }
         } catch (NumberFormatException ignored) {}
         return -1;
+    }
+
+    // ===== POST /api/users/preferences =====
+
+    public void updatePreferences(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User currentUser = req.getUser();
+            if (currentUser == null) { res.error(401, "Chưa xác thực."); return; }
+
+            NotifPrefsRequest body = gson.fromJson(req.getBody(), NotifPrefsRequest.class);
+            if (body == null) { res.error(400, "Dữ liệu không hợp lệ."); return; }
+
+            userService.updateNotifPrefs(currentUser.getId(), body.notifAuction, body.notifEmail);
+
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Cập nhật tùy chọn thành công!", null)));
+        } catch (Exception e) {
+            res.error(500, "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    // ===== POST /api/users/delete =====
+
+    public void deleteAccount(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User currentUser = req.getUser();
+            if (currentUser == null) { res.error(401, "Chưa xác thực."); return; }
+
+            userService.deleteAccount(currentUser.getId());
+
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Tài khoản đã được xóa.", null)));
+        } catch (Exception e) {
+            res.error(500, "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    // ===== POST /api/users/deposit =====
+
+    public void deposit(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User currentUser = req.getUser();
+            if (currentUser == null) { res.error(401, "Chưa xác thực."); return; }
+
+            DepositRequest body = gson.fromJson(req.getBody(), DepositRequest.class);
+            if (body == null || body.amount <= 0) {
+                res.error(400, "Số tiền nạp không hợp lệ.");
+                return;
+            }
+
+            double newBalance = userService.deposit(currentUser.getId(), body.amount);
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Nạp tiền thành công!", newBalance)));
+
+        } catch (IllegalArgumentException e) {
+            res.error(400, e.getMessage());
+        } catch (Exception e) {
+            System.err.println("[UserApiController] deposit error: " + e.getMessage());
+            res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
+        }
     }
 
     // ===== HELPER =====

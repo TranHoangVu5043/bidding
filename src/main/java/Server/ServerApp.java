@@ -15,6 +15,7 @@ import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
 import Server.service.NotificationService;
+import Server.service.auction.AuctionExpiryScheduler;
 import Server.service.auction.AuctionService;
 import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
@@ -42,7 +43,7 @@ public class ServerApp {
         // Services
         UserService userService = new UserService(userDAO);
         NotificationDAO notificationDAO = new NotificationDAO(dataSource);
-        NotificationService notificationService = new NotificationService(notificationDAO);
+        NotificationService notificationService = new NotificationService(notificationDAO, userDAO);
         AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO, userDAO, notificationService);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
@@ -60,7 +61,7 @@ public class ServerApp {
         // Router
         ApiRouter router = new ApiRouter();
 
-        // --- User routes ---
+        // --- User routes (login + register are public; filter whitelists them) ---
         router.register("POST", "/api/users/login",           userController::login);
         router.register("POST", "/api/users/register",        userController::register);
         router.register("POST", "/api/users/logout",          userController::logout);
@@ -69,6 +70,9 @@ public class ServerApp {
         router.register("GET",  "/api/users/all",             userController::getAllUsers);
         router.register("POST", "/api/users/{id}/ban",        userController::banUser);
         router.register("POST", "/api/users/{id}/unban",      userController::unbanUser);
+        router.register("POST", "/api/users/preferences",     userController::updatePreferences);
+        router.register("POST", "/api/users/delete",          userController::deleteAccount);
+        router.register("POST", "/api/users/deposit",         userController::deposit);
 
         // --- Auction routes ---
         router.register("POST", "/api/auctions/create",  auctionController::createAuction);
@@ -87,7 +91,6 @@ public class ServerApp {
 
         // --- Item routes ---
         router.register("GET",  "/api/items",          itemController::getMyItems);
-        router.register("GET",  "/api/items/all",      itemController::getAllItems);
         router.register("POST", "/api/items/get",      itemController::getItem);
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
@@ -106,6 +109,10 @@ public class ServerApp {
         // --- WebSocket server for real-time bid updates ---
         BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
         wsServer.start();
+
+        // --- Background scheduler: auto-expire UPCOMING/ACTIVE auctions ---
+        AuctionExpiryScheduler expiryScheduler = new AuctionExpiryScheduler(auctionDAO, auctionService);
+        expiryScheduler.start();
 
         System.out.println("[Server] Routes registered: users, auctions, bids, items, notifications");
     }
