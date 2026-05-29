@@ -97,9 +97,10 @@ public class SellerController {
     @FXML private PasswordField txtConfirmPw;
 
     // ── History tab filters ──
-    @FXML private TextField    txtHistorySearch;
-    @FXML private ComboBox<String> cmbHistoryType;
+    @FXML private TextField        txtHistorySearch;
     @FXML private ComboBox<String> cmbHistoryDate;
+    /** Full list of FINISHED auctions — filtering is applied client-side from this cache. */
+    private List<Auction> cachedHistory = List.of();
     @FXML private AreaChart<String, Number> chartRevenueArea;
 
 
@@ -143,16 +144,13 @@ public class SellerController {
         if (txtAuctionSearch != null) {
             txtAuctionSearch.textProperty().addListener((obs, oldVal, newVal) -> applyAuctionFilter());
         }
-        if (cmbHistoryType != null) {
-            cmbHistoryType.setItems(FXCollections.observableArrayList("Tất cả", "Đặt giá", "Đơn hàng"));
-            cmbHistoryType.setValue("Tất cả");
-        }
         if (cmbHistoryDate != null) {
             cmbHistoryDate.setItems(FXCollections.observableArrayList("Tất cả", "Hôm nay", "7 ngày qua", "30 ngày qua"));
             cmbHistoryDate.setValue("Tất cả");
+            cmbHistoryDate.setOnAction(e -> applyHistoryFilter());
         }
         if (txtHistorySearch != null) {
-            txtHistorySearch.textProperty().addListener((obs, o, n) -> loadHistory());
+            txtHistorySearch.textProperty().addListener((obs, o, n) -> applyHistoryFilter());
         }
 
         // Tải dữ liệu từ mạng khi khởi chạy ứng dụng lần đầu
@@ -195,7 +193,7 @@ public class SellerController {
             ApiResponse<List<Auction>> response = auctionApi.getMyAuctions();
             Platform.runLater(() -> {
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
-                    List<Auction> finished = response.getData().stream()
+                    cachedHistory = response.getData().stream()
                             .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
                             .sorted((a, b) -> {
                                 if (b.getEndTime() == null) return -1;
@@ -203,15 +201,45 @@ public class SellerController {
                                 return b.getEndTime().compareTo(a.getEndTime());
                             })
                             .toList();
-                    renderHistoryCards(finished);
-                    renderRevenueData(finished);
-
+                    applyHistoryFilter();
+                    renderRevenueData(cachedHistory);
                 } else {
                     String msg = response != null ? response.getMessage() : "Mất kết nối";
                     SceneUtil.showAlert("Lỗi", "Không thể tải lịch sử đấu giá: " + msg);
                 }
             });
         }).start();
+    }
+
+    private void applyHistoryFilter() {
+        String kw   = txtHistorySearch != null ? txtHistorySearch.getText().trim().toLowerCase() : "";
+        String date = cmbHistoryDate   != null ? cmbHistoryDate.getValue() : "Tất cả";
+
+        java.time.LocalDateTime cutoff = switch (date == null ? "Tất cả" : date) {
+            case "Hôm nay"    -> java.time.LocalDate.now().atStartOfDay();
+            case "7 ngày qua" -> java.time.LocalDateTime.now().minusDays(7);
+            case "30 ngày qua"-> java.time.LocalDateTime.now().minusDays(30);
+            default           -> null;
+        };
+
+        List<Auction> filtered = cachedHistory.stream().filter(a -> {
+            // keyword: match auction id or item name
+            boolean matchKw = kw.isEmpty()
+                    || String.valueOf(a.getId()).contains(kw)
+                    || (a.getItemName() != null && a.getItemName().toLowerCase().contains(kw));
+            // date window
+            boolean matchDate = true;
+            if (cutoff != null && a.getEndTime() != null) {
+                try {
+                    java.time.LocalDateTime end = java.time.LocalDateTime.parse(
+                            a.getEndTime().replace(" ", "T"));
+                    matchDate = !end.isBefore(cutoff);
+                } catch (Exception ignored) {}
+            }
+            return matchKw && matchDate;
+        }).toList();
+
+        renderHistoryCards(filtered);
     }
     @FXML public void showRevenue() {
         switchTab(tabRevenue, "Doanh Thu", btnRevenue);
@@ -725,7 +753,7 @@ public class SellerController {
         Button btnEdit = new Button("✏ Chỉnh sửa");
         btnEdit.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
                 "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand;");
-        btnEdit.setOnAction(e -> { popup.close(); showEditItemDialog(item); });
+        btnEdit.setOnAction(e -> { popup.close(); Platform.runLater(() -> showEditItemDialog(item)); });
 
         // ── Delete button (disabled when item is in an active/upcoming auction) ──
         Button btnDelete = new Button("🗑 Xóa");
@@ -1123,12 +1151,46 @@ public class SellerController {
         if (historyVBox == null) return;
         historyVBox.getChildren().clear();
         if (auctions == null || auctions.isEmpty()) {
-            Label empty = new Label("Chưa có phiên đấu giá nào kết thúc.");
+            Label empty = new Label("Không tìm thấy phiên đấu giá phù hợp.");
             empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
             historyVBox.getChildren().add(empty);
             return;
         }
-        for (Auction a : auctions) historyVBox.getChildren().add(buildAuctionHistoryRow(a));
+        for (Auction a : auctions) historyVBox.getChildren().add(buildHistoryRow(a));
+    }
+
+    /** Row for the History tab — includes status badge, matches the 5-column header. */
+    private HBox buildHistoryRow(Auction a) {
+        Label idLabel = new Label("Phiên #" + a.getId());
+        idLabel.setPrefWidth(80);
+        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
+
+        String itemDisplay = (a.getItemName() != null && !a.getItemName().isBlank())
+                ? a.getItemName() : "Mặt hàng #" + a.getItemId();
+        Label itemLabel = new Label(itemDisplay);
+        itemLabel.setPrefWidth(200);
+        itemLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
+
+        Label endLabel = new Label(formatHistoryTime(a.getEndTime()));
+        endLabel.setPrefWidth(140);
+        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+        Label priceLabel = new Label(String.format("%,.0f ₫", a.getCurrentPrice()));
+        priceLabel.setPrefWidth(150);
+        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a;");
+
+        Label badge = new Label("✓ Kết thúc");
+        badge.setPrefWidth(100);
+        badge.setStyle("-fx-background-color: #6B7280; -fx-text-fill: white;" +
+                "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8;" +
+                "-fx-background-radius: 4; -fx-alignment: CENTER;");
+
+        HBox row = new HBox(0, idLabel, itemLabel, endLabel, priceLabel, badge);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 16, 12, 16));
+        row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
+                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
+        return row;
     }
     private void renderRevenueData(List<Auction> auctions) {
         // 1. Đổ dữ liệu vào bảng "Phiên đấu giá đã xong"
@@ -1196,25 +1258,24 @@ public class SellerController {
 
     private HBox buildAuctionHistoryRow(Auction a) {
         Label idLabel = new Label("Phiên #" + a.getId());
-        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b; -fx-pref-width: 100;");
+        idLabel.setPrefWidth(80);
+        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
 
         String itemDisplay = (a.getItemName() != null && !a.getItemName().isBlank())
                 ? a.getItemName() : "Mặt hàng #" + a.getItemId();
         Label itemLabel = new Label(itemDisplay);
+        itemLabel.setPrefWidth(200);
         itemLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
-        HBox.setHgrow(itemLabel, javafx.scene.layout.Priority.ALWAYS);
 
         Label priceLabel = new Label(String.format("%,.0f ₫", a.getCurrentPrice()));
-        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a; -fx-pref-width: 120;");
+        priceLabel.setPrefWidth(150);
+        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a;");
 
         Label endLabel = new Label(formatHistoryTime(a.getEndTime()));
-        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280; -fx-pref-width: 130;");
+        endLabel.setPrefWidth(140);
+        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
 
-        Label badge = new Label("✓ Kết thúc");
-        badge.setStyle("-fx-background-color: #6B7280; -fx-text-fill: white;" +
-                "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 4;");
-
-        HBox row = new HBox(12, idLabel, itemLabel, priceLabel, endLabel, badge);
+        HBox row = new HBox(0, idLabel, itemLabel, priceLabel, endLabel);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 16, 12, 16));
         row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +

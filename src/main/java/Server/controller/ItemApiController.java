@@ -119,16 +119,22 @@ public class ItemApiController {
                 return;
             }
 
-            if (!itemService.canModifyItem(body.itemId, user.getId())) {
+            Item existing = itemService.getItemDetail(body.itemId);
+            if (existing == null) {
+                res.error(404, "Item not found");
+                return;
+            }
+
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(user.getRole());
+            if (!isAdmin && existing.getOwnerId() != user.getId()) {
                 res.error(403, "Item not found or not owned by you");
                 return;
             }
 
-            Item existing = itemService.getItemDetail(body.itemId);
-            if (body.name != null) existing.setName(body.name);
+            if (body.name        != null) existing.setName(body.name);
             if (body.description != null) existing.setDescription(body.description);
-            if (body.category != null) existing.setCategory(body.category);
-            if (body.condition != null) existing.setCondition(body.condition);
+            if (body.category    != null) existing.setCategory(body.category);
+            if (body.condition   != null) existing.setCondition(body.condition);
 
             boolean updated = itemService.updateItem(existing);
             if (!updated) {
@@ -155,7 +161,14 @@ public class ItemApiController {
                 return;
             }
 
-            if (!itemService.canModifyItem(body.itemId, user.getId())) {
+            Item toDelete = itemService.getItemDetail(body.itemId);
+            if (toDelete == null) {
+                res.error(404, "Item not found");
+                return;
+            }
+
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(user.getRole());
+            if (!isAdmin && toDelete.getOwnerId() != user.getId()) {
                 res.error(403, "Item not found or not owned by you");
                 return;
             }

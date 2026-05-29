@@ -139,7 +139,8 @@ public class AuctionApiController {
                 return;
             }
 
-            boolean canceled = auctionService.cancelAuction(body.auctionId, user.getId());
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(user.getRole());
+            boolean canceled = auctionService.cancelAuction(body.auctionId, user.getId(), isAdmin);
             if (!canceled) {
                 res.error(400, "Cannot cancel auction — it may not exist, already be finished, or not belong to you");
                 return;

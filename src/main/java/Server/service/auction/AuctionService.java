@@ -61,9 +61,13 @@ public class AuctionService {
      * Cancels an auction. Only allowed while the auction has not yet finished or been finalized.
      */
     public boolean cancelAuction(int auctionId, int userId) {
+        return cancelAuction(auctionId, userId, false);
+    }
+
+    public boolean cancelAuction(int auctionId, int userId, boolean byAdmin) {
         Auction auction = auctionDAO.findById(auctionId);
         if (auction == null) return false;
-        if (auction.getOwnerId() != userId) return false;
+        if (!byAdmin && auction.getOwnerId() != userId) return false;
 
         String status = auction.getStatus();
         if ("FINISHED".equals(status) || "PAID".equals(status)) {
