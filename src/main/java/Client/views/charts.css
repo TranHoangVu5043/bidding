@@ -57,13 +57,14 @@
 }
 
 /* ── PieChart (Seller: danh mục sản phẩm) ── */
-.pie-chart .chart-pie:nth-child(1) { -fx-pie-color: #3B82F6; }
-.pie-chart .chart-pie:nth-child(2) { -fx-pie-color: #EC4899; }
-.pie-chart .chart-pie:nth-child(3) { -fx-pie-color: #10B981; }
-.pie-chart .chart-pie:nth-child(4) { -fx-pie-color: #F97316; }
-.pie-chart .chart-pie-label        { -fx-fill: #374151; -fx-font-size: 11px; }
-.pie-chart .chart-pie-label-line   { -fx-stroke: #D1D5DB; }
+.default-color0.chart-pie { -fx-pie-color: #3B82F6; } /* Màu thứ 1 */
+.default-color1.chart-pie { -fx-pie-color: #EC4899; } /* Màu thứ 2 */
+.default-color2.chart-pie { -fx-pie-color: #10B981; } /* Màu thứ 3 */
+.default-color3.chart-pie { -fx-pie-color: #F97316; } /* Màu thứ 4 */
 
+/* Style cho chữ (Label) và đường kẻ (Line) nối ra chữ */
+.pie-chart .chart-pie-label      { -fx-fill: #374151; -fx-font-size: 11px; }
+.pie-chart .chart-pie-label-line { -fx-stroke: #D1D5DB; }
 /* ── AreaChart (Seller: doanh thu tháng) ── */
 .area-chart .chart-series-area-line {
     -fx-stroke: #3B82F6;
