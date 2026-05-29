@@ -36,7 +36,7 @@ public class AdminDashboardController {
 
     // ── Chart constants ──
     private static final String[] CHART_STATUSES = {"ACTIVE", "UPCOMING", "FINISHED", "CANCELLED"};
-    private static final String[] CHART_COLORS   = {"#3B82F", "#F97316", "#10B981", "#EF4444"};
+    private static final String[] CHART_COLORS = {"#3B82F6", "#F97316", "#10B981", "#EF4444"};
     private static final String[] CHART_VI       = {"Đang diễn ra", "Sắp diễn ra", "Đã kết thúc", "Đã hủy"};
 
     // ── Sidebar ──
