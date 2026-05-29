@@ -8,6 +8,7 @@ import Server.model.users.records.UserRow;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class UserService {
@@ -27,7 +28,7 @@ public class UserService {
         String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
 
         String role = (req.getRole() != null && !req.getRole().isBlank()) ? req.getRole() : "USER";
-        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), role, 0, req.getStoreName(), true, false);
+        UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), role, 0, req.getStoreName(), "ACTIVE");
         User user = UserFactory.createUser(userRow);
 
         int newId = userDAO.createUser(user);
@@ -73,6 +74,14 @@ public class UserService {
 
     public User getUserById(int id) {
         return userDAO.findById(id);
+    }
+
+    public List<User> getAllUsers() {
+        return userDAO.findAll();
+    }
+
+    public void setUserStatus(int userId, String status) {
+        userDAO.updateStatus(userId, status);
     }
 
     public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {

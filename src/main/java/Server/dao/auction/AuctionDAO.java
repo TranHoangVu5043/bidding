@@ -204,6 +204,30 @@ public class AuctionDAO {
         return auctions;
     }
 
+    /**
+     * Returns all auctions whose status is stale and needs a refresh:
+     * <ul>
+     *   <li>UPCOMING auctions whose start_time has already passed (should become ACTIVE)</li>
+     *   <li>ACTIVE auctions whose end_time has already passed (should become FINISHED)</li>
+     * </ul>
+     */
+    public List<Auction> findNeedingStatusUpdate() {
+        String sql = """
+            SELECT * FROM auctions
+            WHERE (status = 'UPCOMING' AND start_time <= NOW())
+               OR (status = 'ACTIVE'   AND end_time   <= NOW())
+        """;
+        List<Auction> list = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) {
+            log("findNeedingStatusUpdate failed", e);
+        }
+        return list;
+    }
+
     public List<Auction> getActiveAuctions(){
         List<Auction> list = new ArrayList<>();
         String sql = "SELECT * FROM auctions WHERE status = 'ACTIVE' AND end_time > NOW()";

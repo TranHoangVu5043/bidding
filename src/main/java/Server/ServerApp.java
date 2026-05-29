@@ -15,6 +15,7 @@ import Server.networking.DataSourceFactory;
 import Server.networking.ServerConnection;
 import Server.networking.http.ApiRouter;
 import Server.service.NotificationService;
+import Server.service.auction.AuctionExpiryScheduler;
 import Server.service.auction.AuctionService;
 import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
@@ -42,7 +43,7 @@ public class ServerApp {
         // Services
         UserService userService = new UserService(userDAO);
         NotificationDAO notificationDAO = new NotificationDAO(dataSource);
-        NotificationService notificationService = new NotificationService(notificationDAO);
+        NotificationService notificationService = new NotificationService(notificationDAO, userDAO);
         AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, itemDAO, userDAO, notificationService);
         BiddingService biddingService = new BiddingService(dataSource, userDAO, auctionDAO, bidDAO);
         AutoBidConfigService autoBidConfigService = new AutoBidConfigService(biddingService);
@@ -108,6 +109,10 @@ public class ServerApp {
         // --- WebSocket server for real-time bid updates ---
         BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
         wsServer.start();
+
+        // --- Background scheduler: auto-expire UPCOMING/ACTIVE auctions ---
+        AuctionExpiryScheduler expiryScheduler = new AuctionExpiryScheduler(auctionDAO, auctionService);
+        expiryScheduler.start();
 
         System.out.println("[Server] Routes registered: users, auctions, bids, items, notifications");
     }

@@ -15,6 +15,8 @@ import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.NotificationApi;
 import Client.networking.endpoints.UserApi;
 import Client.util.SceneUtil;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -140,9 +142,17 @@ public class UserController {
     /** Whichever list is currently rendered — used by pagination. */
     private List<Auction> currentDisplayList = liveAuctions;
     /** auctionId → the price Label inside that card, for targeted live updates */
-    private final Map<Integer, Label>     livePriceLabels = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>     livePriceLabels  = new ConcurrentHashMap<>();
     /** auctionId → the time-remaining Label inside that card, updated on anti-snipe reset */
-    private final Map<Integer, Label>     liveTimeLabels  = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>     liveTimeLabels   = new ConcurrentHashMap<>();
+    /** auctionId → the status badge Label ("• Đang diễn ra") on the card */
+    private final Map<Integer, Label>     liveStatusLabels = new ConcurrentHashMap<>();
+    /** auctionId → the "Đặt giá ngay" Button on the card */
+    private final Map<Integer, Button>    liveBidButtons   = new ConcurrentHashMap<>();
+    /** auctionId → the "Đặt giá tự động" Button on the card */
+    private final Map<Integer, Button>    liveAutoBidBtns  = new ConcurrentHashMap<>();
+    /** Ticks every second to keep countdown labels fresh and flip expired cards to FINISHED state. */
+    private Timeline countdownTicker;
     /** Single persistent WebSocket connection for the auction floor */
     private AuctionWebSocketClient wsClient;
 
@@ -324,13 +334,19 @@ public class UserController {
 
                 if (response != null && response.getStatus() == 200 && response.getData() != null) {
                     liveAuctions.setAll(response.getData());
+                    // Stop any running ticker before clearing maps
+                    if (countdownTicker != null) { countdownTicker.stop(); countdownTicker = null; }
                     livePriceLabels.clear();
                     liveTimeLabels.clear();
+                    liveStatusLabels.clear();
+                    liveBidButtons.clear();
+                    liveAutoBidBtns.clear();
                     currentDisplayList = liveAuctions;
                     currentPage = 0;
                     renderAuctionCards(currentDisplayList);
                     updateAuctionStats();
                     connectWebSocket();   // subscribe to all active auctions
+                    startCountdownTicker(); // tick every second to keep timers fresh
                 } else {
                     auctionFlowPane.getChildren().clear();
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
@@ -418,6 +434,7 @@ public class UserController {
             if (newEndTime != null) {
                 Label timeLabel = liveTimeLabels.get(auctionId);
                 if (timeLabel != null) {
+                    timeLabel.setUserData(newEndTime);   // keep ticker in sync
                     timeLabel.setText("🕒 " + formatTimeRemaining(newEndTime));
                     // Flash orange briefly to draw attention to the reset
                     timeLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #D97706; -fx-font-weight: bold;");
@@ -442,6 +459,68 @@ public class UserController {
             activeIds.forEach(wsClient::subscribe);
             System.out.println("[WS Client] Subscribed to " + activeIds.size() + " active auction(s): " + activeIds);
         }).start();
+    }
+
+    /**
+     * Starts a 1-second JavaFX Timeline that:
+     * <ol>
+     *   <li>Updates every registered time label with the current remaining time.</li>
+     *   <li>When an auction's end time is reached, flips its card to a finished state
+     *       (status badge, disabled buttons) without requiring a full reload.</li>
+     * </ol>
+     */
+    private void startCountdownTicker() {
+        countdownTicker = new Timeline(new KeyFrame(javafx.util.Duration.seconds(1), e -> {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            // Iterate over a snapshot to avoid ConcurrentModificationException
+            new java.util.HashMap<>(liveTimeLabels).forEach((auctionId, timeLabel) -> {
+                String endTimeStr = (String) timeLabel.getUserData();
+                if (endTimeStr == null) return;
+
+                try {
+                    java.time.LocalDateTime endTime = java.time.LocalDateTime.parse(endTimeStr);
+                    if (!now.isBefore(endTime)) {
+                        // Auction just expired — flip the card UI
+                        timeLabel.setText("🕒 Đã kết thúc");
+                        timeLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+                        Label statusLabel = liveStatusLabels.get(auctionId);
+                        if (statusLabel != null) {
+                            statusLabel.setText("✓ Đã kết thúc");
+                            statusLabel.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;");
+                        }
+
+                        Button bidBtn = liveBidButtons.get(auctionId);
+                        if (bidBtn != null) {
+                            bidBtn.setDisable(true);
+                            bidBtn.setStyle("-fx-background-color: #9CA3AF; -fx-text-fill: white; " +
+                                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8;");
+                        }
+
+                        Button autoBidBtn = liveAutoBidBtns.get(auctionId);
+                        if (autoBidBtn != null) {
+                            autoBidBtn.setDisable(true);
+                            autoBidBtn.setStyle("-fx-background-color: #9CA3AF; -fx-text-fill: white; " +
+                                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 7;");
+                        }
+
+                        // Remove from all live maps — no more updates needed for this auction
+                        liveTimeLabels.remove(auctionId);
+                        liveStatusLabels.remove(auctionId);
+                        livePriceLabels.remove(auctionId);
+                        liveBidButtons.remove(auctionId);
+                        liveAutoBidBtns.remove(auctionId);
+                    } else {
+                        // Still running — refresh the label text
+                        timeLabel.setText("🕒 " + formatTimeRemaining(endTimeStr));
+                    }
+                } catch (Exception ex) {
+                    // Unparseable endTime — leave label as-is
+                }
+            });
+        }));
+        countdownTicker.setCycleCount(Timeline.INDEFINITE);
+        countdownTicker.play();
     }
 
     /** Applies the current filter + current page and rebuilds the FlowPane cards. Must run on FX thread. */
@@ -563,13 +642,19 @@ public class UserController {
                 "Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #D32F2F;");
         // Register for live WebSocket updates
-        if ("ACTIVE".equals(status)) livePriceLabels.put(auction.getId(), lblCurrentPrice);
+        if ("ACTIVE".equals(status)) {
+            livePriceLabels.put(auction.getId(), lblCurrentPrice);
+            liveStatusLabels.put(auction.getId(), lblStatus);
+        }
 
         // ── Time remaining ──
         Label lblTime = new Label("🕒 " + formatTimeRemaining(auction.getEndTime()));
         lblTime.setStyle("-fx-font-size: 11; -fx-text-fill: #0066CC;");
         // Register for live anti-snipe timer resets
         if ("ACTIVE".equals(status)) liveTimeLabels.put(auction.getId(), lblTime);
+
+        // Store auction endTime on the label as user data for the countdown ticker
+        lblTime.setUserData(auction.getEndTime());
 
         // ── Place bid button (active only for ACTIVE auctions) ──
         boolean canBid = "ACTIVE".equals(status);
@@ -581,6 +666,7 @@ public class UserController {
                 "-fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8;");
         if (canBid) {
             btnBid.setOnAction(e -> handlePlaceBid(auction));
+            liveBidButtons.put(auction.getId(), btnBid);
         }
 
         // ── Auto-bid button (active auctions only) ──
@@ -592,6 +678,7 @@ public class UserController {
                 "-fx-background-radius: 8; -fx-cursor: " + (canBid ? "hand" : "default") + "; -fx-padding: 7;");
         if (canBid) {
             btnAutoBid.setOnAction(e -> handleAutoBid(auction));
+            liveAutoBidBtns.put(auction.getId(), btnAutoBid);
         }
 
         // ── Bid history button ──

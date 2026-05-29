@@ -2,6 +2,7 @@ package Server.dao.users;
 
 import Server.model.users.User;
 import Server.model.users.UserFactory;
+import Server.model.users.UserSettings;
 import Server.model.users.records.UserRow;
 
 import javax.sql.DataSource;
@@ -26,19 +27,32 @@ public class UserDAO {
     }
 
     // ===== SHARED SQL FRAGMENT =====
-    // Every user query LEFT JOINs user_settings so mapRow() always gets the prefs columns.
-    private static final String SELECT_USER_WITH_SETTINGS = """
-        SELECT u.*,
-               COALESCE(s.notif_auction, TRUE)  AS notif_auction,
-               COALESCE(s.notif_email,   FALSE) AS notif_email
-        FROM   users u
-        LEFT   JOIN user_settings s ON u.id = s.user_id
-    """;
+    private static final String SELECT_USER = "SELECT * FROM users ";
+
+    /** Notification prefs are also accessible standalone via user_settings. */
+    public record NotifPrefs(boolean notifAuction, boolean notifEmail) {}
+
+    public NotifPrefs getNotifPrefs(int userId) {
+        String sql = """
+            SELECT COALESCE(notif_auction, TRUE)  AS notif_auction,
+                   COALESCE(notif_email,   FALSE) AS notif_email
+            FROM   user_settings WHERE user_id = ?
+        """;
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return new NotifPrefs(rs.getBoolean("notif_auction"), rs.getBoolean("notif_email"));
+        } catch (SQLException e) {
+            log("getNotifPrefs failed", e);
+        }
+        return new NotifPrefs(true, false); // safe defaults
+    }
 
     // ===== USER METHODS =====
 
     public User findByUsername(String username) {
-        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.username = ?";
+        String sql = SELECT_USER + "WHERE username = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -54,7 +68,7 @@ public class UserDAO {
     }
 
     public User findById(int id) {
-        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.id = ?";
+        String sql = SELECT_USER + "WHERE id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -70,7 +84,7 @@ public class UserDAO {
     }
 
     public User findByUsernameAndPassword(String username, String password) {
-        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.username = ? AND u.password = ?";
+        String sql = SELECT_USER + "WHERE username = ? AND u.password = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -184,7 +198,7 @@ public class UserDAO {
 
     /** Read user inside an existing transaction. */
     public User findById(Connection conn, int id) throws SQLException {
-        String sql = SELECT_USER_WITH_SETTINGS + "WHERE u.id = ?";
+        String sql = SELECT_USER + "WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
@@ -220,8 +234,9 @@ public class UserDAO {
             throw new RuntimeException("Không thể cập nhật mật khẩu.", e);
         }
     }
+
     public List<User> findAll() {
-        String sql = "SELECT * FROM users ORDER BY id ASC";
+        String sql = SELECT_USER + "ORDER BY id ASC";
         List<User> users = new ArrayList<>();
 
         try (Connection conn = dataSource.getConnection();
@@ -317,7 +332,7 @@ public class UserDAO {
     }
 
 
-    // ===== MAPPER =====
+    // ===== NOTIFICATION PREFS =====
 
     public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
         String sql = """
@@ -349,7 +364,18 @@ public class UserDAO {
         }
     }
 
+    /** Returns a {@link UserSettings} object for the given user (never null). */
+    public UserSettings getUserSettings(int userId) {
+        NotifPrefs prefs = getNotifPrefs(userId);
+        return new UserSettings(userId, prefs.notifAuction(), prefs.notifEmail());
+    }
+
+    // ===== MAPPER =====
+
     private User mapRow(ResultSet rs) throws SQLException {
+        String status = "ACTIVE";
+        try { status = rs.getString("status"); } catch (SQLException ignored) {}
+
         UserRow ur = new UserRow(
                 rs.getInt("id"),
                 rs.getString("username"),
@@ -358,8 +384,7 @@ public class UserDAO {
                 rs.getString("role"),
                 rs.getDouble("balance"),
                 rs.getString("store_name"),
-                rs.getBoolean("notif_auction"),
-                rs.getBoolean("notif_email")
+                status
         );
 
         return UserFactory.createUser(ur);

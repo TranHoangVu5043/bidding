@@ -9,11 +9,8 @@ public abstract class User implements Entity {
     private String password;
     private String email;
     private String role;
-    private double balance;
-    private String status;
     private double  balance;
-    private boolean notifAuction = true;
-    private boolean notifEmail   = false;
+    private String  status;
 
     public User(int id, String username, String password, String email, String role, double balance) {
         this.id = id;
@@ -58,15 +55,12 @@ public abstract class User implements Entity {
         return role;
     }
 
+    public String getStatus() { return status; }
+    public void   setStatus(String status) { this.status = status; }
+
     public double getBalance() {
         return balance;
     }
-
-    public boolean isNotifAuction() { return notifAuction; }
-    public void setNotifAuction(boolean notifAuction) { this.notifAuction = notifAuction; }
-
-    public boolean isNotifEmail() { return notifEmail; }
-    public void setNotifEmail(boolean notifEmail) { this.notifEmail = notifEmail; }
 
     @Override
     public abstract void displayInfo();

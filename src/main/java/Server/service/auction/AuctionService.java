@@ -99,7 +99,7 @@ public class AuctionService {
 
     /**
      * Syncs auction status with the current time.
-     * UPCOMING → RUNNING → FINISHED (terminal states PAID/CANCELED are never overwritten).
+     * UPCOMING → ACTIVE → FINISHED (terminal states PAID/CANCELED are never overwritten).
      */
     public void refreshAuctionStatus(int auctionId) {
         Auction auction = auctionDAO.findById(auctionId);

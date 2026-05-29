@@ -3,7 +3,6 @@ package Server.service;
 import Server.dao.NotificationDAO;
 import Server.dao.users.UserDAO;
 import Server.model.Notification;
-import Server.model.users.User;
 import java.util.List;
 
 public class NotificationService {
@@ -20,8 +19,8 @@ public class NotificationService {
      * All current notifications (outbid, win) are auction-type, so this single flag covers them.
      */
     public void send(int userId, String message) {
-        User user = userDAO.findById(userId);
-        if (user != null && !user.isNotifAuction()) return;  // user opted out
+        UserDAO.NotifPrefs prefs = userDAO.getNotifPrefs(userId);
+        if (!prefs.notifAuction()) return;  // user opted out
         dao.create(userId, message);
     }
 

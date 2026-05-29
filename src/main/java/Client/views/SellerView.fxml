@@ -27,6 +27,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
+<?import javafx.scene.layout.StackPane?>
 <BorderPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F9FAFB;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.seller.SellerController">
 
     <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->

@@ -13,8 +13,7 @@ public class UserFactory {
             case "ADMIN"  -> new Admin(row.id(), row.username(), row.password(), row.email(), row.balance());
             default -> throw new IllegalArgumentException("Unknown role: " + row.role());
         };
-        user.setNotifAuction(row.notifAuction());
-        user.setNotifEmail(row.notifEmail());
+        user.setStatus(row.status());
         return user;
     }
 }
