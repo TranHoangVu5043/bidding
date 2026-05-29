@@ -95,7 +95,7 @@ public class ServerApp {
         router.register("POST", "/api/items/create",   itemController::createItem);
         router.register("POST", "/api/items/update",   itemController::updateItem);
         router.register("POST", "/api/items/delete",   itemController::deleteItem);
-
+        router.register("GET", "/api/items/all", itemController::getAllItems);
         // --- Notification routes ---
         router.register("GET",  "/api/notifications",          notifController::getNotifications);
         router.register("POST", "/api/notifications/read-all", notifController::markAllRead);

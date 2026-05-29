@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -23,7 +23,7 @@
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="720.0" prefWidth="1160.0" style="-fx-background-color: #F0F4F8;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.admin.AdminDashboardController">
+<BorderPane prefHeight="720.0" prefWidth="1160.0" style="-fx-background-color: #F0F4F8;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.admin.AdminDashboardController" stylesheets="@charts.css">
 
     <!-- ═══════════════════════════════════════════════════════
          SIDEBAR
@@ -191,14 +191,21 @@
                                         </ScrollPane>
                                     </VBox>
 
-                                    <!-- PieChart -->
+                                    <!-- Custom Donut Chart -->
                                     <VBox prefWidth="420" spacing="12" style="-fx-background-color: white; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),10,0,0,3); -fx-padding: 20;">
                                         <HBox alignment="CENTER_LEFT" spacing="8">
                                             <Label style="-fx-font-size: 15;" text="📊" />
                                             <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #0F1F35;" text="Phân bố đấu giá" />
                                         </HBox>
                                         <Separator opacity="0.5" />
-                                        <PieChart fx:id="chartSellers" labelsVisible="false" legendSide="RIGHT" legendVisible="true" prefHeight="280" prefWidth="380" />
+                                        <StackPane alignment="CENTER">
+                                            <Canvas fx:id="chartCanvas" height="220.0" width="220.0" />
+                                            <VBox alignment="CENTER" spacing="2" style="-fx-padding: 0;" mouseTransparent="true">
+                                                <Label fx:id="chartCenterCount" style="-fx-font-weight: bold; -fx-font-size: 28; -fx-text-fill: #0F1F35;" text="0" />
+                                                <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="phiên đấu giá" />
+                                            </VBox>
+                                        </StackPane>
+                                        <VBox fx:id="chartLegend" spacing="8" style="-fx-padding: 4 0 0 0;" />
                                     </VBox>
 
                                 </HBox>
@@ -212,27 +219,81 @@
                 ══════════════════════════════ -->
                 <Tab fx:id="tabUsers" text="">
                     <VBox spacing="16" style="-fx-padding: 24;">
+
+                        <!-- Header -->
                         <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label style="-fx-font-size: 18;" text="👥" />
-                            <Label style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0F1F35;" text="Quản Lý Người Dùng" />
+                            <StackPane>
+                                <Rectangle arcHeight="12" arcWidth="12" fill="#EFF6FF" height="40" width="40" />
+                                <Label style="-fx-font-size: 20;" text="👥" />
+                            </StackPane>
+                            <VBox spacing="2">
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #0F1F35;" text="Quản Lý Người Dùng" />
+                                <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="Xem và quản lý tài khoản người dùng trong hệ thống" />
+                            </VBox>
                         </HBox>
-                        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 12 16; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);">
-                            <TextField fx:id="txtUserSearch" prefWidth="280" promptText="🔍  Tìm theo tên, email..." style="-fx-background-radius: 8; -fx-padding: 9; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1;" />
-                            <ComboBox fx:id="cmbUserRole" prefWidth="140" promptText="Vai trò" style="-fx-background-radius: 8; -fx-background-color: #F8FAFC;" />
+
+                        <!-- Stat mini-cards -->
+                        <HBox spacing="12">
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #EFF6FF; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#DBEAFE" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="👤" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="TỔNG NGƯỜI DÙNG" />
+                                </HBox>
+                                <Label fx:id="lblUserCount" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #2563EB;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #F0FDF4; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#DCFCE7" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="✅" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="ĐANG HOẠT ĐỘNG" />
+                                </HBox>
+                                <Label fx:id="lblActiveUserCount" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #16A34A;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #FFF7ED; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#FED7AA" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="🏪" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="NGƯỜI BÁN" />
+                                </HBox>
+                                <Label fx:id="lblSellerCount" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #EA580C;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #FFF1F2; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#FECDD3" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="🔒" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="BỊ KHÓA" />
+                                </HBox>
+                                <Label fx:id="lblBannedUserCount" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #DC2626;" text="—" />
+                            </VBox>
+                        </HBox>
+
+                        <!-- Toolbar -->
+                        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);">
+                            <StackPane>
+                                <TextField fx:id="txtUserSearch" prefWidth="290" promptText="  Tìm theo tên, email..." style="-fx-background-radius: 8; -fx-padding: 9 9 9 36; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1;" />
+                                <Label alignment="CENTER_LEFT" style="-fx-font-size: 13; -fx-padding: 0 0 0 10;" text="🔍" />
+                            </StackPane>
+                            <ComboBox fx:id="cmbUserRole" prefWidth="150" promptText="⚑  Vai trò" style="-fx-background-radius: 8; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1; -fx-padding: 1;" />
                             <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#handleToggleBanUser" style="-fx-background-color: #C0392B; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand; -fx-font-weight: bold; -fx-effect: dropshadow(gaussian,rgba(192,57,43,0.3),6,0,0,2);" text="🔒  Khóa / Mở khóa" />
+                            <Button onAction="#handleToggleBanUser" style="-fx-background-color: #FEF2F2; -fx-text-fill: #DC2626; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand; -fx-font-weight: bold; -fx-border-color: #FECACA; -fx-border-radius: 8; -fx-border-width: 1;" text="🔒  Khóa / Mở khóa" />
                         </HBox>
-                        <TableView fx:id="tblUsers" style="-fx-background-radius: 12; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colUserId" prefWidth="55" text="ID" />
-                                <TableColumn fx:id="colUsername" prefWidth="160" text="Tên đăng nhập" />
-                                <TableColumn fx:id="colEmail" prefWidth="210" text="Email" />
-                                <TableColumn fx:id="colRole" prefWidth="110" text="Vai trò" />
-                                <TableColumn fx:id="colBalance" prefWidth="140" text="Số dư" />
-                                <TableColumn fx:id="colCreatedAt" prefWidth="140" text="Ngày tạo" />
-                                <TableColumn fx:id="colUserStatus" prefWidth="110" text="Trạng thái" />
-                            </columns>
-                        </TableView>
+
+                        <!-- Table -->
+                        <VBox style="-fx-background-color: white; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),10,0,0,3);" VBox.vgrow="ALWAYS">
+                            <TableView fx:id="tblUsers" style="-fx-background-color: transparent; -fx-background-radius: 14; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="colUserId" prefWidth="55" style="-fx-alignment: CENTER;" text="ID" />
+                                    <TableColumn fx:id="colUsername" prefWidth="165" text="Tên đăng nhập" />
+                                    <TableColumn fx:id="colEmail" prefWidth="215" text="Email" />
+                                    <TableColumn fx:id="colRole" prefWidth="110" style="-fx-alignment: CENTER;" text="Vai trò" />
+                                    <TableColumn fx:id="colBalance" prefWidth="140" style="-fx-alignment: CENTER_RIGHT;" text="Số dư (VNĐ)" />
+                                    <TableColumn fx:id="colCreatedAt" prefWidth="140" style="-fx-alignment: CENTER;" text="Ngày tạo" />
+                                    <TableColumn fx:id="colUserStatus" prefWidth="110" style="-fx-alignment: CENTER;" text="Trạng thái" />
+                                </columns>
+                            </TableView>
+                        </VBox>
+
                     </VBox>
                 </Tab>
 
@@ -241,27 +302,79 @@
                 ══════════════════════════════ -->
                 <Tab fx:id="tabInventory" text="">
                     <VBox spacing="16" style="-fx-padding: 24;">
+
+                        <!-- Header -->
                         <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label style="-fx-font-size: 18;" text="📦" />
-                            <Label style="-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: #0F1F35;" text="Quản Lý Sản Phẩm" />
+                            <StackPane>
+                                <Rectangle arcHeight="12" arcWidth="12" fill="#F0FDF4" height="40" width="40" />
+                                <Label style="-fx-font-size: 20;" text="📦" />
+                            </StackPane>
+                            <VBox spacing="2">
+                                <Label style="-fx-font-weight: bold; -fx-font-size: 17; -fx-text-fill: #0F1F35;" text="Quản Lý Sản Phẩm" />
+                                <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="Theo dõi và quản lý toàn bộ sản phẩm trong kho" />
+                            </VBox>
                         </HBox>
-                        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 12 16; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);">
-                            <TextField fx:id="txtProductSearch" prefWidth="280" promptText="🔍  Tìm sản phẩm..." style="-fx-background-radius: 8; -fx-padding: 9; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1;" />
-                            <ComboBox fx:id="cmbProductCategory" prefWidth="150" promptText="Danh mục" style="-fx-background-radius: 8; -fx-background-color: #F8FAFC;" />
-                            <ComboBox fx:id="cmbProductStatus" prefWidth="140" promptText="Trạng thái" style="-fx-background-radius: 8; -fx-background-color: #F8FAFC;" />
+
+                        <!-- Stat mini-cards -->
+                        <HBox spacing="12">
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #F0FDF4; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#DCFCE7" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="📦" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="TỔNG SẢN PHẨM" />
+                                </HBox>
+                                <Label fx:id="lblTotalItems" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #16A34A;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #EFF6FF; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#DBEAFE" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="🏷" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="ĐANG BÁN" />
+                                </HBox>
+                                <Label fx:id="lblActiveItems" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #2563EB;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #FFFBEB; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#FEF3C7" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="💰" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="ĐÃ BÁN" />
+                                </HBox>
+                                <Label fx:id="lblPendingItems" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #D97706;" text="—" />
+                            </VBox>
+                            <VBox alignment="CENTER_LEFT" spacing="4" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2); -fx-border-color: #FFF1F2; -fx-border-radius: 12; -fx-border-width: 1;" HBox.hgrow="ALWAYS">
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <Rectangle arcHeight="8" arcWidth="8" fill="#FECDD3" height="28" width="28" />
+                                    <Label style="-fx-font-size: 14;" text="🗑" />
+                                    <Label style="-fx-text-fill: #6B7280; -fx-font-size: 11; -fx-font-weight: bold;" text="KHÔNG HOẠT ĐỘNG" />
+                                </HBox>
+                                <Label fx:id="lblRemovedItems" style="-fx-font-weight: bold; -fx-font-size: 22; -fx-text-fill: #DC2626;" text="—" />
+                            </VBox>
+                        </HBox>
+
+                        <!-- Toolbar -->
+                        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 14 18; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);">
+                            <StackPane>
+                                <TextField fx:id="txtProductSearch" prefWidth="290" promptText="  Tìm sản phẩm..." style="-fx-background-radius: 8; -fx-padding: 9 9 9 36; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1;" />
+                                <Label alignment="CENTER_LEFT" style="-fx-font-size: 13; -fx-padding: 0 0 0 10;" text="🔍" />
+                            </StackPane>
+                            <ComboBox fx:id="cmbProductCategory" prefWidth="155" promptText="📂  Danh mục" style="-fx-background-radius: 8; -fx-background-color: #F8FAFC; -fx-border-color: #E5E7EB; -fx-border-radius: 8; -fx-border-width: 1; -fx-padding: 1;" />
                             <Region HBox.hgrow="ALWAYS" />
-                            <Button onAction="#handleCancelProduct" style="-fx-background-color: #C0392B; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand; -fx-font-weight: bold; -fx-effect: dropshadow(gaussian,rgba(192,57,43,0.3),6,0,0,2);" text="🗑  Xóa sản phẩm" />
+                            <Button onAction="#handleCancelProduct" style="-fx-background-color: #FEF2F2; -fx-text-fill: #DC2626; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand; -fx-font-weight: bold; -fx-border-color: #FECACA; -fx-border-radius: 8; -fx-border-width: 1;" text="🗑  Xóa sản phẩm" />
                         </HBox>
-                        <TableView fx:id="tblItems" style="-fx-background-radius: 12; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),6,0,0,2);" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colItemId" prefWidth="60" text="ID" />
-                                <TableColumn fx:id="colItemName" prefWidth="260" text="Tên sản phẩm" />
-                                <TableColumn fx:id="colItemCategory" prefWidth="140" text="Danh mục" />
-                                <TableColumn fx:id="colItemPrice" prefWidth="140" text="Giá bán" />
-                                <TableColumn fx:id="colItemStock" prefWidth="100" text="Kho" />
-                                <TableColumn fx:id="colItemStatus" prefWidth="130" text="Trạng thái" />
-                            </columns>
-                        </TableView>
+
+                        <!-- Table -->
+                        <VBox style="-fx-background-color: white; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),10,0,0,3);" VBox.vgrow="ALWAYS">
+                            <TableView fx:id="tblItems" style="-fx-background-color: transparent; -fx-background-radius: 14; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="colItemId" prefWidth="60" style="-fx-alignment: CENTER;" text="ID" />
+                                    <TableColumn fx:id="colItemName" prefWidth="265" text="Tên sản phẩm" />
+                                    <TableColumn fx:id="colItemCategory" prefWidth="145" style="-fx-alignment: CENTER;" text="Danh mục" />
+                                    <TableColumn fx:id="colItemPrice" prefWidth="145" style="-fx-alignment: CENTER_RIGHT;" text="Giá bán (VNĐ)" />
+                                    <TableColumn fx:id="colItemStock" prefWidth="100" style="-fx-alignment: CENTER;" text="Kho" />
+                                </columns>
+                            </TableView>
+                        </VBox>
+
                     </VBox>
                 </Tab>
 

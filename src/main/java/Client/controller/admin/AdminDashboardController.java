@@ -5,7 +5,6 @@ import Client.model.item.Item;
 import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.endpoints.AuctionApi;
-import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.ItemApi;
 import Client.networking.endpoints.UserApi;
 
@@ -15,10 +14,10 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import Client.util.SceneUtil;
-import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.chart.PieChart;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.FlowPane;
@@ -29,12 +28,16 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 
-import java.net.URL;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AdminDashboardController implements Initializable {
+public class AdminDashboardController {
+
+    // ── Chart constants ──
+    private static final String[] CHART_STATUSES = {"ACTIVE", "UPCOMING", "FINISHED", "CANCELLED"};
+    private static final String[] CHART_COLORS   = {"#3B82F", "#F97316", "#10B981", "#EF4444"};
+    private static final String[] CHART_VI       = {"Đang diễn ra", "Sắp diễn ra", "Đã kết thúc", "Đã hủy"};
 
     // ── Sidebar ──
     @FXML private Button btnHome;
@@ -54,9 +57,11 @@ public class AdminDashboardController implements Initializable {
     @FXML private Label lblTotalSellers;
     @FXML private Label lblTotalAuctions;
 
-    // ── Dashboard Feed & PieChart ──
-    @FXML private VBox     activityVBox;
-    @FXML private PieChart chartSellers;
+    // ── Dashboard Feed & Chart ──
+    @FXML private VBox   activityVBox;
+    @FXML private Canvas chartCanvas;
+    @FXML private Label  chartCenterCount;
+    @FXML private VBox   chartLegend;
 
     // ── TabPane ──
     @FXML private TabPane mainTabPane;
@@ -67,6 +72,10 @@ public class AdminDashboardController implements Initializable {
     @FXML private Tab tabSettings;
 
     // ── Tab Users ──
+    @FXML private Label                      lblUserCount;
+    @FXML private Label                      lblActiveUserCount;
+    @FXML private Label                      lblSellerCount;
+    @FXML private Label                      lblBannedUserCount;
     @FXML private TableView<User>            tblUsers;
     @FXML private TableColumn<User, Integer> colUserId;
     @FXML private TableColumn<User, String>  colUsername;
@@ -79,16 +88,18 @@ public class AdminDashboardController implements Initializable {
     @FXML private ComboBox<String>           cmbUserRole;
 
     // ── Tab Inventory ──
+    @FXML private Label                      lblTotalItems;
+    @FXML private Label                      lblActiveItems;
+    @FXML private Label                      lblPendingItems;
+    @FXML private Label                      lblRemovedItems;
     @FXML private TableView<Item>            tblItems;
     @FXML private TableColumn<Item, Integer> colItemId;
     @FXML private TableColumn<Item, String>  colItemName;
     @FXML private TableColumn<Item, String>  colItemCategory;
     @FXML private TableColumn<Item, Double>  colItemPrice;
     @FXML private TableColumn<Item, Integer> colItemStock;
-    @FXML private TableColumn<Item, String>  colItemStatus;
     @FXML private TextField                  txtProductSearch;
     @FXML private ComboBox<String>           cmbProductCategory;
-    @FXML private ComboBox<String>           cmbProductStatus;
 
     // ── Tab Auctions ──
     @FXML private TextField        txtAuctionSearch;
@@ -115,15 +126,14 @@ public class AdminDashboardController implements Initializable {
     private final UserApi    userApi    = new UserApi();
     private final ItemApi    itemApi    = new ItemApi();
     private final AuctionApi auctionApi = new AuctionApi();
-    private final BidApi     bidApi     = new BidApi();
 
     private Button[] sidebarButtons;
 
     // ════════════════════════════════════════════════════════
     // INITIALIZE
     // ════════════════════════════════════════════════════════
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
+    @FXML
+    private void initialize() {
         sidebarButtons = new Button[]{
                 btnHome, btnUsers, btnInventory,
                 btnAuctions, btnSettings
@@ -219,7 +229,7 @@ public class AdminDashboardController implements Initializable {
                             (usersResp != null ? usersResp.getStatus() : "null"));
                 }
 
-                // KPI: Auctions + Revenue từ FINISHED auctions + PieChart + Activity feed
+                // KPI: Auctions + Revenue từ FINISHED auctions + Donut chart + Activity feed
                 if (auctionResp != null && auctionResp.getStatus() == 200 && auctionResp.getData() != null) {
                     cachedAuctions = auctionResp.getData();
 
@@ -243,17 +253,100 @@ public class AdminDashboardController implements Initializable {
         }).start();
     }
 
-    /** PieChart phân loại auction theo status */
+    /** Vẽ donut chart tùy chỉnh lên Canvas */
     private void buildPieChart(List<Auction> auctions) {
-        if (chartSellers == null || auctions == null) return;
-        Map<String, Long> counts = new TreeMap<>();
+        if (chartCanvas == null || auctions == null) return;
+
+        // --- Đếm theo status ---
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String s : CHART_STATUSES) counts.put(s, 0L);
         for (Auction a : auctions) {
-            String st = a.getStatus() != null ? a.getStatus() : "Không rõ";
+            String st = a.getStatus() != null ? a.getStatus().toUpperCase() : "";
             counts.merge(st, 1L, Long::sum);
         }
-        ObservableList<PieChart.Data> data = FXCollections.observableArrayList();
-        counts.forEach((st, cnt) -> data.add(new PieChart.Data(st + " (" + cnt + ")", cnt)));
-        chartSellers.setData(data);
+        long total = auctions.size();
+
+        // --- Cập nhật số ở giữa ---
+        if (chartCenterCount != null) chartCenterCount.setText(String.valueOf(total));
+
+        // --- Vẽ donut ---
+        GraphicsContext gc = chartCanvas.getGraphicsContext2D();
+        double w = chartCanvas.getWidth();
+        double h = chartCanvas.getHeight();
+        gc.clearRect(0, 0, w, h);
+
+        double cx = w / 2, cy = h / 2;
+        double outerR = Math.min(w, h) / 2 - 6;
+        double innerR = outerR * 0.55;
+
+        double startAngle = -90;
+        for (int i = 0; i < CHART_STATUSES.length; i++) {
+            long cnt = counts.getOrDefault(CHART_STATUSES[i], 0L);
+            if (cnt == 0) continue;
+            double sweep = total > 0 ? (cnt * 360.0 / total) : 0;
+            Color color = Color.web(CHART_COLORS[i]);
+
+            // Arc lớn (outer)
+            gc.setFill(color);
+            gc.fillArc(cx - outerR, cy - outerR, outerR * 2, outerR * 2,
+                    startAngle, sweep, javafx.scene.shape.ArcType.ROUND);
+
+            startAngle += sweep;
+        }
+
+        // Xóa phần giữa tạo hiệu ứng donut
+        gc.setFill(Color.WHITE);
+        gc.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+
+        // Vẽ vòng border nhỏ trong donut
+        gc.setStroke(Color.web("#F0F4F8"));
+        gc.setLineWidth(2);
+        gc.strokeOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+        gc.strokeOval(cx - outerR, cy - outerR, outerR * 2, outerR * 2);
+
+        // --- Vẽ legend ---
+        if (chartLegend == null) return;
+        chartLegend.getChildren().clear();
+
+        for (int i = 0; i < CHART_STATUSES.length; i++) {
+            long cnt = counts.getOrDefault(CHART_STATUSES[i], 0L);
+            double pct = total > 0 ? (cnt * 100.0 / total) : 0;
+
+            HBox row = new HBox(10);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setStyle(
+                    "-fx-background-color: #F8FAFC;" +
+                            "-fx-background-radius: 8;" +
+                            "-fx-padding: 8 12;"
+            );
+
+            // Color dot
+            javafx.scene.shape.Rectangle dot = new javafx.scene.shape.Rectangle(12, 12);
+            dot.setArcWidth(4); dot.setArcHeight(4);
+            dot.setFill(Color.web(CHART_COLORS[i]));
+
+            // Label tên
+            Label lblName = new Label(CHART_VI[i]);
+            lblName.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
+            HBox.setHgrow(lblName, Priority.ALWAYS);
+
+            // Count badge
+            Label lblCnt = new Label(String.valueOf(cnt));
+            lblCnt.setStyle(
+                    "-fx-font-weight: bold; -fx-font-size: 12;" +
+                            "-fx-text-fill: " + CHART_COLORS[i] + ";" +
+                            "-fx-background-color: " + CHART_COLORS[i] + "18;" +
+                            "-fx-background-radius: 12;" +
+                            "-fx-padding: 2 10;"
+            );
+
+            // Percent
+            Label lblPct = new Label(String.format("%.0f%%", pct));
+            lblPct.setStyle("-fx-font-size: 11; -fx-text-fill: #9CA3AF; -fx-min-width: 36; -fx-alignment: CENTER_RIGHT;");
+
+            row.getChildren().addAll(dot, lblName, lblCnt, lblPct);
+            chartLegend.getChildren().add(row);
+        }
     }
 
     /**
@@ -422,6 +515,7 @@ public class AdminDashboardController implements Initializable {
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
                     allUsers.setAll(resp.getData());
                     applyUserFilter();
+                    updateUserStatCards(resp.getData());
                 } else {
                     System.err.println("[Users] API lỗi: " +
                             (resp != null ? resp.getStatus() + " - " + resp.getMessage() : "null"));
@@ -429,6 +523,18 @@ public class AdminDashboardController implements Initializable {
                 }
             });
         }).start();
+    }
+
+    private void updateUserStatCards(List<User> users) {
+        long total   = users.size();
+        long banned  = users.stream().filter(u -> "BANNED".equalsIgnoreCase(u.getStatus())).count();
+        long active  = total - banned;
+        long sellers = users.stream().filter(u -> "SELLER".equalsIgnoreCase(u.getRole())).count();
+
+        if (lblUserCount       != null) lblUserCount.setText(String.valueOf(total));
+        if (lblActiveUserCount != null) lblActiveUserCount.setText(String.valueOf(active));
+        if (lblSellerCount     != null) lblSellerCount.setText(String.valueOf(sellers));
+        if (lblBannedUserCount != null) lblBannedUserCount.setText(String.valueOf(banned));
     }
 
     private void applyUserFilter() {
@@ -498,26 +604,7 @@ public class AdminDashboardController implements Initializable {
             });
         }
 
-        if (colItemStatus != null) {
-            colItemStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-            colItemStatus.setCellFactory(col -> new TableCell<>() {
-                @Override protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || item == null) { setText(null); setStyle(""); return; }
-                    setText(item);
-                    setStyle("AVAILABLE".equalsIgnoreCase(item)
-                            ? "-fx-text-fill: #16A34A; -fx-font-weight: bold;"
-                            : "-fx-text-fill: #C0392B; -fx-font-weight: bold;");
-                }
-            });
-        }
 
-        if (cmbProductStatus != null) {
-            cmbProductStatus.setItems(FXCollections.observableArrayList(
-                    "Tất cả", "AVAILABLE", "SOLD", "INACTIVE"));
-            cmbProductStatus.setValue("Tất cả");
-            cmbProductStatus.setOnAction(e -> applyItemFilter());
-        }
         if (cmbProductCategory != null) cmbProductCategory.setOnAction(e -> applyItemFilter());
         if (txtProductSearch   != null)
             txtProductSearch.textProperty().addListener((obs, o, n) -> applyItemFilter());
@@ -546,6 +633,7 @@ public class AdminDashboardController implements Initializable {
                         cmbProductCategory.setValue(cats.contains(cur) ? cur : "Tất cả");
                     }
                     applyItemFilter();
+                    updateItemStatCards(safeItems);
                 } else {
                     System.err.println("[Inventory] API lỗi: " +
                             (resp != null ? resp.getStatus() + " - " + resp.getMessage() : "null"));
@@ -555,17 +643,27 @@ public class AdminDashboardController implements Initializable {
         }).start();
     }
 
+    private void updateItemStatCards(List<Item> items) {
+        long total    = items.size();
+        long active   = items.stream().filter(i -> "AVAILABLE".equalsIgnoreCase(i.getStatus())).count();
+        long sold     = items.stream().filter(i -> "SOLD".equalsIgnoreCase(i.getStatus())).count();
+        long inactive = items.stream().filter(i -> "INACTIVE".equalsIgnoreCase(i.getStatus())).count();
+
+        if (lblTotalItems   != null) lblTotalItems.setText(String.valueOf(total));
+        if (lblActiveItems  != null) lblActiveItems.setText(String.valueOf(active));
+        if (lblPendingItems != null) lblPendingItems.setText(String.valueOf(sold));
+        if (lblRemovedItems != null) lblRemovedItems.setText(String.valueOf(inactive));
+    }
+
     private void applyItemFilter() {
         String kw  = txtProductSearch   != null ? txtProductSearch.getText().trim().toLowerCase() : "";
         String cat = cmbProductCategory != null ? cmbProductCategory.getValue() : "Tất cả";
-        String st  = cmbProductStatus   != null ? cmbProductStatus.getValue()   : "Tất cả";
         filteredItems.setPredicate(item -> {
             boolean mk = kw.isEmpty()
                     || (item.getName()     != null && item.getName().toLowerCase().contains(kw))
                     || (item.getCategory() != null && item.getCategory().toLowerCase().contains(kw));
             boolean mc = cat == null || "Tất cả".equals(cat) || cat.equalsIgnoreCase(item.getCategory());
-            boolean ms = st  == null || "Tất cả".equals(st)  || st.equalsIgnoreCase(item.getStatus());
-            return mk && mc && ms;
+            return mk && mc;
         });
     }
 
