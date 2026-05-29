@@ -64,8 +64,7 @@ public class AutoBidConfigServiceTest {
         assertTrue(fakeBiddingService.isPlaceBidInternalCalled);
         assertEquals(1, fakeBiddingService.capturedWinnerBotId, "Bot 1 nhiều tiền hơn phải thắng");
 
-        assertTrue(fakeBiddingService.capturedFinalPrice > 400.0, "Giá cuối phải vượt qua mức Max 400 của Bot 2");
-        assertTrue(fakeBiddingService.capturedFinalPrice <= 1000.0, "Nhưng không được vượt quá ví của Bot 1");
+        assertEquals(410, fakeBiddingService.capturedFinalPrice);
     }
 }
 class AFakeBiddingService extends BiddingService {
@@ -74,6 +73,9 @@ class AFakeBiddingService extends BiddingService {
     boolean isPlaceBidInternalCalled = false;
     int capturedWinnerBotId = -1;
     double capturedFinalPrice = -1.0;
+
+    // 1. Tạo một bản mock BidDAO "xịn" bằng Mockito
+    private final Server.dao.auction.BidDAO mockBidDAO = org.mockito.Mockito.mock(Server.dao.auction.BidDAO.class);
 
     public AFakeBiddingService() {
         super(new PGSimpleDataSource() {
@@ -86,6 +88,15 @@ class AFakeBiddingService extends BiddingService {
                 );
             }
         }, null, null, null);
+
+        // 2. Cấu hình mặc định cho bản mock: Khi gọi tìm người đặt giá cao nhất, trả về null (chưa có ai đặt)
+        org.mockito.Mockito.when(mockBidDAO.findHighestBidder(org.mockito.Mockito.anyInt())).thenReturn(null);
+    }
+
+    // 3. IMPORTANT: Override lại hàm getBidDAO để cứu hệ thống khỏi lỗi NullPointerException
+    @Override
+    public Server.dao.auction.BidDAO getBidDAO() {
+        return this.mockBidDAO;
     }
 
     public void setMockCurrentPrice(double price) {
@@ -102,5 +113,8 @@ class AFakeBiddingService extends BiddingService {
         this.isPlaceBidInternalCalled = true;
         this.capturedWinnerBotId = userId;
         this.capturedFinalPrice = price;
+
+        // Cập nhật luôn giá hiện tại để vòng lặp của Bot nhận biết được giá mới đang tăng lên
+        this.mockCurrentPrice = price;
     }
 }
