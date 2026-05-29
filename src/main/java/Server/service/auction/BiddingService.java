@@ -112,7 +112,7 @@ public class BiddingService {
                 Integer previousLeader = bidDAO.findHighestBidder(auctionId);
 
                 // All three writes share the same connection and will commit or rollback together.
-//                userDAO.updateBalance(conn, userId, user.getBalance() - amount);
+                userDAO.updateBalance(conn, userId, user.getBalance() - amount);
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
 
