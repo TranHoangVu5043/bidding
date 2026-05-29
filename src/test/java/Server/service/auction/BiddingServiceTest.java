@@ -66,7 +66,7 @@ public class BiddingServiceTest {
             biddingService.placeBid(0, 1, 1600.0);
         });
 
-        assertTrue(exception.getMessage().contains("Insufficient balance"));
+        assertTrue(exception.getMessage().contains("Số dư không đủ"));
     }
 }
 class SimpleFakeDataSource implements javax.sql.DataSource {
@@ -142,5 +142,9 @@ class FakeBidDAO extends BidDAO {
 
     @Override
     public void updateEndtime(Connection conn, int auctionId, LocalDateTime newEndtime) {
+    }
+    @Override
+    public double getMaxBidByUser(Connection conn, int userId, int auctionId) {
+        return 0.0;
     }
 }

@@ -138,6 +138,8 @@ public class AuctionServiceTest {
         public Auction create(Auction sampleAuction){
             return sampleAuction;
         }
+        @Override
+        public void deleteAuction(int id) {}
     }
     class FakeItemDAO extends ItemDAO{
         private Item sampleItem;
@@ -164,7 +166,13 @@ public class AuctionServiceTest {
         @Override
         public List<Bid> getBidsByAuction(int id){
             return new ArrayList<>();
-
+        }
+        @Override
+        public void deleteByAuctionId(int auctionId) {
+        }
+        @Override
+        public double getMaxBidByUser(int userId, int auctionId) {
+            return 0.0;
         }
     }
 

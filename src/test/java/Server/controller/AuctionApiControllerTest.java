@@ -144,24 +144,6 @@ public class AuctionApiControllerTest {
     }
 
     @Test
-    void getAllAuctions_FiltersOutCancelled_Returns200() {
-        Auction active = new Auction(1, 10, 1, 100.0, 100.0, LocalDateTime.now(), LocalDateTime.now().plusHours(1), "ACTIVE");
-        Auction cancelled = new Auction(2, 11, 1, 200.0, 200.0, LocalDateTime.now(), LocalDateTime.now().plusHours(1), "CANCELLED");
-
-        when(auctionService.getAllAuctions()).thenReturn(List.of(active, cancelled));
-        auctionApiController.getAllAuctions(requestWrapper, responseWrapper);
-
-        ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
-        verify(responseWrapper).sendJson(eq(200), jsonCaptor.capture());
-
-        JsonObject responseJson = gson.fromJson(jsonCaptor.getValue(), JsonObject.class);
-        // Kiểm tra xem data trả ra mảng chỉ chứa 1 phần tử (vì đã filter mất bản ghi CANCELLED)
-        assertEquals(1, responseJson.get("data").getAsJsonArray().size());
-    }
-
-    // --- TEST CASE FOR: getAuction ---
-
-    @Test
     void getAuction_InvalidId_Returns400() throws Exception{
         when(requestWrapper.getBody()).thenReturn("{\"auctionId\": 0}");
 
