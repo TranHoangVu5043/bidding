@@ -18,10 +18,15 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.chart.AreaChart;
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.PieChart;
-import javafx.scene.chart.XYChart;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.Stop;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
@@ -77,9 +82,10 @@ public class SellerController {
     @FXML private Label lblNewOrders;
     @FXML private Label lblActiveProducts;
     @FXML private Label lblActiveAuctions;
-    @FXML private LineChart<String, Number> chartWeekRevenue;
-    @FXML private PieChart chartCategories;
-    @FXML private VBox    pieLegend;
+    @FXML private Canvas chartWeekRevenue;
+    @FXML private Canvas chartCategories;
+    @FXML private Canvas chartRevenueArea;
+    @FXML private VBox   pieLegend;
     // ── Tab Đấu giá ──
     @FXML private Label     lblSellerActiveAuctions;
     @FXML private Label     lblSellerEndedAuctions;
@@ -101,7 +107,6 @@ public class SellerController {
     @FXML private ComboBox<String> cmbHistoryDate;
     /** Full list of FINISHED auctions — filtering is applied client-side from this cache. */
     private List<Auction> cachedHistory = List.of();
-    @FXML private AreaChart<String, Number> chartRevenueArea;
 
 
     // ── Instance các Api kết nối trực tiếp Backend ──
@@ -157,7 +162,6 @@ public class SellerController {
         populateSellerInfo();
         loadMyItems();
         loadSellerAuctions();
-        setupWeekRevenueChart();
     }
 
     private void populateSellerInfo() {
@@ -181,6 +185,7 @@ public class SellerController {
                     }
                     renderInventoryCards(masterData);
                     setupCategoryPieChart();
+                    updateAuctionStats();
                 } else {
                     String msg = response != null ? response.getMessage() : "Mất kết nối";
                     SceneUtil.showAlert("Lỗi", "Không thể tải danh sách sản phẩm: " + msg);
@@ -258,6 +263,7 @@ public class SellerController {
                         // Strip cancelled — they live in History, not the Auction tab
                         sellerAuctions.setAll(res.getData());
                         updateAuctionStats();
+                        setupWeekRevenueChart();
                         renderAuctionCards(sellerAuctions);
                         applyFilter(txtSearch != null ? txtSearch.getText() : "");
                     } else {
@@ -269,54 +275,224 @@ public class SellerController {
         }).start();
     }
 
-    // ── Logic tính toán số liệu thống kê phòng tránh Lost Update ──
+    // ── Logic tính toán số liệu thống kê ──
     private void updateAuctionStats() {
         long active = sellerAuctions.stream().filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus())).count();
-        long ended = sellerAuctions.stream().filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())).count();
-        double revenue = sellerAuctions.stream()
+        long ended  = sellerAuctions.stream().filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())).count();
+
+        // Tổng doanh thu tab Auctions
+        double totalRevenue = sellerAuctions.stream()
                 .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
                 .mapToDouble(Auction::getCurrentPrice).sum();
 
+        // Doanh thu tháng này
+        int thisMonth = java.time.LocalDate.now().getMonthValue();
+        int thisYear  = java.time.LocalDate.now().getYear();
+        double monthRevenue = sellerAuctions.stream()
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()) && a.getEndTime() != null)
+                .filter(a -> {
+                    try {
+                        java.time.LocalDateTime dt = java.time.LocalDateTime.parse(a.getEndTime().replace(" ", "T"));
+                        return dt.getMonthValue() == thisMonth && dt.getYear() == thisYear;
+                    } catch (Exception e) { return false; }
+                })
+                .mapToDouble(Auction::getCurrentPrice).sum();
+
+        // Doanh thu tháng trước (để tính % tăng trưởng)
+        java.time.LocalDate lastMonthDate = java.time.LocalDate.now().minusMonths(1);
+        int lastMonth = lastMonthDate.getMonthValue();
+        int lastYear  = lastMonthDate.getYear();
+        double lastMonthRevenue = sellerAuctions.stream()
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()) && a.getEndTime() != null)
+                .filter(a -> {
+                    try {
+                        java.time.LocalDateTime dt = java.time.LocalDateTime.parse(a.getEndTime().replace(" ", "T"));
+                        return dt.getMonthValue() == lastMonth && dt.getYear() == lastYear;
+                    } catch (Exception e) { return false; }
+                })
+                .mapToDouble(Auction::getCurrentPrice).sum();
+
+        // Phiên kết thúc hôm nay
+        java.time.LocalDate today = java.time.LocalDate.now();
+        long endingToday = sellerAuctions.stream()
+                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()) && a.getEndTime() != null)
+                .filter(a -> {
+                    try {
+                        java.time.LocalDate end = java.time.LocalDateTime.parse(a.getEndTime().replace(" ", "T")).toLocalDate();
+                        return end.equals(today);
+                    } catch (Exception e) { return false; }
+                })
+                .count();
+
+        // Sản phẩm sắp hết hàng (stock <= 3)
+        long lowStock = masterData.stream().filter(i -> i.getStock() <= 3).count();
+
+        // % tăng trưởng so tháng trước
+        String growthText;
+        if (lastMonthRevenue == 0) {
+            growthText = monthRevenue > 0 ? "▲ Mới có doanh thu" : "Chưa có doanh thu";
+        } else {
+            double pct = (monthRevenue - lastMonthRevenue) / lastMonthRevenue * 100;
+            growthText = pct >= 0
+                    ? String.format("▲ %.0f%% so với tháng trước", pct)
+                    : String.format("▼ %.0f%% so với tháng trước", Math.abs(pct));
+        }
+
         if (lblSellerActiveAuctions != null) lblSellerActiveAuctions.setText(String.valueOf(active));
         if (lblSellerEndedAuctions  != null) lblSellerEndedAuctions.setText(String.valueOf(ended));
-        if (lblSellerTotalRevenue   != null) lblSellerTotalRevenue.setText(String.format("%,.0f ₫", revenue));
+        if (lblSellerTotalRevenue   != null) lblSellerTotalRevenue.setText(String.format("%,.0f ₫", totalRevenue));
         if (lblActiveAuctions       != null) lblActiveAuctions.setText(active + " đang chạy");
         if (lblNewOrders            != null) lblNewOrders.setText(ended + " phiên");
-        if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", revenue));
+        if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", monthRevenue));
     }
 
-    // ── Biểu đồ Doanh thu tuần  ──
+    // ── Biểu đồ Doanh thu tuần — dữ liệu thật từ sellerAuctions ──
     private void setupWeekRevenueChart() {
         if (chartWeekRevenue == null) return;
-        chartWeekRevenue.getData().clear();
 
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Doanh thu (₫)");
-        series.getData().add(new XYChart.Data<>("Thứ 2", 1200000));
-        series.getData().add(new XYChart.Data<>("Thứ 3", 1500000));
-        series.getData().add(new XYChart.Data<>("Thứ 4", 800000));
-        series.getData().add(new XYChart.Data<>("Thứ 5", 2500000));
-        series.getData().add(new XYChart.Data<>("Thứ 6", 1900000));
-        series.getData().add(new XYChart.Data<>("Thứ 7", 3000000));
-        series.getData().add(new XYChart.Data<>("CN",    4500000));
-        chartWeekRevenue.getData().add(series);
-        Platform.runLater(() -> {
-            for (XYChart.Data<String, Number> d : series.getData()) {
-                if (d.getNode() != null) {
-                    d.getNode().setStyle(
-                            "-fx-background-color: #F97316, white;" +
-                                    "-fx-background-insets: 0, 2;" +
-                                    "-fx-background-radius: 5px;" +
-                                    "-fx-padding: 5px;"
-                    );
-                    Tooltip tp = new Tooltip(String.format("%,.0f ₫", d.getYValue().doubleValue()));
-                    tp.setStyle("-fx-font-size: 11; -fx-background-radius: 6;");
-                    Tooltip.install(d.getNode(), tp);
+        // Lấy 7 ngày gần nhất (hôm nay là index 6)
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String[] labels = new String[7];
+        double[] values = new double[7];
+
+        // dayNames[0]=CN, [1]=T2, ..., [6]=T7 (khớp DayOfWeek.getValue() % 7)
+        String[] dayNames = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
+        for (int i = 0; i < 7; i++) {
+            java.time.LocalDate day = today.minusDays(6 - i);
+            labels[i] = dayNames[day.getDayOfWeek().getValue() % 7];
+            values[i] = 0;
+        }
+
+        // Cộng doanh thu từ các phiên FINISHED kết thúc trong 7 ngày qua
+        for (Auction a : sellerAuctions) {
+            if (!"FINISHED".equalsIgnoreCase(a.getStatus())) continue;
+            if (a.getEndTime() == null) continue;
+            try {
+                java.time.LocalDate endDate = java.time.LocalDateTime
+                        .parse(a.getEndTime().replace(" ", "T"))
+                        .toLocalDate();
+                long daysAgo = today.toEpochDay() - endDate.toEpochDay();
+                if (daysAgo >= 0 && daysAgo < 7) {
+                    int idx = (int)(6 - daysAgo);
+                    values[idx] += a.getCurrentPrice();
                 }
-            }
-        });
+            } catch (Exception ignored) {}
+        }
+
+        drawLineChart(chartWeekRevenue, labels, values, "Doanh thu (₫)", "#F97316");
     }
-    // ── Biểu đồ hình tròn phân loại danh mục theo dữ liệu  ──
+
+    /**
+     * Vẽ line chart lên Canvas.
+     * @param canvas   canvas mục tiêu
+     * @param labels   nhãn trục X
+     * @param values   giá trị tương ứng
+     * @param yLabel   tiêu đề trục Y
+     * @param hexColor màu đường kẻ (hex, vd "#F97316")
+     */
+    private void drawLineChart(Canvas canvas, String[] labels, double[] values, String yLabel, String hexColor) {
+        double W = canvas.getWidth();
+        double H = canvas.getHeight();
+
+        double padL = 68, padR = 18, padT = 18, padB = 42;
+        double chartW = W - padL - padR;
+        double chartH = H - padT - padB;
+
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, W, H);
+
+        // ── Grid & Y-axis labels ──
+        double maxVal = 0;
+        for (double v : values) if (v > maxVal) maxVal = v;
+        double niceMax = Math.ceil(maxVal / 1_000_000.0) * 1_000_000.0;
+        int gridLines = 5;
+
+        gc.setFont(Font.font("System", 10));
+        gc.setTextAlign(TextAlignment.RIGHT);
+        gc.setFill(Color.web("#9CA3AF"));
+
+        for (int i = 0; i <= gridLines; i++) {
+            double yRatio = (double) i / gridLines;
+            double yPx = padT + chartH - yRatio * chartH;
+            double yVal = yRatio * niceMax;
+
+            // Grid line
+            gc.setStroke(Color.web("#F3F4F6"));
+            gc.setLineWidth(1);
+            gc.strokeLine(padL, yPx, padL + chartW, yPx);
+
+            // Y label (triệu ₫)
+            String lbl = yVal >= 1_000_000
+                    ? String.format("%.0fM", yVal / 1_000_000)
+                    : String.format("%.0fK", yVal / 1_000);
+            gc.fillText(lbl, padL - 6, yPx + 4);
+        }
+
+        // ── X positions ──
+        int n = labels.length;
+        double step = chartW / (n - 1);
+        double[] xPx = new double[n];
+        double[] yPx = new double[n];
+        for (int i = 0; i < n; i++) {
+            xPx[i] = padL + i * step;
+            yPx[i] = padT + chartH - (values[i] / niceMax) * chartH;
+        }
+
+        // ── Area gradient fill ──
+        LinearGradient areaGrad = new LinearGradient(0, padT, 0, padT + chartH, false, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.web(hexColor, 0.22)),
+                new Stop(1, Color.web(hexColor, 0.0)));
+        gc.setFill(areaGrad);
+        gc.beginPath();
+        gc.moveTo(xPx[0], padT + chartH);
+        gc.lineTo(xPx[0], yPx[0]);
+        for (int i = 1; i < n; i++) {
+            double cpX = (xPx[i - 1] + xPx[i]) / 2;
+            gc.bezierCurveTo(cpX, yPx[i - 1], cpX, yPx[i], xPx[i], yPx[i]);
+        }
+        gc.lineTo(xPx[n - 1], padT + chartH);
+        gc.closePath();
+        gc.fill();
+
+        // ── Line ──
+        gc.setStroke(Color.web(hexColor));
+        gc.setLineWidth(2.5);
+        gc.beginPath();
+        gc.moveTo(xPx[0], yPx[0]);
+        for (int i = 1; i < n; i++) {
+            double cpX = (xPx[i - 1] + xPx[i]) / 2;
+            gc.bezierCurveTo(cpX, yPx[i - 1], cpX, yPx[i], xPx[i], yPx[i]);
+        }
+        gc.stroke();
+
+        // ── Data points & X labels ──
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.setFill(Color.web("#6B7280"));
+        gc.setFont(Font.font("System", 10));
+
+        for (int i = 0; i < n; i++) {
+            // Outer circle (white)
+            gc.setFill(Color.WHITE);
+            gc.fillOval(xPx[i] - 5, yPx[i] - 5, 10, 10);
+            // Inner circle (accent)
+            gc.setFill(Color.web(hexColor));
+            gc.fillOval(xPx[i] - 3, yPx[i] - 3, 6, 6);
+            // Border
+            gc.setStroke(Color.web(hexColor));
+            gc.setLineWidth(1.5);
+            gc.strokeOval(xPx[i] - 5, yPx[i] - 5, 10, 10);
+
+            // X label
+            gc.setFill(Color.web("#6B7280"));
+            gc.fillText(labels[i], xPx[i], padT + chartH + 16);
+        }
+
+        // ── Y-axis line ──
+        gc.setStroke(Color.web("#E5E7EB"));
+        gc.setLineWidth(1);
+        gc.strokeLine(padL, padT, padL, padT + chartH);
+    }
+    // ── Biểu đồ hình tròn phân loại danh mục (Canvas) ──
     private static final String[][] PIE_LEGEND = {
             {"Điện tử",    "#3B82F6"},
             {"Nghệ thuật", "#EC4899"},
@@ -331,28 +507,8 @@ public class SellerController {
         long total       = electronics + art + vehicle;
         long[] counts    = {electronics, art, vehicle};
 
-        PieChart.Data slice1 = new PieChart.Data("Điện tử",    electronics);
-        PieChart.Data slice2 = new PieChart.Data("Nghệ thuật", art);
-        PieChart.Data slice3 = new PieChart.Data("Xe cộ",      vehicle);
-        chartCategories.setData(FXCollections.observableArrayList(slice1, slice2, slice3));
-
         Platform.runLater(() -> {
-            String[] colors = {"#3B82F6", "#EC4899", "#10B981"};
-            int[] idxRef = {0};
-            for (PieChart.Data d : chartCategories.getData()) {
-                int i = idxRef[0]++;
-                if (d.getNode() == null) continue;
-                final String col = colors[i];
-                d.getNode().setStyle("-fx-pie-color: " + col + ";");
-                double pct = total > 0 ? (d.getPieValue() / total * 100) : 0;
-                Tooltip tp = new Tooltip(String.format("%s: %.0f%% (%,.0f sp)", d.getName(), pct, d.getPieValue()));
-                tp.setStyle("-fx-font-size: 11; -fx-background-radius: 6;");
-                Tooltip.install(d.getNode(), tp);
-                d.getNode().setOnMouseEntered(e ->
-                        d.getNode().setStyle("-fx-pie-color: " + col + "; -fx-opacity: 0.82; -fx-scale-x: 1.05; -fx-scale-y: 1.05;"));
-                d.getNode().setOnMouseExited(e ->
-                        d.getNode().setStyle("-fx-pie-color: " + col + "; -fx-opacity: 1; -fx-scale-x: 1; -fx-scale-y: 1;"));
-            }
+            drawPieChart(chartCategories, counts, total);
 
             // Custom legend
             if (pieLegend != null) {
@@ -371,7 +527,7 @@ public class SellerController {
                     lblName.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
                     HBox.setHgrow(lblName, Priority.ALWAYS);
 
-                    Label lblVal = new Label(String.format("%,.0f sp  •  %.0f%%", cnt, pct));
+                    Label lblVal = new Label(String.format("%,.0f sp  •  %.0f%%", (double) cnt, pct));
                     lblVal.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
 
                     HBox row = new HBox(8, dot, lblName, lblVal);
@@ -380,6 +536,53 @@ public class SellerController {
                 }
             }
         });
+    }
+
+    private void drawPieChart(Canvas canvas, long[] counts, long total) {
+        double W = canvas.getWidth();
+        double H = canvas.getHeight();
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, W, H);
+
+        String[] colors = {"#3B82F6", "#EC4899", "#10B981"};
+        double cx = W / 2, cy = H / 2;
+        double r  = Math.min(W, H) / 2.0 - 12;
+
+        if (total == 0) {
+            // Empty state: grey full circle
+            gc.setFill(Color.web("#E5E7EB"));
+            gc.fillOval(cx - r, cy - r, r * 2, r * 2);
+            gc.setFill(Color.web("#9CA3AF"));
+            gc.setFont(Font.font("System", 12));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText("Chưa có dữ liệu", cx, cy + 4);
+            return;
+        }
+
+        double startAngle = 90.0; // start from top
+        for (int i = 0; i < counts.length; i++) {
+            double sweep = (counts[i] / (double) total) * 360.0;
+            if (sweep == 0) { startAngle += sweep; continue; }
+
+            gc.setFill(Color.web(colors[i]));
+            gc.fillArc(cx - r, cy - r, r * 2, r * 2, startAngle, sweep,
+                    javafx.scene.shape.ArcType.ROUND);
+            startAngle += sweep;
+        }
+
+        // Donut hole
+        gc.setFill(Color.WHITE);
+        double innerR = r * 0.55;
+        gc.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+
+        // Center label
+        gc.setFill(Color.web("#1F2937"));
+        gc.setFont(Font.font("System", FontWeight.BOLD, 14));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(String.valueOf(total), cx, cy + 2);
+        gc.setFont(Font.font("System", 10));
+        gc.setFill(Color.web("#9CA3AF"));
+        gc.fillText("sản phẩm", cx, cy + 14);
     }
 
 
@@ -680,6 +883,23 @@ public class SellerController {
             dpEnd.setPromptText("Chọn ngày kết thúc...");
             dpEnd.setMaxWidth(Double.MAX_VALUE);
 
+            // ── Giờ kết thúc ──
+            Label endTimeHint = new Label("Giờ kết thúc");
+            endTimeHint.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
+            ObservableList<String> hours = FXCollections.observableArrayList();
+            for (int h = 0; h < 24; h++) hours.add(String.format("%02d", h));
+            ObservableList<String> minutes = FXCollections.observableArrayList("00", "15", "30", "45");
+            ComboBox<String> cbHour = new ComboBox<>(hours);
+            ComboBox<String> cbMin  = new ComboBox<>(minutes);
+            cbHour.setValue("23");
+            cbMin.setValue("59");
+            cbHour.setStyle("-fx-background-radius: 6;");
+            cbMin.setStyle("-fx-background-radius: 6;");
+            Label colonLabel = new Label(":");
+            colonLabel.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #374151;");
+            HBox endTimeBox = new HBox(6, cbHour, colonLabel, cbMin);
+            endTimeBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
             Button btnPost = new Button("Đăng lên sàn  →");
             btnPost.setMaxWidth(Double.MAX_VALUE);
             btnPost.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; " +
@@ -709,8 +929,16 @@ public class SellerController {
                         return;
                     }
 
+                    int endHour = Integer.parseInt(cbHour.getValue());
+                    int endMin  = Integer.parseInt(cbMin.getValue());
+                    java.time.LocalDateTime endDateTime = endDate.atTime(endHour, endMin, 0);
+                    if (!endDateTime.isAfter(startDate.atStartOfDay())) {
+                        SceneUtil.showAlert("Giờ không hợp lệ", "Thời gian kết thúc phải sau thời gian bắt đầu!");
+                        return;
+                    }
+
                     String startTime = startDate.atStartOfDay().withNano(0).toString();
-                    String endTime   = endDate.atTime(23, 59, 59).toString();
+                    String endTime   = endDateTime.withNano(0).toString();
                     btnPost.setDisable(true);
                     btnPost.setText("Đang đăng...");
                     new Thread(() -> {
@@ -739,6 +967,7 @@ public class SellerController {
                     priceHint, priceField,
                     startHint, dpStart,
                     endHint, dpEnd,
+                    endTimeHint, endTimeBox,
                     btnPost);
         }
 
@@ -1059,7 +1288,7 @@ public class SellerController {
     private String formatDisplayTime(String timeStr) {
         if (timeStr == null) return "—";
         try {
-            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr);
+            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
             return String.format("%02d/%02d/%d  %02d:%02d",
                     dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear(),
                     dt.getHour(), dt.getMinute());
@@ -1202,58 +1431,29 @@ public class SellerController {
                 finishedAuctionVBox.getChildren().add(empty);
             } else {
                 for (Auction a : auctions) {
-                    // Tái sử dụng hàm build dòng lịch sử giao dịch sẵn có của bạn
                     finishedAuctionVBox.getChildren().add(buildAuctionHistoryRow(a));
                 }
             }
         }
 
-        // 2. Tính toán và vẽ biểu đồ Doanh thu theo tháng (chartRevenueBar)
-        if (chartRevenueArea != null) {
-            chartRevenueArea.setAnimated(false);
-            chartRevenueArea.getXAxis().setAnimated(false);
-            chartRevenueArea.getYAxis().setAnimated(false);
+        // 2. Tính doanh thu theo tháng rồi vẽ lên Canvas
+        if (chartRevenueArea == null) return;
 
-            chartRevenueArea.getData().clear();
-            XYChart.Series<String, Number> series = new XYChart.Series<>();
-            series.setName("Doanh thu đạt được (₫)");
-
-            double[] monthlyRevenue = new double[12];
-            for (Auction a : auctions) {
-                try {
-                    if (a.getEndTime() != null) {
-                        String timeStr = a.getEndTime().replace(" ", "T");
-                        java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr);
-                        monthlyRevenue[dt.getMonthValue() - 1] += a.getCurrentPrice();
-                    }
-                } catch (Exception e) {
-                    System.err.println("Lỗi parse thời gian tại Auction ID " + a.getId() + ": " + e.getMessage());
+        double[] monthlyRevenue = new double[12];
+        for (Auction a : auctions) {
+            try {
+                if (a.getEndTime() != null) {
+                    String timeStr = a.getEndTime().replace(" ", "T");
+                    java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
+                    monthlyRevenue[dt.getMonthValue() - 1] += a.getCurrentPrice();
                 }
+            } catch (Exception e) {
+                System.err.println("Lỗi parse thời gian tại Auction ID " + a.getId() + ": " + e.getMessage());
             }
-
-            String[] monthLabels = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"};
-            for (int i = 0; i < 12; i++) {
-                series.getData().add(new XYChart.Data<>(monthLabels[i], monthlyRevenue[i]));
-            }
-            chartRevenueArea.getData().add(series);
-
-            // Style data points + tooltip
-            Platform.runLater(() -> {
-                for (XYChart.Data<String, Number> d : series.getData()) {
-                    if (d.getNode() != null) {
-                        d.getNode().setStyle(
-                                "-fx-background-color: #3B82F6, white;" +
-                                        "-fx-background-insets: 0, 2;" +
-                                        "-fx-background-radius: 5px;" +
-                                        "-fx-padding: 4px;"
-                        );
-                        Tooltip tp = new Tooltip(String.format("%,.0f ₫", d.getYValue().doubleValue()));
-                        tp.setStyle("-fx-font-size: 11; -fx-background-radius: 6;");
-                        Tooltip.install(d.getNode(), tp);
-                    }
-                }
-            });
         }
+
+        String[] monthLabels = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"};
+        drawLineChart(chartRevenueArea, monthLabels, monthlyRevenue, "Doanh Thu (₫)", "#3B82F6");
     }
 
     private HBox buildAuctionHistoryRow(Auction a) {
@@ -1286,8 +1486,8 @@ public class SellerController {
     private String formatHistoryTime(String timeStr) {
         if (timeStr == null) return "—";
         try {
-            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr);
-            return String.format("%02d/%02d/%d", dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear());
+            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
+            return String.format("%02d/%02d/%d %02d:%02d", dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear(), dt.getHour(), dt.getMinute());
         } catch (Exception e) { return timeStr; }
     }
 
@@ -1314,9 +1514,14 @@ public class SellerController {
 
     @FXML
     public void showLogout() {
-        SessionManager.clear();
-        SceneUtil.switchToScene(btnLogout, "/Client/view/Loginview.fxml", "Login");
+        new Thread(() -> {
+            userApi.logout();
+            Platform.runLater(() -> {
+                SceneUtil.switchToScene(btnLogout, "/Client/views/LoginView.fxml", "Đăng nhập");;
+            });
+        }).start();
     }
+
 
     @FXML private void handleSaveShop()    { SceneUtil.showAlert("Thành công", "Thông tin cửa hàng đã được lưu lại."); }
     private static int statusPriority(String s) {
