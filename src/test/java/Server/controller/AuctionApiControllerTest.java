@@ -88,7 +88,7 @@ public class AuctionApiControllerTest {
         JsonObject bodyJson = new JsonObject();
         bodyJson.addProperty("itemId", 10);
         bodyJson.addProperty("startingPrice", 500.0);
-        bodyJson.addProperty("endTime", "2026-06-01T12:00:00");
+        bodyJson.addProperty("endTime", "2026-06-12T12:00:00");
         when(requestWrapper.getBody()).thenReturn(bodyJson.toString());
 
         when(auctionService.createAuction(any(Auction.class), eq(seller.getId()))).thenReturn(null);
@@ -104,10 +104,10 @@ public class AuctionApiControllerTest {
         JsonObject bodyJson = new JsonObject();
         bodyJson.addProperty("itemId", 10);
         bodyJson.addProperty("startingPrice", 500.0);
-        bodyJson.addProperty("endTime", "2026-06-01T12:00:00");
+        bodyJson.addProperty("endTime", "2026-06-12T12:00:00");
         when(requestWrapper.getBody()).thenReturn(bodyJson.toString());
 
-        Auction mockCreated = new Auction(1, 10, 1, 500.0, 500.0, LocalDateTime.now(), LocalDateTime.parse("2026-06-01T12:00:00"), "UPCOMING");
+        Auction mockCreated = new Auction(1, 10, 1, 500.0, 500.0, LocalDateTime.now(), LocalDateTime.parse("2026-06-12T12:00:00"), "UPCOMING");
         when(auctionService.createAuction(any(Auction.class), eq(seller.getId()))).thenReturn(mockCreated);
 
         auctionApiController.createAuction(requestWrapper, responseWrapper);

@@ -104,6 +104,17 @@ public class BiddingService {
                 User user = userDAO.findById(conn, userId);
                 if (user == null) throw new RuntimeException("User not found");
 
+                // Remember previous leader BEFORE inserting the new bid
+                Integer previousLeader = bidDAO.findHighestBidder(auctionId);
+                if (previousLeader != null && previousLeader == userId){
+                    if (notificationService != null) {
+                        notificationService.send(userId,
+                                String.format("⚠️ Bạn đang là người giữ giá cao nhất trong phiên #%d rồi!",
+                                        auctionId));
+                    }
+                    return;
+                }
+
                 // Only charge the increment above the user's existing highest bid on this auction.
                 double previousBid = bidDAO.getMaxBidByUser(conn, userId, auctionId);
                 double extra = amount - previousBid;
@@ -113,9 +124,6 @@ public class BiddingService {
                     throw new RuntimeException(
                         String.format("Số dư không đủ. Bạn cần thêm %,.0f ₫ để đặt giá này.", extra - user.getBalance()));
                 }
-
-                // Remember previous leader BEFORE inserting the new bid
-                Integer previousLeader = bidDAO.findHighestBidder(auctionId);
 
                 // All three writes share the same connection and will commit or rollback together.
 
@@ -139,6 +147,11 @@ public class BiddingService {
                     notificationService.send(previousLeader,
                         String.format("📢 Bạn đã bị vượt giá trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
                             auctionId, amount));
+                }
+                if (notificationService != null) {
+                    notificationService.send(userId,
+                            String.format("🎉 Tuyệt vời! Bạn đã đè giá thành công trong phiên #%d! Bạn đang dẫn đầu với mức giá: %,.0f ₫.",
+                                    auctionId, amount));
                 }
 
                 // Broadcast real-time update (includes new end-time when anti-snipe fired)
@@ -171,9 +184,18 @@ public class BiddingService {
         if (auction.getEndTime().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Auction has ended");
         }
+        Integer previousLeader = bidDAO.findHighestBidder(auctionId);
 
-        if (price <= auction.getCurrentPrice()) {
-            throw new RuntimeException("Bid must be higher than current price of " + auction.getCurrentPrice());
+        if (previousLeader== null) {
+            // Nếu chưa có ai mở bát, Bot được quyền đặt BẰNG giá khởi điểm
+            if (price < auction.getCurrentPrice()) {
+                throw new RuntimeException("Giá đặt phải lớn hơn hoặc bằng giá khởi điểm: " + auction.getCurrentPrice());
+            }
+        } else {
+            // Nếu đã có người dẫn đầu rồi, lượt đặt tiếp theo BẮT BUỘC phải lớn hơn tuyệt đối
+            if (price <= auction.getCurrentPrice()) {
+                throw new RuntimeException("Giá đặt phải lớn hơn giá hiện tại của " + auction.getCurrentPrice());
+            }
         }
 
         // Read the bidder's current balance inside the same transaction.
