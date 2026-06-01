@@ -18,15 +18,13 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
@@ -82,9 +80,13 @@ public class SellerController {
     @FXML private Label lblNewOrders;
     @FXML private Label lblActiveProducts;
     @FXML private Label lblActiveAuctions;
-    @FXML private Canvas chartWeekRevenue;
-    @FXML private Canvas chartCategories;
-    @FXML private Canvas chartRevenueArea;
+    @FXML private LineChart<String, Number>  chartWeekRevenue;
+    @FXML private CategoryAxis               weekXAxis;
+    @FXML private NumberAxis                 weekYAxis;
+    @FXML private PieChart chartCategories;
+    @FXML private AreaChart<String, Number>  chartRevenueArea;
+    @FXML private CategoryAxis               revenueXAxis;
+    @FXML private NumberAxis                 revenueYAxis;
     @FXML private VBox   pieLegend;
     // ── Tab Đấu giá ──
     @FXML private Label     lblSellerActiveAuctions;
@@ -346,153 +348,54 @@ public class SellerController {
         if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", monthRevenue));
     }
 
-    // ── Biểu đồ Doanh thu tuần — dữ liệu thật từ sellerAuctions ──
+    // ── Biểu đồ Doanh thu tuần — LineChart ──
     private void setupWeekRevenueChart() {
         if (chartWeekRevenue == null) return;
 
-        // Lấy 7 ngày gần nhất (hôm nay là index 6)
         java.time.LocalDate today = java.time.LocalDate.now();
+        String[] dayNames = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
         String[] labels = new String[7];
         double[] values = new double[7];
 
-        // dayNames[0]=CN, [1]=T2, ..., [6]=T7 (khớp DayOfWeek.getValue() % 7)
-        String[] dayNames = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
         for (int i = 0; i < 7; i++) {
             java.time.LocalDate day = today.minusDays(6 - i);
             labels[i] = dayNames[day.getDayOfWeek().getValue() % 7];
             values[i] = 0;
         }
 
-        // Cộng doanh thu từ các phiên FINISHED kết thúc trong 7 ngày qua
         for (Auction a : sellerAuctions) {
-            if (!"FINISHED".equalsIgnoreCase(a.getStatus())) continue;
-            if (a.getEndTime() == null) continue;
+            if (!"FINISHED".equalsIgnoreCase(a.getStatus()) || a.getEndTime() == null) continue;
             try {
                 java.time.LocalDate endDate = java.time.LocalDateTime
-                        .parse(a.getEndTime().replace(" ", "T"))
-                        .toLocalDate();
+                        .parse(a.getEndTime().replace(" ", "T")).toLocalDate();
                 long daysAgo = today.toEpochDay() - endDate.toEpochDay();
-                if (daysAgo >= 0 && daysAgo < 7) {
-                    int idx = (int)(6 - daysAgo);
-                    values[idx] += a.getCurrentPrice();
-                }
+                if (daysAgo >= 0 && daysAgo < 7) values[(int)(6 - daysAgo)] += a.getCurrentPrice();
             } catch (Exception ignored) {}
         }
 
-        drawLineChart(chartWeekRevenue, labels, values, "Doanh thu (₫)", "#F97316");
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        for (int i = 0; i < 7; i++) {
+            series.getData().add(new XYChart.Data<>(labels[i], values[i]));
+        }
+
+        chartWeekRevenue.getData().clear();
+        chartWeekRevenue.getData().add(series);
+
+        // Format trục Y hiển thị triệu ₫
+        if (weekYAxis != null) {
+            weekYAxis.setTickLabelFormatter(new javafx.util.StringConverter<Number>() {
+                @Override public String toString(Number n) {
+                    double v = n.doubleValue();
+                    if (v >= 1_000_000) return String.format("%.0fM", v / 1_000_000);
+                    if (v >= 1_000)     return String.format("%.0fK", v / 1_000);
+                    return String.format("%.0f", v);
+                }
+                @Override public Number fromString(String s) { return 0; }
+            });
+        }
     }
 
-    /**
-     * Vẽ line chart lên Canvas.
-     * @param canvas   canvas mục tiêu
-     * @param labels   nhãn trục X
-     * @param values   giá trị tương ứng
-     * @param yLabel   tiêu đề trục Y
-     * @param hexColor màu đường kẻ (hex, vd "#F97316")
-     */
-    private void drawLineChart(Canvas canvas, String[] labels, double[] values, String yLabel, String hexColor) {
-        double W = canvas.getWidth();
-        double H = canvas.getHeight();
-
-        double padL = 68, padR = 18, padT = 18, padB = 42;
-        double chartW = W - padL - padR;
-        double chartH = H - padT - padB;
-
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, W, H);
-
-        // ── Grid & Y-axis labels ──
-        double maxVal = 0;
-        for (double v : values) if (v > maxVal) maxVal = v;
-        double niceMax = Math.ceil(maxVal / 1_000_000.0) * 1_000_000.0;
-        int gridLines = 5;
-
-        gc.setFont(Font.font("System", 10));
-        gc.setTextAlign(TextAlignment.RIGHT);
-        gc.setFill(Color.web("#9CA3AF"));
-
-        for (int i = 0; i <= gridLines; i++) {
-            double yRatio = (double) i / gridLines;
-            double yPx = padT + chartH - yRatio * chartH;
-            double yVal = yRatio * niceMax;
-
-            // Grid line
-            gc.setStroke(Color.web("#F3F4F6"));
-            gc.setLineWidth(1);
-            gc.strokeLine(padL, yPx, padL + chartW, yPx);
-
-            // Y label (triệu ₫)
-            String lbl = yVal >= 1_000_000
-                    ? String.format("%.0fM", yVal / 1_000_000)
-                    : String.format("%.0fK", yVal / 1_000);
-            gc.fillText(lbl, padL - 6, yPx + 4);
-        }
-
-        // ── X positions ──
-        int n = labels.length;
-        double step = chartW / (n - 1);
-        double[] xPx = new double[n];
-        double[] yPx = new double[n];
-        for (int i = 0; i < n; i++) {
-            xPx[i] = padL + i * step;
-            yPx[i] = padT + chartH - (values[i] / niceMax) * chartH;
-        }
-
-        // ── Area gradient fill ──
-        LinearGradient areaGrad = new LinearGradient(0, padT, 0, padT + chartH, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web(hexColor, 0.22)),
-                new Stop(1, Color.web(hexColor, 0.0)));
-        gc.setFill(areaGrad);
-        gc.beginPath();
-        gc.moveTo(xPx[0], padT + chartH);
-        gc.lineTo(xPx[0], yPx[0]);
-        for (int i = 1; i < n; i++) {
-            double cpX = (xPx[i - 1] + xPx[i]) / 2;
-            gc.bezierCurveTo(cpX, yPx[i - 1], cpX, yPx[i], xPx[i], yPx[i]);
-        }
-        gc.lineTo(xPx[n - 1], padT + chartH);
-        gc.closePath();
-        gc.fill();
-
-        // ── Line ──
-        gc.setStroke(Color.web(hexColor));
-        gc.setLineWidth(2.5);
-        gc.beginPath();
-        gc.moveTo(xPx[0], yPx[0]);
-        for (int i = 1; i < n; i++) {
-            double cpX = (xPx[i - 1] + xPx[i]) / 2;
-            gc.bezierCurveTo(cpX, yPx[i - 1], cpX, yPx[i], xPx[i], yPx[i]);
-        }
-        gc.stroke();
-
-        // ── Data points & X labels ──
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.setFill(Color.web("#6B7280"));
-        gc.setFont(Font.font("System", 10));
-
-        for (int i = 0; i < n; i++) {
-            // Outer circle (white)
-            gc.setFill(Color.WHITE);
-            gc.fillOval(xPx[i] - 5, yPx[i] - 5, 10, 10);
-            // Inner circle (accent)
-            gc.setFill(Color.web(hexColor));
-            gc.fillOval(xPx[i] - 3, yPx[i] - 3, 6, 6);
-            // Border
-            gc.setStroke(Color.web(hexColor));
-            gc.setLineWidth(1.5);
-            gc.strokeOval(xPx[i] - 5, yPx[i] - 5, 10, 10);
-
-            // X label
-            gc.setFill(Color.web("#6B7280"));
-            gc.fillText(labels[i], xPx[i], padT + chartH + 16);
-        }
-
-        // ── Y-axis line ──
-        gc.setStroke(Color.web("#E5E7EB"));
-        gc.setLineWidth(1);
-        gc.strokeLine(padL, padT, padL, padT + chartH);
-    }
-    // ── Biểu đồ hình tròn phân loại danh mục (Canvas) ──
+    // ── Biểu đồ hình tròn phân loại danh mục — PieChart ──
     private static final String[][] PIE_LEGEND = {
             {"Điện tử",    "#3B82F6"},
             {"Nghệ thuật", "#EC4899"},
@@ -507,83 +410,47 @@ public class SellerController {
         long total       = electronics + art + vehicle;
         long[] counts    = {electronics, art, vehicle};
 
-        Platform.runLater(() -> {
-            drawPieChart(chartCategories, counts, total);
+        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList(
+                new PieChart.Data("Điện tử ("    + electronics + ")", electronics),
+                new PieChart.Data("Nghệ thuật (" + art         + ")", art),
+                new PieChart.Data("Xe cộ ("      + vehicle     + ")", vehicle)
+        );
 
-            // Custom legend
-            if (pieLegend != null) {
-                pieLegend.getChildren().clear();
-                for (int i = 0; i < PIE_LEGEND.length; i++) {
-                    String lbl   = PIE_LEGEND[i][0];
-                    String color = PIE_LEGEND[i][1];
-                    long cnt     = counts[i];
-                    double pct   = total > 0 ? (cnt * 100.0 / total) : 0;
+        chartCategories.setData(pieData);
 
-                    javafx.scene.shape.Rectangle dot = new javafx.scene.shape.Rectangle(10, 10);
-                    dot.setArcWidth(3); dot.setArcHeight(3);
-                    dot.setFill(javafx.scene.paint.Color.web(color));
-
-                    Label lblName = new Label(lbl);
-                    lblName.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-                    HBox.setHgrow(lblName, Priority.ALWAYS);
-
-                    Label lblVal = new Label(String.format("%,.0f sp  •  %.0f%%", (double) cnt, pct));
-                    lblVal.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
-
-                    HBox row = new HBox(8, dot, lblName, lblVal);
-                    row.setAlignment(Pos.CENTER_LEFT);
-                    pieLegend.getChildren().add(row);
-                }
-            }
-        });
-    }
-
-    private void drawPieChart(Canvas canvas, long[] counts, long total) {
-        double W = canvas.getWidth();
-        double H = canvas.getHeight();
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, W, H);
-
+        // Tô màu từng phần theo PIE_LEGEND
         String[] colors = {"#3B82F6", "#EC4899", "#10B981"};
-        double cx = W / 2, cy = H / 2;
-        double r  = Math.min(W, H) / 2.0 - 12;
-
-        if (total == 0) {
-            // Empty state: grey full circle
-            gc.setFill(Color.web("#E5E7EB"));
-            gc.fillOval(cx - r, cy - r, r * 2, r * 2);
-            gc.setFill(Color.web("#9CA3AF"));
-            gc.setFont(Font.font("System", 12));
-            gc.setTextAlign(TextAlignment.CENTER);
-            gc.fillText("Chưa có dữ liệu", cx, cy + 4);
-            return;
+        for (int i = 0; i < pieData.size(); i++) {
+            pieData.get(i).getNode().setStyle("-fx-pie-color: " + colors[i] + ";");
         }
 
-        double startAngle = 90.0; // start from top
-        for (int i = 0; i < counts.length; i++) {
-            double sweep = (counts[i] / (double) total) * 360.0;
-            if (sweep == 0) { startAngle += sweep; continue; }
+        // Cập nhật custom legend
+        if (pieLegend != null) {
+            pieLegend.getChildren().clear();
+            for (int i = 0; i < PIE_LEGEND.length; i++) {
+                String lbl   = PIE_LEGEND[i][0];
+                String color = PIE_LEGEND[i][1];
+                long cnt     = counts[i];
+                double pct   = total > 0 ? (cnt * 100.0 / total) : 0;
 
-            gc.setFill(Color.web(colors[i]));
-            gc.fillArc(cx - r, cy - r, r * 2, r * 2, startAngle, sweep,
-                    javafx.scene.shape.ArcType.ROUND);
-            startAngle += sweep;
+                javafx.scene.shape.Rectangle dot = new javafx.scene.shape.Rectangle(10, 10);
+                dot.setArcWidth(3); dot.setArcHeight(3);
+                dot.setFill(javafx.scene.paint.Color.web(color));
+
+                Label lblName = new Label(lbl);
+                lblName.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
+                HBox.setHgrow(lblName, Priority.ALWAYS);
+
+                Label lblVal = new Label(String.format("%,.0f sp  •  %.0f%%", (double) cnt, pct));
+                lblVal.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
+
+                HBox row = new HBox(8, dot, lblName, lblVal);
+                row.setAlignment(Pos.CENTER_LEFT);
+                pieLegend.getChildren().add(row);
+            }
         }
-
-        // Donut hole
-        gc.setFill(Color.WHITE);
-        double innerR = r * 0.55;
-        gc.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
-
-        // Center label
-        gc.setFill(Color.web("#1F2937"));
-        gc.setFont(Font.font("System", FontWeight.BOLD, 14));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(String.valueOf(total), cx, cy + 2);
-        gc.setFont(Font.font("System", 10));
-        gc.setFill(Color.web("#9CA3AF"));
-        gc.fillText("sản phẩm", cx, cy + 14);
     }
+
 
 
     // ── Thêm sản phẩm mới  ──
@@ -1436,15 +1303,15 @@ public class SellerController {
             }
         }
 
-        // 2. Tính doanh thu theo tháng rồi vẽ lên Canvas
+        // 2. Tính doanh thu theo tháng rồi đổ vào AreaChart
         if (chartRevenueArea == null) return;
 
         double[] monthlyRevenue = new double[12];
         for (Auction a : auctions) {
             try {
                 if (a.getEndTime() != null) {
-                    String timeStr = a.getEndTime().replace(" ", "T");
-                    java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
+                    java.time.LocalDateTime dt = java.time.LocalDateTime.parse(
+                            a.getEndTime().replace(" ", "T"));
                     monthlyRevenue[dt.getMonthValue() - 1] += a.getCurrentPrice();
                 }
             } catch (Exception e) {
@@ -1452,8 +1319,27 @@ public class SellerController {
             }
         }
 
-        String[] monthLabels = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"};
-        drawLineChart(chartRevenueArea, monthLabels, monthlyRevenue, "Doanh Thu (₫)", "#3B82F6");
+        String[] monthLabels = {"T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"};
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        for (int i = 0; i < 12; i++) {
+            series.getData().add(new XYChart.Data<>(monthLabels[i], monthlyRevenue[i]));
+        }
+
+        chartRevenueArea.getData().clear();
+        chartRevenueArea.getData().add(series);
+
+        // Format trục Y
+        if (revenueYAxis != null) {
+            revenueYAxis.setTickLabelFormatter(new javafx.util.StringConverter<Number>() {
+                @Override public String toString(Number n) {
+                    double v = n.doubleValue();
+                    if (v >= 1_000_000) return String.format("%.0fM", v / 1_000_000);
+                    if (v >= 1_000)     return String.format("%.0fK", v / 1_000);
+                    return String.format("%.0f", v);
+                }
+                @Override public Number fromString(String s) { return 0; }
+            });
+        }
     }
 
     private HBox buildAuctionHistoryRow(Auction a) {
