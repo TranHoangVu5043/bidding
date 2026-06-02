@@ -7,10 +7,10 @@ package Client.networking;
 public final class ServerConfig {
 
     public static final String HTTP_BASE =
-            System.getProperty("server.http", "http://127.0.0.1:8080");
+            System.getProperty("server.http", "https://bidding-production-3e9a.up.railway.app");
 
     public static final String WS_URL =
-            System.getProperty("server.ws", "ws://localhost:8081");
+            System.getProperty("server.ws", "ws://roundhouse.proxy.rlwy.net:43153");
 
     private ServerConfig() {}
 }
