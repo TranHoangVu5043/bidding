@@ -12,6 +12,7 @@ import Server.model.users.User;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,17 +52,15 @@ public class BiddingService {
         return notificationService;
     }
 
-    /** Lightweight record carrying per-auction bid summary for one user. */
+    // summary of a user's activity on one auction — highest bid, how many times they bid, did they win
     public record BidHistoryEntry(Auction auction, double myHighestBid, int myBidCount, boolean won) {}
 
     public List<Auction> getAuctionsForBidder(int userId) {
         return auctionDAO.findByBidder(userId);
     }
 
-    /**
-     * Returns one {@link BidHistoryEntry} per FINISHED auction the user placed bids on.
-     * "won" is true when the user's highest bid equals the auction's final price.
-     */
+    // all finished auctions this user bid on, newest first
+    // "won" means their highest bid matches the final price
     public List<BidHistoryEntry> getBidHistoryForUser(int userId) {
         List<Auction> finished = auctionDAO.findByBidder(userId).stream()
                 .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
@@ -72,7 +71,7 @@ public class BiddingService {
         for (Auction a : finished) {
             double myHighestBid = bidDAO.getMaxBidByUser(userId, a.getId());
             int myBidCount      = bidDAO.getBidCountByUser(userId, a.getId());
-            // For a finished auction currentPrice IS the winning bid
+            // on a finished auction, currentPrice is the winning price
             boolean won = myHighestBid > 0 && myHighestBid == a.getCurrentPrice();
             result.add(new BidHistoryEntry(a, myHighestBid, myBidCount, won));
         }
@@ -84,7 +83,7 @@ public class BiddingService {
             conn.setAutoCommit(false);
 
             try {
-                // Lock the auction row for this transaction to prevent concurrent updates.
+                // lock the row so two bids can't race each other
                 Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);
                 if (auction == null) throw new RuntimeException("Auction not found");
 
@@ -92,7 +91,7 @@ public class BiddingService {
                     throw new RuntimeException("Auction is not active");
                 }
 
-                if (auction.getEndTime().isBefore(LocalDateTime.now())) {
+                if (auction.getEndTime().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
                     throw new RuntimeException("Auction has ended");
                 }
 
@@ -100,31 +99,30 @@ public class BiddingService {
                     throw new RuntimeException("Bid must be higher than current price of " + auction.getCurrentPrice());
                 }
 
-                // Read the bidder's current balance inside the same transaction.
+                // read balance inside the transaction so we get a consistent snapshot
                 User user = userDAO.findById(conn, userId);
                 if (user == null) throw new RuntimeException("User not found");
 
-                // Only charge the increment above the user's existing highest bid on this auction.
+                // only charge the gap above what they've already put in for this auction
                 double previousBid = bidDAO.getMaxBidByUser(conn, userId, auctionId);
                 double extra = amount - previousBid;
-                if (extra <= 0) extra = amount; // safety: treat as fresh bid if calc is wrong
+                if (extra <= 0) extra = amount; // shouldn't happen, but charge full if calc breaks
 
                 if (user.getBalance() < extra) {
                     throw new RuntimeException(
                         String.format("Số dư không đủ. Bạn cần thêm %,.0f ₫ để đặt giá này.", extra - user.getBalance()));
                 }
 
-                // Remember previous leader BEFORE inserting the new bid
+                // snapshot the current leader before we overwrite them
                 Integer previousLeader = bidDAO.findHighestBidder(auctionId);
 
-                // All three writes share the same connection and will commit or rollback together.
-
+                // all three writes go in together — commit or rollback as one unit
                 userDAO.updateBalance(conn, userId, user.getBalance() - extra);
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
 
-                // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
-                LocalDateTime now = LocalDateTime.now();
+                // anti-snipe: last-minute bid? give everyone 2 more minutes
+                LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
                 String newEndTimeIso = null;
                 if (now.isAfter(auction.getEndTime().minusMinutes(2)) && now.isBefore(auction.getEndTime())) {
                     LocalDateTime resetTo = now.plusMinutes(2);
@@ -134,14 +132,14 @@ public class BiddingService {
 
                 conn.commit();
 
-                // Notify the previous leader that they were outbid (fire-and-forget, outside TX)
+                // tell whoever just got outbid — outside the TX so it doesn't block
                 if (previousLeader != null && previousLeader != userId && notificationService != null) {
                     notificationService.send(previousLeader,
                         String.format("📢 Bạn đã bị vượt giá trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
                             auctionId, amount));
                 }
 
-                // Broadcast real-time update (includes new end-time when anti-snipe fired)
+                // push the new price (and new end time if anti-snipe fired) to everyone watching
                 BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, newEndTimeIso);
 
                 if (autoBidConfigService != null)
@@ -158,9 +156,9 @@ public class BiddingService {
             throw new RuntimeException(e);
         }
     }
-    //Dành cho bot
+
+    // same as placeBid but called by the auto-bid bot inside an existing transaction
     public void placeBidInternal(Connection conn, int userId, int auctionId, double price) throws Exception {
-        // Lock the auction row for this transaction to prevent concurrent updates.
         Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);
         if (auction == null) throw new RuntimeException("Auction not found");
 
@@ -168,7 +166,7 @@ public class BiddingService {
             throw new RuntimeException("Auction is not active");
         }
 
-        if (auction.getEndTime().isBefore(LocalDateTime.now())) {
+        if (auction.getEndTime().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
             throw new RuntimeException("Auction has ended");
         }
 
@@ -176,11 +174,9 @@ public class BiddingService {
             throw new RuntimeException("Bid must be higher than current price of " + auction.getCurrentPrice());
         }
 
-        // Read the bidder's current balance inside the same transaction.
         User user = userDAO.findById(conn, userId);
         if (user == null) throw new RuntimeException("User not found");
 
-        // Only charge the increment above the user's existing highest bid on this auction.
         double previousBid = bidDAO.getMaxBidByUser(conn, userId, auctionId);
         double extra = price - previousBid;
         if (extra <= 0) extra = price; // safety fallback
@@ -189,38 +185,37 @@ public class BiddingService {
             throw new RuntimeException("Insufficient balance for auto-bid");
         }
 
-        // All three writes share the same connection and will commit or rollback together.
         userDAO.updateBalance(conn, userId, user.getBalance() - extra);
         auctionDAO.updateCurrentPrice(conn, auctionId, price);
         bidDAO.create(conn, userId, auctionId, price);
 
-        // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
-        LocalDateTime now = LocalDateTime.now();
+        // anti-snipe applies to bots too
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (now.isAfter(auction.getEndTime().minusMinutes(2)) && now.isBefore(auction.getEndTime())) {
             bidDAO.updateEndtime(conn, auctionId, now.plusMinutes(2));
         }
     }
-    public double getCurrentPriceforUpdate(Connection conn, int auctionId) throws Exception{
+
+    public double getCurrentPriceforUpdate(Connection conn, int auctionId) throws Exception {
         Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);
         if (auction == null) {
             throw new RuntimeException("Không tìm thấy phiên đấu giá");
         }
         return auction.getCurrentPrice();
-
-
     }
+
     public List<Bid> getBidHistory(int auctionId) {
         return bidDAO.getBidsByAuction(auctionId);
     }
 
-    public double getCurrentPrice(int auctionId){
+    public double getCurrentPrice(int auctionId) {
         try {
             Auction auction = auctionDAO.findById(auctionId);
-            if (auction == null){
-                throw  new RuntimeException("Không tìm thấy phiên đấu giá");
+            if (auction == null) {
+                throw new RuntimeException("Không tìm thấy phiên đấu giá");
             }
             return auction.getCurrentPrice();
-        }catch (RuntimeException e){
+        } catch (RuntimeException e) {
             System.out.println("Lỗi: " + e.getMessage());
             throw e;
         }

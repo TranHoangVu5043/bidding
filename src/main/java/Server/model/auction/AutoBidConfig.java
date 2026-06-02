@@ -1,6 +1,7 @@
 package Server.model.auction;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.PriorityQueue;
 
 public class AutoBidConfig implements Comparable<AutoBidConfig>{
@@ -18,7 +19,7 @@ public class AutoBidConfig implements Comparable<AutoBidConfig>{
         this.userId = userId;
         this.maxBid = maxBid;
         this.increment = increment;
-        this.createTime = LocalDateTime.now();
+        this.createTime = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public int getAuctionId() {

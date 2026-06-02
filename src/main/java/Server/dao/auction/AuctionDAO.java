@@ -127,7 +127,7 @@ public class AuctionDAO {
         }
     }
 
-    /** Transaction-aware price update — caller owns the connection. */
+    // runs inside an existing transaction — caller manages the connection
     public void updateCurrentPrice(Connection conn, int id, double price) throws SQLException {
         String sql = "UPDATE auctions SET current_price = ? WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -151,11 +151,8 @@ public class AuctionDAO {
         }
     }
 
-    /**
-     * Atomically transitions an auction to {@code status} only if it is not
-     * already in that state.  Returns {@code true} exactly once per transition,
-     * making it safe to use as a "first-time FINISHED" guard for refund logic.
-     */
+    // only flips the status if it's not already that value
+    // returns true exactly once per real transition — the refund logic uses this to avoid double-firing
     public boolean updateStatus(int auctionId, String status) {
         String sql = "UPDATE auctions SET status = ? WHERE id = ? AND status != ?";
         try (Connection conn = dataSource.getConnection();
@@ -184,7 +181,7 @@ public class AuctionDAO {
                 rs.getString("status")
         );
     }
-    /** Returns all auctions where the given user has placed at least one bid. */
+    // every auction this user has bid on at least once
     public List<Auction> findByBidder(int userId) {
         List<Auction> auctions = new ArrayList<>();
         String sql = """
@@ -204,13 +201,9 @@ public class AuctionDAO {
         return auctions;
     }
 
-    /**
-     * Returns all auctions whose status is stale and needs a refresh:
-     * <ul>
-     *   <li>UPCOMING auctions whose start_time has already passed (should become ACTIVE)</li>
-     *   <li>ACTIVE auctions whose end_time has already passed (should become FINISHED)</li>
-     * </ul>
-     */
+    // auctions where the status doesn't match the time anymore:
+    //   UPCOMING but start_time already passed → should be ACTIVE
+    //   ACTIVE but end_time already passed → should be FINISHED
     public List<Auction> findNeedingStatusUpdate() {
         String sql = """
             SELECT * FROM auctions

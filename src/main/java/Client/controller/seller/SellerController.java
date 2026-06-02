@@ -216,9 +216,9 @@ public class SellerController {
         String date = cmbHistoryDate   != null ? cmbHistoryDate.getValue() : "Tất cả";
 
         java.time.LocalDateTime cutoff = switch (date == null ? "Tất cả" : date) {
-            case "Hôm nay"    -> java.time.LocalDate.now().atStartOfDay();
-            case "7 ngày qua" -> java.time.LocalDateTime.now().minusDays(7);
-            case "30 ngày qua"-> java.time.LocalDateTime.now().minusDays(30);
+            case "Hôm nay"    -> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).toLocalDate().atStartOfDay();
+            case "7 ngày qua" -> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusDays(7);
+            case "30 ngày qua"-> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusDays(30);
             default           -> null;
         };
 
@@ -709,8 +709,15 @@ public class SellerController {
                         return;
                     }
 
-                    String startTime = startDate.atStartOfDay().withNano(0).toString();
-                    String endTime   = endDate.atTime(23, 59, 59).toString();
+                    java.time.ZoneId localZone = java.time.ZoneId.systemDefault();
+                    String startTime = startDate.atStartOfDay()
+                            .atZone(localZone)
+                            .withZoneSameInstant(java.time.ZoneOffset.UTC)
+                            .toLocalDateTime().withNano(0).toString();
+                    String endTime = endDate.atTime(23, 59, 59)
+                            .atZone(localZone)
+                            .withZoneSameInstant(java.time.ZoneOffset.UTC)
+                            .toLocalDateTime().toString();
                     btnPost.setDisable(true);
                     btnPost.setText("Đang đăng...");
                     new Thread(() -> {

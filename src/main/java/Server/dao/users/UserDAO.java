@@ -26,10 +26,9 @@ public class UserDAO {
         this.dataSource = dataSource;
     }
 
-    // ===== SHARED SQL FRAGMENT =====
     private static final String SELECT_USER = "SELECT * FROM users ";
 
-    /** Notification prefs are also accessible standalone via user_settings. */
+    // notification preferences — lives in user_settings, not on the user row itself
     public record NotifPrefs(boolean notifAuction, boolean notifEmail) {}
 
     public NotifPrefs getNotifPrefs(int userId) {
@@ -46,10 +45,8 @@ public class UserDAO {
         } catch (SQLException e) {
             log("getNotifPrefs failed", e);
         }
-        return new NotifPrefs(true, false); // safe defaults
+        return new NotifPrefs(true, false); // defaults if no settings row exists yet
     }
-
-    // ===== USER METHODS =====
 
     public User findByUsername(String username) {
         String sql = SELECT_USER + "WHERE username = ?";
@@ -100,7 +97,7 @@ public class UserDAO {
         return null;
     }
 
-    /** Creates a user and returns the generated DB id (-1 on failure). */
+    // inserts the user and returns the generated id, or -1 if something went wrong
     public int createUser(User user) {
         String sql = """
             INSERT INTO users(username, password, email, role, balance)
@@ -127,7 +124,7 @@ public class UserDAO {
         return -1;
     }
 
-    /** Inserts a default row into user_settings for a newly registered user. */
+    // sets up default notification settings for a new user
     public void createDefaultSettings(int userId) {
         String sql = """
             INSERT INTO user_settings (user_id)
@@ -186,7 +183,7 @@ public class UserDAO {
         }
     }
 
-    /** Transaction-aware balance update — caller owns the connection. */
+    // in-transaction balance update — caller owns the connection
     public void updateBalance(Connection conn, int userId, double newBalance) throws SQLException {
         String sql = "UPDATE users SET balance = ? WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -196,7 +193,7 @@ public class UserDAO {
         }
     }
 
-    /** Read user inside an existing transaction. */
+    // in-transaction user lookup — caller owns the connection
     public User findById(Connection conn, int id) throws SQLException {
         String sql = SELECT_USER + "WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -272,9 +269,6 @@ public class UserDAO {
         return false;
     }
 
-    // ===== SESSION METHODS =====
-
-
     public void createSession(int userId, String token, LocalDateTime expiresAt) {
         String sql = "INSERT INTO sessions(user_id, token, expires_at) VALUES (?, ?, ?)";
 
@@ -332,8 +326,6 @@ public class UserDAO {
     }
 
 
-    // ===== NOTIFICATION PREFS =====
-
     public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
         String sql = """
             INSERT INTO user_settings (user_id, notif_auction, notif_email)
@@ -364,13 +356,11 @@ public class UserDAO {
         }
     }
 
-    /** Returns a {@link UserSettings} object for the given user (never null). */
+    // wraps getNotifPrefs into a UserSettings object — never returns null
     public UserSettings getUserSettings(int userId) {
         NotifPrefs prefs = getNotifPrefs(userId);
         return new UserSettings(userId, prefs.notifAuction(), prefs.notifEmail());
     }
-
-    // ===== MAPPER =====
 
     private User mapRow(ResultSet rs) throws SQLException {
         String status = "ACTIVE";

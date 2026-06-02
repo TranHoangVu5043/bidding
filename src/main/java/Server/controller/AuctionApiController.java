@@ -15,6 +15,7 @@ import Server.service.users.UserService;
 import com.google.gson.Gson;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 public class AuctionApiController {
@@ -50,7 +51,7 @@ public class AuctionApiController {
 
             LocalDateTime startTime = body.startTime != null
                     ? LocalDateTime.parse(body.startTime)
-                    : LocalDateTime.now();
+                    : LocalDateTime.now(ZoneOffset.UTC);
             LocalDateTime endTime = LocalDateTime.parse(body.endTime);
 
             if (!endTime.isAfter(startTime)) {

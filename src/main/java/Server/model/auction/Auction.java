@@ -1,6 +1,7 @@
 package Server.model.auction;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 public class Auction {
 
@@ -105,6 +106,6 @@ public class Auction {
     }
 
     public boolean hasEnded() {
-        return endTime.isBefore(LocalDateTime.now());
+        return endTime.isBefore(LocalDateTime.now(ZoneOffset.UTC));
     }
 }

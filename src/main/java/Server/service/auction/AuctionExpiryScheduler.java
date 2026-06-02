@@ -8,17 +8,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Background scheduler that automatically transitions auctions between statuses:
- * <ul>
- *   <li>UPCOMING → ACTIVE  when start_time is reached</li>
- *   <li>ACTIVE   → FINISHED when end_time is reached (triggers refunds + winner notification)</li>
- * </ul>
- *
- * Runs every {@value #INTERVAL_SECONDS} seconds. Uses the existing
- * {@link AuctionService#refreshAuctionStatus} logic so refund and notification behaviour
- * stays in one place.
- */
+// Runs every 30s in the background and nudges any auction whose time has passed:
+//   UPCOMING → ACTIVE  (start time hit)
+//   ACTIVE   → FINISHED (end time hit, triggers refunds + winner notification)
+// All the real work happens inside refreshAuctionStatus so the logic stays in one place.
 public class AuctionExpiryScheduler {
 
     private static final int INTERVAL_SECONDS = 30;
@@ -29,7 +22,7 @@ public class AuctionExpiryScheduler {
     private final ScheduledExecutorService executor =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "auction-expiry-scheduler");
-                t.setDaemon(true); // don't block JVM shutdown
+                t.setDaemon(true); // dies with the JVM, no cleanup needed
                 return t;
             });
 
@@ -38,13 +31,12 @@ public class AuctionExpiryScheduler {
         this.auctionService = auctionService;
     }
 
-    /** Starts the periodic check. Safe to call multiple times — only the first call has effect. */
+    // kick it off — safe to call once at startup
     public void start() {
         executor.scheduleAtFixedRate(this::tick, 0, INTERVAL_SECONDS, TimeUnit.SECONDS);
         System.out.println("[AuctionExpiryScheduler] Started — checking every " + INTERVAL_SECONDS + "s");
     }
 
-    /** Stops the scheduler gracefully. */
     public void stop() {
         executor.shutdown();
     }
@@ -59,12 +51,12 @@ public class AuctionExpiryScheduler {
                 try {
                     auctionService.refreshAuctionStatus(auction.getId());
                 } catch (Exception e) {
-                    System.err.println("[AuctionExpiryScheduler] Error refreshing auction #"
+                    System.err.println("[AuctionExpiryScheduler] Failed on auction #"
                             + auction.getId() + ": " + e.getMessage());
                 }
             }
         } catch (Exception e) {
-            System.err.println("[AuctionExpiryScheduler] Tick failed: " + e.getMessage());
+            System.err.println("[AuctionExpiryScheduler] Tick crashed: " + e.getMessage());
         }
     }
 }

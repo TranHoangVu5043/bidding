@@ -10,6 +10,7 @@ import Server.model.auction.items.Item;
 import Server.service.NotificationService;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class AuctionService {
         if (item == null) return null;
         if (item.getOwnerId() != userId) return null;
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         auction.setStatus(auction.getStartTime().isAfter(now) ? "UPCOMING" : "ACTIVE");
         auction.setCurrentPrice(auction.getStartingPrice());
         return auctionDAO.create(auction);
@@ -57,9 +58,7 @@ public class AuctionService {
         return auctionDAO.findByOwnerId(ownerId);
     }
 
-    /**
-     * Cancels an auction. Only allowed while the auction has not yet finished or been finalized.
-     */
+    // shortcut — non-admin cancels default to ownership check
     public boolean cancelAuction(int auctionId, int userId) {
         return cancelAuction(auctionId, userId, false);
     }
@@ -71,11 +70,11 @@ public class AuctionService {
 
         String status = auction.getStatus();
         if ("FINISHED".equals(status) || "PAID".equals(status)) {
-            return false; // cannot cancel a concluded auction
+            return false; // can't cancel something that's already done
         }
 
-        // 1. Refund bidders BEFORE deleting rows (bids must still be readable)
-        //    Each user paid their highest bid under the delta-charge system.
+        // refund everyone BEFORE deleting anything — we still need to read the bid rows
+        // each user only ever paid their single highest bid, so that's what we give back
         List<Bid> bids = bidDAO.getBidsByAuction(auctionId);
         Map<Integer, Double> refunds = new HashMap<>();
         for (Bid b : bids) {
@@ -94,25 +93,23 @@ public class AuctionService {
             }
         }
 
-        // 2. Delete bids first (avoids FK constraint if no CASCADE), then the auction itself
+        // bids first to avoid FK violations, then the auction row itself
         bidDAO.deleteByAuctionId(auctionId);
         auctionDAO.deleteAuction(auctionId);
 
         return true;
     }
 
-    /**
-     * Syncs auction status with the current time.
-     * UPCOMING → ACTIVE → FINISHED (terminal states PAID/CANCELED are never overwritten).
-     */
+    // looks at the current time and moves the auction to the right status
+    // UPCOMING → ACTIVE → FINISHED; PAID is terminal and won't be touched
     public void refreshAuctionStatus(int auctionId) {
         Auction auction = auctionDAO.findById(auctionId);
         if (auction == null) return;
 
         String current = auction.getStatus();
-        if ("PAID".equals(current)) return; // terminal state — cancelled auctions are deleted
+        if ("PAID".equals(current)) return; // terminal — leave it alone
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         String newStatus;
         if (now.isBefore(auction.getStartTime())) {
@@ -124,13 +121,14 @@ public class AuctionService {
         }
 
         if (!current.equals(newStatus)) {
-            // updateStatus returns true only on the first actual row change, preventing double-refunds
+            // updateStatus only returns true on the first actual DB change,
+            // so refund logic can't double-fire even if this runs twice quickly
             boolean didTransition = auctionDAO.updateStatus(auctionId, newStatus);
 
             if (didTransition && "FINISHED".equals(newStatus)) {
                 Integer winnerId = bidDAO.findHighestBidder(auctionId);
 
-                // Refund every losing bidder their highest bid (they only ever paid that amount)
+                // losers get their money back; the winner already paid so they keep it
                 if (userDAO != null) {
                     List<Bid> bids = bidDAO.getBidsByAuction(auctionId);
                     Map<Integer, Double> maxBidPerUser = new HashMap<>();
@@ -139,7 +137,7 @@ public class AuctionService {
                     }
                     for (Map.Entry<Integer, Double> entry : maxBidPerUser.entrySet()) {
                         int bidderId = entry.getKey();
-                        if (winnerId != null && bidderId == winnerId) continue; // winner keeps their payment
+                        if (winnerId != null && bidderId == winnerId) continue;
                         double refund = entry.getValue();
                         userDAO.addBalance(bidderId, refund);
                         if (notifService != null) {
@@ -150,7 +148,7 @@ public class AuctionService {
                     }
                 }
 
-                // Notify winner
+                // let the winner know they won
                 if (winnerId != null && notifService != null) {
                     notifService.send(winnerId,
                         String.format("🎉 Chúc mừng! Bạn đã thắng phiên đấu giá #%d với giá %,.0f ₫!",
@@ -159,14 +157,8 @@ public class AuctionService {
             }
         }
     }
-//    public List<Auction> getAllActiveAuctions(){
-//        List<Auction> list = auctionDAO.getActiveAuctions();
-//        return list;
-//    }
 
-    /**
-     * Marks the auction as FINISHED and returns the winner's user ID, or null if no bids.
-     */
+    // force-finish and return who won (null = no bids)
     public Integer finalizeAuction(int auctionId) {
         Auction auction = auctionDAO.findById(auctionId);
         if (auction == null) return null;

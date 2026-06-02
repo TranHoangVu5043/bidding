@@ -461,17 +461,11 @@ public class UserController {
         }).start();
     }
 
-    /**
-     * Starts a 1-second JavaFX Timeline that:
-     * <ol>
-     *   <li>Updates every registered time label with the current remaining time.</li>
-     *   <li>When an auction's end time is reached, flips its card to a finished state
-     *       (status badge, disabled buttons) without requiring a full reload.</li>
-     * </ol>
-     */
+    // ticks every second — updates the countdown labels and flips cards to "ended"
+    // when the end time is reached (disables bid buttons, updates status badge)
     private void startCountdownTicker() {
         countdownTicker = new Timeline(new KeyFrame(javafx.util.Duration.seconds(1), e -> {
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
             // Iterate over a snapshot to avoid ConcurrentModificationException
             new java.util.HashMap<>(liveTimeLabels).forEach((auctionId, timeLabel) -> {
                 String endTimeStr = (String) timeLabel.getUserData();
@@ -705,7 +699,7 @@ public class UserController {
         if (endTimeStr == null) return "Không xác định";
         try {
             LocalDateTime endTime = LocalDateTime.parse(endTimeStr);
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
             if (!now.isBefore(endTime)) return "Đã kết thúc";
             Duration diff = Duration.between(now, endTime);
             long days    = diff.toDays();
@@ -1256,7 +1250,7 @@ public class UserController {
         if (isoTime == null) return "";
         try {
             java.time.LocalDateTime dt = java.time.LocalDateTime.parse(isoTime);
-            java.time.Duration diff = java.time.Duration.between(dt, java.time.LocalDateTime.now());
+            java.time.Duration diff = java.time.Duration.between(dt, java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
             if (diff.toMinutes() < 1) return "Vừa xong";
             if (diff.toMinutes() < 60) return diff.toMinutes() + " phút trước";
             if (diff.toHours() < 24) return diff.toHours() + " giờ trước";

@@ -8,6 +8,7 @@ import Server.model.users.records.UserRow;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,7 +55,7 @@ public class UserService {
 
         // create session
         String token = UUID.randomUUID().toString();
-        LocalDateTime expiresAt = LocalDateTime.now().plusHours(24);
+        LocalDateTime expiresAt = LocalDateTime.now(ZoneOffset.UTC).plusHours(24);
 
         userDAO.createSession(user.getId(), token, expiresAt);
 
