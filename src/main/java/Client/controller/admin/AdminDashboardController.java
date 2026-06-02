@@ -104,6 +104,13 @@ public class AdminDashboardController {
     @FXML private TextField        txtAuctionSearch;
     @FXML private ComboBox<String> cmbAuctionStatus;
     @FXML private FlowPane         auctionsAdminFlowPane;
+    @FXML private Button           btnAuctionPrev;
+    @FXML private Button           btnAuctionNext;
+    @FXML private Label            lblAuctionPage;
+
+    private static final int AUCTION_PAGE_SIZE = 21;
+    private int              currentAuctionPage = 0;
+    private List<Auction>    filteredAuctions   = List.of();
 
     // ── Tab Settings ──
     @FXML private PasswordField txtAdminOldPw;
@@ -708,17 +715,67 @@ public class AdminDashboardController {
         String kw = txtAuctionSearch  != null ? txtAuctionSearch.getText().trim().toLowerCase() : "";
         String st = cmbAuctionStatus  != null ? cmbAuctionStatus.getValue() : "Tất cả";
 
-        List<Auction> filtered = cachedAuctions.stream().filter(a -> {
-            // Tìm theo tên item hoặc tên seller
+        filteredAuctions = cachedAuctions.stream().filter(a -> {
             String itemName   = a.getItemName()   != null ? a.getItemName().toLowerCase()   : "";
             String sellerName = a.getSellerName() != null ? a.getSellerName().toLowerCase() : "";
             boolean mk = kw.isEmpty() || itemName.contains(kw) || sellerName.contains(kw);
             boolean ms = st == null || "Tất cả".equals(st) || st.equalsIgnoreCase(a.getStatus());
             return mk && ms;
-        }).collect(Collectors.toList());
+        }).sorted((a, b) -> Integer.compare(statusRank(a.getStatus()), statusRank(b.getStatus())))
+          .collect(Collectors.toList());
 
+        currentAuctionPage = 0;
+        renderAuctionPage();
+    }
+
+    private void renderAuctionPage() {
+        if (auctionsAdminFlowPane == null) return;
         auctionsAdminFlowPane.getChildren().clear();
-        filtered.forEach(a -> auctionsAdminFlowPane.getChildren().add(buildAuctionCard(a)));
+
+        if (filteredAuctions.isEmpty()) {
+            Label empty = new Label("Không có phiên đấu giá nào.");
+            empty.setStyle("-fx-font-size: 13; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
+            auctionsAdminFlowPane.getChildren().add(empty);
+            updateAuctionPagination(0, 0);
+            return;
+        }
+
+        int totalPages = (int) Math.ceil((double) filteredAuctions.size() / AUCTION_PAGE_SIZE);
+        if (currentAuctionPage >= totalPages) currentAuctionPage = totalPages - 1;
+        if (currentAuctionPage < 0)          currentAuctionPage = 0;
+
+        int from = currentAuctionPage * AUCTION_PAGE_SIZE;
+        int to   = Math.min(from + AUCTION_PAGE_SIZE, filteredAuctions.size());
+        filteredAuctions.subList(from, to)
+                .forEach(a -> auctionsAdminFlowPane.getChildren().add(buildAuctionCard(a)));
+
+        updateAuctionPagination(currentAuctionPage, totalPages);
+    }
+
+    private void updateAuctionPagination(int page, int total) {
+        if (lblAuctionPage != null)
+            lblAuctionPage.setText(total == 0 ? "—" : "Trang " + (page + 1) + " / " + total);
+        if (btnAuctionPrev != null) btnAuctionPrev.setDisable(page <= 0);
+        if (btnAuctionNext != null) btnAuctionNext.setDisable(total == 0 || page >= total - 1);
+    }
+
+    @FXML private void handleAuctionPrevPage() {
+        if (currentAuctionPage > 0) { currentAuctionPage--; renderAuctionPage(); }
+    }
+
+    @FXML private void handleAuctionNextPage() {
+        int total = (int) Math.ceil((double) filteredAuctions.size() / AUCTION_PAGE_SIZE);
+        if (currentAuctionPage < total - 1) { currentAuctionPage++; renderAuctionPage(); }
+    }
+
+    private int statusRank(String status) {
+        if (status == null) return 99;
+        return switch (status.toUpperCase()) {
+            case "ACTIVE"   -> 0;
+            case "UPCOMING" -> 1;
+            case "FINISHED" -> 2;
+            default         -> 3;
+        };
     }
 
     private VBox buildAuctionCard(Auction a) {

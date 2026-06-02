@@ -93,7 +93,7 @@ public class BiddingService {
                     throw new RuntimeException("Auction is not active");
                 }
 
-                if (auction.getEndTime().isBefore(LocalDateTime.now())) {
+                if (auction.getEndTime().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
                     throw new RuntimeException("Auction has ended");
                 }
 
@@ -133,7 +133,7 @@ public class BiddingService {
                 bidDAO.create(conn, userId, auctionId, amount);
 
                 // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
-                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
                 String newEndTimeIso = null;
                 if (now.isAfter(auction.getEndTime().minusMinutes(2)) && now.isBefore(auction.getEndTime())) {
                     LocalDateTime resetTo = now.plusMinutes(2);

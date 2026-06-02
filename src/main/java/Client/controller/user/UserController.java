@@ -166,7 +166,7 @@ public class UserController {
     private Thread notifPollerThread;
 
     // ── Pagination ──────────────────────────────────────────────────────────
-    private static final int PAGE_SIZE = 9;
+    private static final int PAGE_SIZE = 21;
     private int currentPage = 0;
     /** The filtered (but not yet paged) list — kept so next/prev can slice it. */
     private List<Auction> filteredAuctions = List.of();

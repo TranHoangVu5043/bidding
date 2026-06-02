@@ -95,6 +95,13 @@ public class SellerController {
     @FXML private FlowPane  auctionFlowPane;
     @FXML private TextField txtAuctionSearch;
     @FXML private ComboBox<String> cmbAuctionStatus;
+    @FXML private Button    btnAuctionPrev;
+    @FXML private Button    btnAuctionNext;
+    @FXML private Label     lblAuctionPage;
+
+    private static final int PAGE_SIZE = 21;
+    private int currentAuctionPage = 0;
+    private List<Auction> filteredAuctions = List.of();
     // ── Hồ sơ người bán & Đổi mật khẩu ──
     @FXML private TextField     txtShopName;
     @FXML private TextField     txtSellerPhone;
@@ -223,9 +230,9 @@ public class SellerController {
         String date = cmbHistoryDate   != null ? cmbHistoryDate.getValue() : "Tất cả";
 
         java.time.LocalDateTime cutoff = switch (date == null ? "Tất cả" : date) {
-            case "Hôm nay"    -> java.time.LocalDate.now().atStartOfDay();
-            case "7 ngày qua" -> java.time.LocalDateTime.now().minusDays(7);
-            case "30 ngày qua"-> java.time.LocalDateTime.now().minusDays(30);
+            case "Hôm nay"    -> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).toLocalDate().atStartOfDay();
+            case "7 ngày qua" -> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusDays(7);
+            case "30 ngày qua"-> java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusDays(30);
             default           -> null;
         };
 
@@ -266,7 +273,9 @@ public class SellerController {
                         sellerAuctions.setAll(res.getData());
                         updateAuctionStats();
                         setupWeekRevenueChart();
-                        renderAuctionCards(sellerAuctions);
+                        filteredAuctions = sellerAuctions;
+                        currentAuctionPage = 0;
+                        renderAuctionCards(filteredAuctions);
                         applyFilter(txtSearch != null ? txtSearch.getText() : "");
                     } else {
                         String msg = res != null ? res.getMessage() : "Mất kết nối";
@@ -459,7 +468,7 @@ public class SellerController {
         String name        = txtName        != null ? txtName.getText().trim()        : "";
         String description = txtDescription != null ? txtDescription.getText().trim() : "";
         String category    = cmbCategory    != null ? cmbCategory.getValue()          : null;
-        String condition   = cmbCondition   != null ? cmbCondition.getValue()         : "NEW";
+        String condition   = cmbCondition   != null ? cmbCondition.getValue()         : "Mới";
 
         double price = 0;
         int stock = 0;
@@ -510,19 +519,20 @@ public class SellerController {
         renderInventoryCards(filtered);
     }
 
-    // Bộ lọc Realtime cho Đấu giá
+    // Bộ lọc Realtime cho Đấu giá — resets to page 1 on every change
     private void applyAuctionFilter() {
         String keyword = (txtAuctionSearch != null) ? txtAuctionSearch.getText().toLowerCase().trim() : "";
         String statusFilter = (cmbAuctionStatus != null && cmbAuctionStatus.getValue() != null) ? cmbAuctionStatus.getValue() : "Tất cả";
 
-        List<Auction> filtered = sellerAuctions.stream()
+        filteredAuctions = sellerAuctions.stream()
                 .filter(a -> statusFilter.equals("Tất cả") || statusFilter.equalsIgnoreCase(a.getStatus()))
                 .filter(a -> keyword.isEmpty()
                         || String.valueOf(a.getId()).contains(keyword)
                         || String.valueOf(a.getItemId()).contains(keyword))
                 .toList();
 
-        renderAuctionCards(filtered);
+        currentAuctionPage = 0;
+        renderAuctionCards(filteredAuctions);
     }
 
     // ── Render auction cards ──
@@ -534,11 +544,36 @@ public class SellerController {
             Label empty = new Label("Bạn chưa có phiên đấu giá nào.");
             empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 30;");
             auctionFlowPane.getChildren().add(empty);
+            updateAuctionPagination(0, 0);
             return;
         }
-        for (Auction a : auctions) {
+
+        int totalPages = (int) Math.ceil((double) auctions.size() / PAGE_SIZE);
+        if (currentAuctionPage >= totalPages) currentAuctionPage = totalPages - 1;
+        if (currentAuctionPage < 0)          currentAuctionPage = 0;
+
+        int from = currentAuctionPage * PAGE_SIZE;
+        int to   = Math.min(from + PAGE_SIZE, auctions.size());
+        for (Auction a : auctions.subList(from, to)) {
             auctionFlowPane.getChildren().add(buildAuctionCard(a));
         }
+        updateAuctionPagination(currentAuctionPage, totalPages);
+    }
+
+    private void updateAuctionPagination(int page, int total) {
+        if (lblAuctionPage != null)
+            lblAuctionPage.setText(total == 0 ? "—" : "Trang " + (page + 1) + " / " + total);
+        if (btnAuctionPrev != null) btnAuctionPrev.setDisable(page <= 0);
+        if (btnAuctionNext != null) btnAuctionNext.setDisable(total == 0 || page >= total - 1);
+    }
+
+    @FXML private void handleAuctionPrevPage() {
+        if (currentAuctionPage > 0) { currentAuctionPage--; renderAuctionCards(filteredAuctions); }
+    }
+
+    @FXML private void handleAuctionNextPage() {
+        int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
+        if (currentAuctionPage < total - 1) { currentAuctionPage++; renderAuctionCards(filteredAuctions); }
     }
 
     private VBox buildAuctionCard(Auction auction) {
@@ -1227,7 +1262,7 @@ public class SellerController {
         // Auction status overlay on the image area
         if (isOnAuction) {
             String overlayColor = isActive ? "#22c55e" : "#3b82f6";
-            String overlayText  = isActive ? "● LIVE" : "● SOON";
+            String overlayText  = isActive ? "● Đang diễn ra" : "● Sắp diễn ra";
             Label overlay = new Label(overlayText);
             overlay.setStyle("-fx-background-color: " + overlayColor + "; -fx-text-fill: white;" +
                     "-fx-font-size: 9; -fx-font-weight: bold; -fx-padding: 2 7; -fx-background-radius: 0 0 6 0;");
