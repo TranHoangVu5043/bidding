@@ -12,10 +12,13 @@ public class ItemFactory {
 
     public static Item createItem(String category, int id, String name, String desc,
                                   int ownerId, String condition, ResultSet rs) throws SQLException {
-        double price = rs.getDouble("price");
-        int stock    = rs.getInt("stock");
+        double price  = rs.getDouble("price");
+        int stock     = rs.getInt("stock");
+        String status = rs.getString("status");
+
         if (category == null) category = "UNKNOWN";
-        return switch (category.toUpperCase()) {
+
+        Item item = switch (category.toUpperCase()) {
             case "ELECTRONICS" -> new Electronics(id, name, desc, ownerId, category, condition, price, stock);
             case "ART"         -> new Art(id, name, desc, ownerId, category, condition, price, stock);
             case "VEHICLE"     -> new Vehicle(id, name, desc, ownerId, category, condition, price, stock);
@@ -25,5 +28,8 @@ public class ItemFactory {
                 }
             };
         };
+
+        item.setStatus(status);
+        return item;
     }
 }

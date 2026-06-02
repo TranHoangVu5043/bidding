@@ -21,7 +21,7 @@ public class Item {
     public void setDescription(String description) { this.description = description; }
 
     public int getOwnerId() { return ownerId; }
-    public void setOwnerId(int ownerId) { this.ownerId = ownerId; }
+    public void     setOwnerId(int ownerId) { this.ownerId = ownerId; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
