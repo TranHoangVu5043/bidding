@@ -1,6 +1,7 @@
 package Server.controller;
 
 import Server.model.auction.Auction;
+import Server.model.users.Admin;
 import Server.model.users.Bidder;
 import Server.model.users.Seller;
 import Server.model.users.User;
@@ -87,7 +88,7 @@ public class AuctionApiControllerTest {
         JsonObject bodyJson = new JsonObject();
         bodyJson.addProperty("itemId", 10);
         bodyJson.addProperty("startingPrice", 500.0);
-        bodyJson.addProperty("endTime", "2026-06-01T12:00:00");
+        bodyJson.addProperty("endTime", "2026-06-12T12:00:00");
         when(requestWrapper.getBody()).thenReturn(bodyJson.toString());
 
         when(auctionService.createAuction(any(Auction.class), eq(seller.getId()))).thenReturn(null);
@@ -103,10 +104,10 @@ public class AuctionApiControllerTest {
         JsonObject bodyJson = new JsonObject();
         bodyJson.addProperty("itemId", 10);
         bodyJson.addProperty("startingPrice", 500.0);
-        bodyJson.addProperty("endTime", "2026-06-01T12:00:00");
+        bodyJson.addProperty("endTime", "2026-06-12T12:00:00");
         when(requestWrapper.getBody()).thenReturn(bodyJson.toString());
 
-        Auction mockCreated = new Auction(1, 10, 1, 500.0, 500.0, LocalDateTime.now(), LocalDateTime.parse("2026-06-01T12:00:00"), "UPCOMING");
+        Auction mockCreated = new Auction(1, 10, 1, 500.0, 500.0, LocalDateTime.now(), LocalDateTime.parse("2026-06-12T12:00:00"), "UPCOMING");
         when(auctionService.createAuction(any(Auction.class), eq(seller.getId()))).thenReturn(mockCreated);
 
         auctionApiController.createAuction(requestWrapper, responseWrapper);
@@ -188,7 +189,7 @@ public class AuctionApiControllerTest {
         when(requestWrapper.getUser()).thenReturn(seller);
         when(requestWrapper.getBody()).thenReturn("{\"auctionId\": 1}");
         // Giả lập huỷ thất bại
-        when(auctionService.cancelAuction(1, seller.getId())).thenReturn(false);
+        when(auctionService.cancelAuction(1, seller.getId(), false)).thenReturn(false);
 
         auctionApiController.cancelAuction(requestWrapper, responseWrapper);
 
@@ -197,10 +198,10 @@ public class AuctionApiControllerTest {
 
     @Test
     void cancelAuction_Success_Returns200() throws Exception {
-        User seller = new Seller(1, "store", "123", "s@g.c", "HanSto ", 1200);
+        User seller = new Admin(1, "store", "123", "s@g.c", 1200);
         when(requestWrapper.getUser()).thenReturn(seller);
         when(requestWrapper.getBody()).thenReturn("{\"auctionId\": 1}");
-        when(auctionService.cancelAuction(1, seller.getId())).thenReturn(true);
+        when(auctionService.cancelAuction(1, seller.getId(), true)).thenReturn(true);
 
         auctionApiController.cancelAuction(requestWrapper, responseWrapper);
 

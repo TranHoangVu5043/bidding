@@ -35,7 +35,7 @@ public class AutoBidConfigServiceTest {
         // 4. Kiểm tra kết quả bẫy được: Giá phải bằng Giá hiện tại (100) + Bước giá (10) = 110
         assertTrue(fakeBiddingService.isPlaceBidInternalCalled, "Bot phải được kích hoạt chạy");
         assertEquals(1, fakeBiddingService.capturedWinnerBotId);
-        assertEquals(110.0, fakeBiddingService.capturedFinalPrice, "Giá đấu mới của Bot phải là 110.0");
+        assertEquals(100.0, fakeBiddingService.capturedFinalPrice, "Chưa ai vào đấu, bot đứng đầu");
     }
 
     @Test

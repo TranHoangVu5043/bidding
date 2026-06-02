@@ -1,5 +1,6 @@
 package Server.controller;
 
+import Server.dao.auction.ItemDAO;
 import Server.model.auction.items.Art;
 import Server.model.auction.items.Item;
 import Server.model.users.Bidder;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.List;
 
@@ -116,6 +118,8 @@ public class ItemApiControllerTest {
 
     @Test
     public void testDeleteItem_Success() throws Exception{
+        Item item1 = new Art(1, "Tranh", "Đẹp", 10, "ART", "NEW", 100.0, 1);
+        when(itemService.getItemDetail(1)).thenReturn(item1);
         // 1. Giả lập: User hợp lệ, gửi request xóa itemId = 1
         User fakeUser = new Bidder(10, "john", "12", "12@g.c", 100);
         when(req.getUser()).thenReturn(fakeUser);

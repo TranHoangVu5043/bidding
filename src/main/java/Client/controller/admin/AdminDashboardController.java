@@ -16,8 +16,7 @@ import javafx.fxml.FXML;
 import Client.util.SceneUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.FlowPane;
@@ -59,7 +58,7 @@ public class AdminDashboardController {
 
     // ── Dashboard Feed & Chart ──
     @FXML private VBox   activityVBox;
-    @FXML private Canvas chartCanvas;
+    @FXML private PieChart chartPie;
     @FXML private Label  chartCenterCount;
     @FXML private VBox   chartLegend;
 
@@ -253,11 +252,11 @@ public class AdminDashboardController {
         }).start();
     }
 
-    /** Vẽ donut chart tùy chỉnh lên Canvas */
+    /** Vẽ donut chart bằng PieChart của JavaFX */
     private void buildPieChart(List<Auction> auctions) {
-        if (chartCanvas == null || auctions == null) return;
+        if (chartPie == null || auctions == null) return;
 
-        // --- Đếm theo status ---
+        // --- 1. Đếm số lượng theo status ---
         Map<String, Long> counts = new LinkedHashMap<>();
         for (String s : CHART_STATUSES) counts.put(s, 0L);
         for (Auction a : auctions) {
@@ -266,45 +265,35 @@ public class AdminDashboardController {
         }
         long total = auctions.size();
 
-        // --- Cập nhật số ở giữa ---
+        // --- 2. Cập nhật số ở giữa ---
         if (chartCenterCount != null) chartCenterCount.setText(String.valueOf(total));
 
-        // --- Vẽ donut ---
-        GraphicsContext gc = chartCanvas.getGraphicsContext2D();
-        double w = chartCanvas.getWidth();
-        double h = chartCanvas.getHeight();
-        gc.clearRect(0, 0, w, h);
-
-        double cx = w / 2, cy = h / 2;
-        double outerR = Math.min(w, h) / 2 - 6;
-        double innerR = outerR * 0.55;
-
-        double startAngle = -90;
+        // --- 3. Đổ dữ liệu vào PieChart ---
+        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
         for (int i = 0; i < CHART_STATUSES.length; i++) {
             long cnt = counts.getOrDefault(CHART_STATUSES[i], 0L);
-            if (cnt == 0) continue;
-            double sweep = total > 0 ? (cnt * 360.0 / total) : 0;
-            Color color = Color.web(CHART_COLORS[i]);
+            if (cnt > 0) {
+                pieData.add(new PieChart.Data(CHART_VI[i], cnt));
+            }
+        }
+        chartPie.setData(pieData);
 
-            // Arc lớn (outer)
-            gc.setFill(color);
-            gc.fillArc(cx - outerR, cy - outerR, outerR * 2, outerR * 2,
-                    startAngle, sweep, javafx.scene.shape.ArcType.ROUND);
-
-            startAngle += sweep;
+        // --- 4. Gắn màu sắc (CSS) cho các lát cắt (Slice) ---
+        for (PieChart.Data data : pieData) {
+            for (int i = 0; i < CHART_VI.length; i++) {
+                if (data.getName().equals(CHART_VI[i])) {
+                    // Cài màu nền và viền trắng để các lát cắt phân tách rõ ràng
+                    data.getNode().setStyle(
+                            "-fx-pie-color: " + CHART_COLORS[i] + ";" +
+                                    "-fx-border-color: white;" +
+                                    "-fx-border-width: 2;"
+                    );
+                    break;
+                }
+            }
         }
 
-        // Xóa phần giữa tạo hiệu ứng donut
-        gc.setFill(Color.WHITE);
-        gc.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
-
-        // Vẽ vòng border nhỏ trong donut
-        gc.setStroke(Color.web("#F0F4F8"));
-        gc.setLineWidth(2);
-        gc.strokeOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
-        gc.strokeOval(cx - outerR, cy - outerR, outerR * 2, outerR * 2);
-
-        // --- Vẽ legend ---
+        // --- 5. Vẽ lại phần Legend ở bên dưới (giữ nguyên logic cũ) ---
         if (chartLegend == null) return;
         chartLegend.getChildren().clear();
 
@@ -314,33 +303,24 @@ public class AdminDashboardController {
 
             HBox row = new HBox(10);
             row.setAlignment(Pos.CENTER_LEFT);
-            row.setStyle(
-                    "-fx-background-color: #F8FAFC;" +
-                            "-fx-background-radius: 8;" +
-                            "-fx-padding: 8 12;"
-            );
+            row.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8; -fx-padding: 8 12;");
 
-            // Color dot
             javafx.scene.shape.Rectangle dot = new javafx.scene.shape.Rectangle(12, 12);
             dot.setArcWidth(4); dot.setArcHeight(4);
             dot.setFill(Color.web(CHART_COLORS[i]));
 
-            // Label tên
             Label lblName = new Label(CHART_VI[i]);
             lblName.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
             HBox.setHgrow(lblName, Priority.ALWAYS);
 
-            // Count badge
             Label lblCnt = new Label(String.valueOf(cnt));
             lblCnt.setStyle(
                     "-fx-font-weight: bold; -fx-font-size: 12;" +
                             "-fx-text-fill: " + CHART_COLORS[i] + ";" +
                             "-fx-background-color: " + CHART_COLORS[i] + "18;" +
-                            "-fx-background-radius: 12;" +
-                            "-fx-padding: 2 10;"
+                            "-fx-background-radius: 12; -fx-padding: 2 10;"
             );
 
-            // Percent
             Label lblPct = new Label(String.format("%.0f%%", pct));
             lblPct.setStyle("-fx-font-size: 11; -fx-text-fill: #9CA3AF; -fx-min-width: 36; -fx-alignment: CENTER_RIGHT;");
 
