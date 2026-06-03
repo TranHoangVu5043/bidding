@@ -51,6 +51,15 @@ public class AuctionApi {
         }
     }
 
+    public ApiResponse<Void> finishAuction(int auctionId) {
+        try {
+            String json = apiClient.post("/auctions/finish-early", new AuctionIdBody(auctionId));
+            return gson.fromJson(json, new TypeToken<ApiResponse<Void>>() {}.getType());
+        } catch (Exception e) {
+            return error(e);
+        }
+    }
+
     public ApiResponse<Void> cancelAuction(int auctionId) {
         try {
             String json = apiClient.post("/auctions/cancel", new AuctionIdBody(auctionId));

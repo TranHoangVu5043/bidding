@@ -86,6 +86,36 @@ public final class SellerAuctionDetailDialog {
         VBox btnBox = new VBox(8);
         btnBox.setPadding(new Insets(14, 28, 24, 28));
 
+        if ("ACTIVE".equals(status)) {
+            Button btnFinish = new Button("⏹  Kết thúc phiên sớm");
+            btnFinish.setMaxWidth(Double.MAX_VALUE);
+            btnFinish.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; " +
+                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand;");
+            btnFinish.setOnAction(e -> {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle("Xác nhận kết thúc sớm");
+                confirm.setHeaderText(null);
+                confirm.setContentText("Kết thúc phiên #" + auction.getId() + " ngay bây giờ?\n" +
+                        "Người đang dẫn đầu sẽ được tính là người thắng.");
+                confirm.showAndWait().ifPresent(resp -> {
+                    if (resp != ButtonType.OK) return;
+                    new Thread(() -> {
+                        ApiResponse<Void> res = auctionApi.finishAuction(auction.getId());
+                        Platform.runLater(() -> {
+                            popup.close();
+                            if (res != null && res.getStatus() == 200) {
+                                SceneUtil.showAlert("Thành công", "Phiên đấu giá đã kết thúc sớm.");
+                                if (onCancelled != null) onCancelled.run();
+                            } else {
+                                SceneUtil.showAlert("Lỗi", res != null ? res.getMessage() : "Mất kết nối");
+                            }
+                        });
+                    }).start();
+                });
+            });
+            btnBox.getChildren().add(btnFinish);
+        }
+
         boolean canCancel = "ACTIVE".equals(status) || "UPCOMING".equals(status);
         if (canCancel) {
             Button btnCancel = new Button("✕  Hủy phiên đấu giá này");
@@ -129,7 +159,8 @@ public final class SellerAuctionDetailDialog {
         VBox root = new VBox(header, grid, sep, btnBox);
         root.setStyle("-fx-background-color: #f8fafc;");
 
-        popup.setScene(new Scene(root, 420, canCancel ? 490 : 440));
+        int height = 440 + ("ACTIVE".equals(status) ? 55 : 0) + (canCancel ? 55 : 0);
+        popup.setScene(new Scene(root, 420, height));
         popup.showAndWait();
     }
 }

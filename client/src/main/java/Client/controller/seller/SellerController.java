@@ -6,6 +6,7 @@ import Client.model.user.User;
 import Client.networking.ApiResponse;
 import Client.networking.SessionManager;
 import Client.networking.endpoints.AuctionApi;
+import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.ItemApi;
 import Client.networking.endpoints.UserApi;
 import Client.controller.seller.dialogs.EditItemDialog;
@@ -14,6 +15,10 @@ import Client.controller.seller.dialogs.SellerAuctionDetailDialog;
 import Client.controller.seller.helpers.SellerCardBuilder;
 import Client.controller.seller.helpers.SellerChartHelper;
 import Client.util.SceneUtil;
+import Client.websocket.AuctionWebSocketClient;
+import Client.websocket.BidUpdate;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -26,8 +31,13 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 public class SellerController {
 
@@ -117,7 +127,20 @@ public class SellerController {
     //Instance các Api kết nối trực tiếp Backend
     private final ItemApi         itemApi    = new ItemApi();
     private final AuctionApi      auctionApi = new AuctionApi();
+    private final BidApi          bidApi     = new BidApi();
     private final UserApi         userApi    = new UserApi();
+
+    // Live label/button maps for real-time WebSocket updates on auction cards
+    private final Map<Integer, Label>  livePriceLabels          = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>  liveStatusLabels         = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>  liveTimeLabels           = new ConcurrentHashMap<>();
+    private final Map<Integer, Label>  liveHighestBidderLabels  = new ConcurrentHashMap<>();
+    private final Map<Integer, Button> liveFinishBtns           = new ConcurrentHashMap<>();
+    private final Map<Integer, Button> liveCancelBtns           = new ConcurrentHashMap<>();
+
+    private AuctionWebSocketClient wsClient;
+    private Timeline countdownTicker;
+    private SellerCardBuilder auctionCardBuilder;
 
 
     //Các danh sách dữ liệu ObservableList & FilteredList
@@ -165,6 +188,16 @@ public class SellerController {
         if (txtHistorySearch != null) {
             txtHistorySearch.textProperty().addListener((obs, o, n) -> applyHistoryFilter());
         }
+
+        // Auction card builder
+        auctionCardBuilder = new SellerCardBuilder(new SellerCardBuilder.Config(
+                () -> mainTabPane != null && mainTabPane.getScene() != null
+                        ? mainTabPane.getScene().getWindow() : null,
+                auctionApi, bidApi,
+                livePriceLabels, liveStatusLabels, liveTimeLabels,
+                liveHighestBidderLabels, liveFinishBtns, liveCancelBtns,
+                this::onAuctionActionComplete,
+                this::formatTimeRemaining));
 
         // Chart helper — phải được khởi tạo khi đã inject FXML để các node biểu đồ không bị null
         chartHelper = new SellerChartHelper(
@@ -278,10 +311,11 @@ public class SellerController {
                         sellerAuctions.setAll(res.getData());
                         updateAuctionStats();
                         setupWeekRevenueChart();
-                        filteredAuctions = sellerAuctions;
                         currentAuctionPage = 0;
-                        renderAuctionCards(filteredAuctions);
+                        applyAuctionFilter();   // sorts ACTIVE first + renders
                         applyFilter(txtSearch != null ? txtSearch.getText() : "");
+                        connectWebSocket();
+                        startCountdownTicker();
                     } else {
                         String msg = res != null ? res.getMessage() : "Mất kết nối";
                         SceneUtil.showAlert("Lỗi", "Không thể tải danh sách đấu giá: " + msg);
@@ -439,6 +473,12 @@ public class SellerController {
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
+        livePriceLabels.clear();
+        liveStatusLabels.clear();
+        liveTimeLabels.clear();
+        liveHighestBidderLabels.clear();
+        liveFinishBtns.clear();
+        liveCancelBtns.clear();
 
         int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
         int start = currentAuctionPage * PAGE_SIZE;
@@ -451,29 +491,14 @@ public class SellerController {
             auctionFlowPane.getChildren().add(empty);
         } else {
             for (Auction a : page) {
-                auctionFlowPane.getChildren().add(
-                    SellerCardBuilder.buildAuctionCard(a, masterData, this::onAuctionCardClick));
+                auctionFlowPane.getChildren().add(auctionCardBuilder.build(a));
             }
         }
         updateAuctionPagination(currentAuctionPage, total);
     }
 
-    private void onAuctionCardClick(Auction auction) {
-        Item relatedItem = masterData.stream()
-                .filter(i -> i.getId() == auction.getItemId())
-                .findFirst().orElse(null);
-        String itemName = relatedItem != null ? relatedItem.getName() : "SP #" + auction.getItemId();
-        String category = relatedItem != null ? relatedItem.getCategory() : "";
-        SellerAuctionDetailDialog.show(
-            mainTabPane.getScene().getWindow(),
-            auction, itemName, category, auctionApi,
-            () -> {
-                auctionLoadVersion++;
-                sellerAuctions.removeIf(a -> a.getId() == auction.getId());
-                updateAuctionStats();
-                renderAuctionCards(sellerAuctions);
-                applyFilter(txtSearch != null ? txtSearch.getText() : "");
-            });
+    private void onAuctionActionComplete() {
+        loadSellerAuctions();
     }
 
     private void updateAuctionPagination(int page, int total) {
@@ -568,9 +593,107 @@ public class SellerController {
     @FXML public void showProfile()      { switchTab(tabProfile,      "Hồ Sơ Người Bán",   btnProfile); }
 
 
+    // ── WebSocket ─────────────────────────────────────────────────────────────
+
+    private void connectWebSocket() {
+        List<Integer> activeIds = sellerAuctions.stream()
+                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .map(Auction::getId)
+                .toList();
+
+        if (wsClient != null && wsClient.isOpen()) {
+            activeIds.forEach(wsClient::subscribe);
+            return;
+        }
+        if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
+
+        wsClient = new AuctionWebSocketClient(update -> {
+            int    auctionId         = update.auctionId();
+            double newPrice          = update.newPrice();
+            String newEndTime        = update.newEndTime();
+            String highestBidderName = update.highestBidderName();
+
+            sellerAuctions.stream().filter(a -> a.getId() == auctionId).forEach(a -> {
+                a.setCurrentPrice(newPrice);
+                if (newEndTime != null) a.setEndTime(newEndTime);
+                if (highestBidderName != null) a.setHighestBidderName(highestBidderName);
+            });
+
+            Label priceLabel = livePriceLabels.get(auctionId);
+            if (priceLabel != null)
+                priceLabel.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
+
+            if (highestBidderName != null) {
+                Label bidderLabel = liveHighestBidderLabels.get(auctionId);
+                if (bidderLabel != null) bidderLabel.setText("🏆 " + highestBidderName);
+            }
+
+            if (newEndTime != null) {
+                Label timeLabel = liveTimeLabels.get(auctionId);
+                if (timeLabel != null) {
+                    timeLabel.setUserData(newEndTime);
+                    timeLabel.setText("🕒 " + formatTimeRemaining(newEndTime));
+                }
+            }
+        });
+
+        activeIds.forEach(wsClient::subscribe);
+        wsClient.connect();
+    }
+
+    // ── Countdown ticker ──────────────────────────────────────────────────────
+
+    private void startCountdownTicker() {
+        if (countdownTicker != null) countdownTicker.stop();
+        countdownTicker = new Timeline(new KeyFrame(javafx.util.Duration.seconds(1), e -> {
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            new java.util.HashMap<>(liveTimeLabels).forEach((auctionId, timeLabel) -> {
+                String endTimeStr = (String) timeLabel.getUserData();
+                if (endTimeStr == null) return;
+                try {
+                    LocalDateTime endTime = LocalDateTime.parse(endTimeStr);
+                    if (!now.isBefore(endTime)) {
+                        timeLabel.setText("🕒 Đã kết thúc");
+                        liveTimeLabels.remove(auctionId);
+                        // Disable action buttons for expired auction
+                        Button finish = liveFinishBtns.get(auctionId);
+                        if (finish != null) finish.setDisable(true);
+                        Button cancel = liveCancelBtns.get(auctionId);
+                        if (cancel != null) cancel.setDisable(true);
+                    } else {
+                        timeLabel.setText("🕒 " + formatTimeRemaining(endTimeStr));
+                    }
+                } catch (Exception ignored) {}
+            });
+        }));
+        countdownTicker.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        countdownTicker.play();
+    }
+
+    private String formatTimeRemaining(String endTimeStr) {
+        if (endTimeStr == null) return "—";
+        try {
+            LocalDateTime end = LocalDateTime.parse(endTimeStr.replace(" ", "T"));
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            if (!now.isBefore(end)) return "Đã kết thúc";
+            Duration d = Duration.between(now, end);
+            long days  = d.toDays();
+            long hours = d.toHoursPart();
+            long mins  = d.toMinutesPart();
+            long secs  = d.toSecondsPart();
+            if (days > 0)  return days + "n " + hours + "g";
+            if (hours > 0) return hours + "g " + mins + "p";
+            return mins + "p " + secs + "s";
+        } catch (Exception e) {
+            return endTimeStr;
+        }
+    }
+
     //Đăng xuất
     @FXML
     public void showLogout() {
+        if (wsClient != null) wsClient.closeConnection();
+        if (countdownTicker != null) countdownTicker.stop();
         new Thread(() -> {
             userApi.logout();
             Platform.runLater(() -> {

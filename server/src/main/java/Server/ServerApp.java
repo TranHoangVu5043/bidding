@@ -84,8 +84,9 @@ public class ServerApp {
         router.register("GET",  "/api/auctions",         auctionController::getAllAuctions);
         router.register("GET",  "/api/auctions/mine",    auctionController::getMyAuctions);
         router.register("POST", "/api/auctions/get",     auctionController::getAuction);
-        router.register("POST", "/api/auctions/cancel",  auctionController::cancelAuction);
-        router.register("POST", "/api/auctions/refresh", auctionController::refreshStatus);
+        router.register("POST", "/api/auctions/cancel",       auctionController::cancelAuction);
+        router.register("POST", "/api/auctions/finish-early", auctionController::finishEarly);
+        router.register("POST", "/api/auctions/refresh",      auctionController::refreshStatus);
 
         // --- Bid routes ---
         router.register("POST", "/api/bids/place",        bidController::placeBid);

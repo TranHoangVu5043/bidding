@@ -12,6 +12,7 @@ public class AuctionDTO {
     public String startTime, endTime, status;
     public String sellerName;
     public String itemName;
+    public String itemCategory;
     public String highestBidderName;
 
     /** Backwards-compatible constructor — itemName will be null. */
@@ -38,6 +39,7 @@ public class AuctionDTO {
         status             = a.getStatus();
         sellerName         = seller != null ? seller.getUsername() : "Seller #" + a.getOwnerId();
         itemName           = item   != null ? item.getName()       : null;
+        itemCategory       = item   != null ? item.getCategory()   : null;
         highestBidderName  = highestBidder != null ? highestBidder.getUsername() : null;
     }
 

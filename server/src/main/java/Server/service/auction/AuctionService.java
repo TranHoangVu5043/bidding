@@ -165,6 +165,16 @@ public class AuctionService {
         }
     }
 
+    /** Seller-initiated early finish — only works on ACTIVE auctions owned by the caller. */
+    public boolean finishEarly(int auctionId, int ownerId) {
+        Auction auction = auctionDAO.findById(auctionId);
+        if (auction == null) return false;
+        if (auction.getOwnerId() != ownerId) return false;
+        if (!"ACTIVE".equals(auction.getStatus())) return false;
+        finalizeAuction(auctionId);
+        return true;
+    }
+
     // force-finish
     public Integer finalizeAuction(int auctionId) {
         Auction auction = auctionDAO.findById(auctionId);

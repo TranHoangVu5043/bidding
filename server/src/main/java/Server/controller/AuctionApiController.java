@@ -100,10 +100,18 @@ public class AuctionApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = auctionService.getAuctionsByOwner(user.getId());
+            Map<Integer, User> userMap = userService.getAllUsers().stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
             Map<Integer, Item> itemMap = itemService.getAllItems().stream()
                     .collect(Collectors.toMap(Item::getId, i -> i));
+            List<Integer> auctionIds = auctions.stream().map(Auction::getId).toList();
+            Map<Integer, Integer> highestBidderIds = bidDAO.findHighestBidders(auctionIds);
             List<AuctionDTO> dtos = auctions.stream()
-                    .map(a -> new AuctionDTO(a, user, itemMap.get(a.getItemId())))
+                    .map(a -> {
+                        Integer bidderId = highestBidderIds.get(a.getId());
+                        return new AuctionDTO(a, user, itemMap.get(a.getItemId()),
+                                bidderId != null ? userMap.get(bidderId) : null);
+                    })
                     .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
@@ -157,6 +165,36 @@ public class AuctionApiController {
             Integer bidderId = bidDAO.findHighestBidder(auction.getId());
             User highestBidder = bidderId != null ? userService.getUserById(bidderId) : null;
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction, seller, item, highestBidder))));
+        } catch (Exception e) {
+            log.error("Unhandled exception", e);
+            res.error(500, "Server error: " + e.getMessage());
+        }
+    }
+
+    // POST /api/auctions/finish-early
+    // Body: { "auctionId": 1 }
+    public void finishEarly(RequestWrapper req, ResponseWrapper res) {
+        try {
+            User user = req.getUser();
+            if (user == null) { res.error(401, "Unauthorized"); return; }
+            if (!"seller".equalsIgnoreCase(user.getRole())) {
+                res.error(403, "Only sellers can finish auctions early");
+                return;
+            }
+
+            AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);
+            if (body == null || body.auctionId <= 0) {
+                res.error(400, "Missing required field: auctionId");
+                return;
+            }
+
+            boolean ok = auctionService.finishEarly(body.auctionId, user.getId());
+            if (!ok) {
+                res.error(400, "Cannot finish — auction must be ACTIVE and belong to you");
+                return;
+            }
+
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Phiên đấu giá đã kết thúc sớm", null)));
         } catch (Exception e) {
             log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
