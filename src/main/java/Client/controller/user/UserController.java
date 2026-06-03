@@ -50,20 +50,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserController {
-
-    // ══════════════════════════════════════════
-    // FXML — Top Navbar
-    // ══════════════════════════════════════════
+    //FXML — Top Navbar
     @FXML private TextField txtSearch;
     @FXML private Button    btnNotifTop;
     @FXML private Label     lblNotifCount;
     @FXML private Label     lblBalance;
     @FXML private Label     lblUsername;
     @FXML private Circle    avatarCircle;
-
-    // ══════════════════════════════════════════
-    // FXML — Sidebar buttons
-    // ══════════════════════════════════════════
+    //FXML — Sidebar buttons
     @FXML private Button btnDashBoard;
     @FXML private Button btnAuction;
     @FXML private Button btnOrderHistory;
@@ -72,20 +66,14 @@ public class UserController {
     @FXML private Button btnSettings;
     @FXML private Button btnSignOut;
     @FXML private Label  lblSidebarName;
-
-    // ══════════════════════════════════════════
-    // FXML — TabPane
-    // ══════════════════════════════════════════
+    //FXML — TabPane
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
     @FXML private Tab tabBidHistory;
     @FXML private Tab tabNotification;
     @FXML private Tab tabProfile;
     @FXML private Tab tabSettings;
-
-    // ══════════════════════════════════════════
-    // FXML — Tab Dashboard (Auction Floor)
-    // ══════════════════════════════════════════
+    //FXML — Tab Dashboard
     @FXML private Label              lblActiveBids;
     @FXML private Label              lblWonAuctions;
     @FXML private ComboBox<String>   cmbFilter;
@@ -96,20 +84,14 @@ public class UserController {
     @FXML private Button btnPrevPage;
     @FXML private Button btnNextPage;
     @FXML private Label  lblPageInfo;
-
-    // ══════════════════════════════════════════
-    // FXML — Tab Notification
-    // ══════════════════════════════════════════
+    //FXML — Tab Notification
     @FXML private Button btnMarkAllRead;
     @FXML private Button btnNotifAll;
     @FXML private Button btnNotifUnread;
     @FXML private Button btnNotifAuction;
     @FXML private Button btnNotifOrder;
     @FXML private VBox   notificationList;
-
-    // ══════════════════════════════════════════
-    // FXML — Tab Profile
-    // ══════════════════════════════════════════
+    //FXML — Tab Profile
     @FXML private Label         lblProfileName;
     @FXML private Label         lblProfileEmail;
     @FXML private Button        btnChangeAvatar;
@@ -122,10 +104,7 @@ public class UserController {
     @FXML private PasswordField txtNewPassword;
     @FXML private PasswordField txtConfirmPassword;
     @FXML private Button        btnChangePassword;
-
-    // ══════════════════════════════════════════
-    // FXML — Tab Settings
-    // ══════════════════════════════════════════
+    //FXML — Tab Settings
     @FXML private Button           toggleAuctionNotif;
     @FXML private Button           toggleOrderNotif;
     @FXML private Button           toggleEmailNotif;
@@ -133,14 +112,10 @@ public class UserController {
     @FXML private ComboBox<String> cmbLanguage;
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
-
     //  Tab Bid History 
     @FXML private ComboBox<String> cmbBidHistoryFilter;
     @FXML private VBox             bidHistoryList;
-
-    // ══════════════════════════════════════════
-    // APIs & Data
-    // ══════════════════════════════════════════
+    //APIs & Data
     private final UserApi         userApi    = new UserApi();
     private final AuctionApi      auctionApi = new AuctionApi();
     private final BidApi          bidApi     = new BidApi();
@@ -182,10 +157,7 @@ public class UserController {
 
     /** Lazy-initialized after FXML injection. Builds one card VBox per auction. */
     private AuctionCardBuilder cardBuilder;
-
-    // ══════════════════════════════════════════
-    // Initialize
-    // ══════════════════════════════════════════
+    //Initialize
     @FXML
     public void initialize() {
         // Card builder — created after FXML injection so the scene/window is reachable lazily
@@ -202,7 +174,7 @@ public class UserController {
         loadMyBiddingAuctions();   // Dashboard is the landing tab — show user's own bids
         loadNotifications();
 
-        // Highlight Dashboard as the default active sidebar button
+        //Highlight Dashboard as the default active sidebar button
         setActiveNavButton(btnDashBoard);
 
         // Re-filter auction cards whenever the ComboBox value changes; reset to page 0
@@ -295,9 +267,7 @@ public class UserController {
         }
     }
 
-    // ══════════════════════════════════════════
-    // Setup helpers
-    // ══════════════════════════════════════════
+    //Setup helpers
     private void setupComboBoxes() {
         cmbFilter.setItems(FXCollections.observableArrayList(
                 "Tất cả", "Đang chạy", "Sắp diễn ra", "Đã kết thúc"));
@@ -309,10 +279,7 @@ public class UserController {
         cmbLanguage.setItems(FXCollections.observableArrayList("Tiếng Việt", "English"));
         cmbCurrency.setItems(FXCollections.observableArrayList("VNĐ", "USD"));
     }
-
-    // ══════════════════════════════════════════
-    // Sidebar Navigation
-    // ══════════════════════════════════════════
+    //Sidebar Navigation
     @FXML private void handleDashBoard()    { switchTab(tabDashboard,   btnDashBoard);   loadMyBiddingAuctions(); }
     @FXML private void handleAuction()      { switchTab(tabDashboard,   btnAuction);     loadAuctions(); }
     @FXML private void handleNotification() { switchTab(tabNotification, btnNotification); loadNotifications(); }
@@ -329,10 +296,7 @@ public class UserController {
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }
-
-    // ══════════════════════════════════════════
-    // Auction Floor — Load & Render
-    // ══════════════════════════════════════════
+    //Auction Floor — Load & Render
 
     /** Fetches all auctions on a background thread, then rebuilds the card grid. */
     @FXML
@@ -636,9 +600,7 @@ public class UserController {
         if (lblWonAuctions != null) lblWonAuctions.setText(finished + " phiên");
     }
 
-    // ══════════════════════════════════════════
-    // Bidding callbacks
-    // ══════════════════════════════════════════
+    //Bidding callbacks
 
     /** Called by PlaceBidDialog after a successful bid — updates balance and refreshes the floor. */
     private void onBidSuccess(double newBalance) {
@@ -651,9 +613,7 @@ public class UserController {
     // (handlePlaceBid, handleAutoBid, showBidHistory, showAuctionDetail
     //  and their helpers have been moved to Client.controller.user.dialogs)
 
-    // ══════════════════════════════════════════
     // Search
-    // ══════════════════════════════════════════
     @FXML
     private void handleSearch() {
         String keyword = txtSearch.getText().trim().toLowerCase();
@@ -679,10 +639,7 @@ public class UserController {
             auctionFlowPane.getChildren().add(buildAuctionCard(auction));
         }
     }
-
-    // ══════════════════════════════════════════
-    // Notification
-    // ══════════════════════════════════════════
+    //Notification
     @FXML private void handleMarkAllRead() {
         new Thread(() -> {
             notifApi.markAllRead();
@@ -754,10 +711,7 @@ public class UserController {
     }
 
     // (buildNotifRow, formatNotifTime, isAuctionNotif moved to NotificationRenderer)
-
-    // ══════════════════════════════════════════
-    // Profile
-    // ══════════════════════════════════════════
+    //Profile
     @FXML
     private void handleSaveProfile() {
         String name  = txtFullName.getText().trim();
@@ -826,9 +780,7 @@ public class UserController {
         }).start();
     }
 
-    // ══════════════════════════════════════════
-    // Settings
-    // ══════════════════════════════════════════
+    //Settings
     @FXML
     private void handleDeleteAccount() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
@@ -890,9 +842,7 @@ public class UserController {
             }
         }).start();
     }
-    // ══════════════════════════════════════════
-    // Balance & Deposit
-    // ══════════════════════════════════════════
+    //Balance & Deposit
 
     /** Updates the balance chip in the top bar. Must be called on the FX thread. */
     private void updateBalanceLabel(double balance) {
@@ -910,9 +860,7 @@ public class UserController {
         });
     }
 
-    // ══════════════════════════════════════════
-    // Bid History
-    // ══════════════════════════════════════════
+    //Bid History
 
     private void loadBidHistory() {
         if (bidHistoryList == null) return;
@@ -963,9 +911,7 @@ public class UserController {
     private HBox buildBidHistoryCard(BidHistoryItem item) { return BidHistoryRenderer.buildCard(item); }
 
 
-// ══════════════════════════════════════════
-    // Helpers
-    // ══════════════════════════════════════════
+    //Helpers
     private void switchTab(Tab tab, Button activeBtn) {
         if (mainTabPane != null && tab != null) {
             mainTabPane.getSelectionModel().select(tab);

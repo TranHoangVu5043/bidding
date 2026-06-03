@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class AdminDashboardController {
 
-    //  Chart constants 
+    //Chart constants
     private static final String[] CHART_STATUSES = {"ACTIVE", "UPCOMING", "FINISHED", "CANCELLED"};
     private static final String[] CHART_COLORS = {"#3B82F6", "#F97316", "#10B981", "#EF4444"};
     private static final String[] CHART_VI       = {"Đang diễn ra", "Sắp diễn ra", "Đã kết thúc", "Đã hủy"};
 
-    //  Sidebar 
+    //Sidebar
     @FXML private Button btnHome;
     @FXML private Button btnUsers;
     @FXML private Button btnInventory;
@@ -46,23 +46,23 @@ public class AdminDashboardController {
     @FXML private Button btnSettings;
     @FXML private Button btnSignOut;
 
-    //  Top bar 
+    //Top bar
     @FXML private Label lblPageTitle;
     @FXML private Label welcomeLabel;
 
-    //  Dashboard KPI 
+    //Dashboard KPI
     @FXML private Label lblTotalRevenue;
     @FXML private Label lblTotalUsers;
     @FXML private Label lblTotalSellers;
     @FXML private Label lblTotalAuctions;
 
-    //  Dashboard Feed & Chart 
+    //Dashboard Feed & Chart
     @FXML private VBox   activityVBox;
     @FXML private PieChart chartPie;
     @FXML private Label  chartCenterCount;
     @FXML private VBox   chartLegend;
 
-    //  TabPane 
+    //TabPane
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
     @FXML private Tab tabUsers;
@@ -70,7 +70,7 @@ public class AdminDashboardController {
     @FXML private Tab tabAuctions;
     @FXML private Tab tabSettings;
 
-    //  Tab Users 
+    //Tab Users
     @FXML private Label                      lblUserCount;
     @FXML private Label                      lblActiveUserCount;
     @FXML private Label                      lblSellerCount;
@@ -86,7 +86,7 @@ public class AdminDashboardController {
     @FXML private TextField                  txtUserSearch;
     @FXML private ComboBox<String>           cmbUserRole;
 
-    //  Tab Inventory 
+    //Tab Inventory
     @FXML private Label                      lblTotalItems;
     @FXML private Label                      lblActiveItems;
     @FXML private Label                      lblPendingItems;
@@ -100,7 +100,7 @@ public class AdminDashboardController {
     @FXML private TextField                  txtProductSearch;
     @FXML private ComboBox<String>           cmbProductCategory;
 
-    //  Tab Auctions 
+    //Tab Auctions
     @FXML private TextField        txtAuctionSearch;
     @FXML private ComboBox<String> cmbAuctionStatus;
     @FXML private FlowPane         auctionsAdminFlowPane;
@@ -112,32 +112,30 @@ public class AdminDashboardController {
     private int              currentAuctionPage = 0;
     private List<Auction>    filteredAuctions   = List.of();
 
-    //  Tab Settings 
+    //Tab Settings
     @FXML private PasswordField txtAdminOldPw;
     @FXML private PasswordField txtAdminNewPw;
     @FXML private PasswordField txtAdminConfirmPw;
 
 
-    //  Observable data 
+    //Observable data
     private final ObservableList<User> allUsers      = FXCollections.observableArrayList();
     private final FilteredList<User>   filteredUsers = new FilteredList<>(allUsers, p -> true);
 
     private final ObservableList<Item> allItems      = FXCollections.observableArrayList();
     private final FilteredList<Item>   filteredItems = new FilteredList<>(allItems, p -> true);
 
-    // Auction list
+    //Auction list
     private List<Auction> cachedAuctions = new ArrayList<>();
 
-    //  APIs 
+    //APIs
     private final UserApi    userApi    = new UserApi();
     private final ItemApi    itemApi    = new ItemApi();
     private final AuctionApi auctionApi = new AuctionApi();
 
     private Button[] sidebarButtons;
 
-    // ════════════════════════════════════════════════════════
-    // INITIALIZE
-    // ════════════════════════════════════════════════════════
+    //INITIALIZE
     @FXML
     private void initialize() {
         sidebarButtons = new Button[]{
@@ -159,10 +157,7 @@ public class AdminDashboardController {
 
         handleHome();
     }
-
-    // ════════════════════════════════════════════════════════
-    // SIDEBAR NAVIGATION
-    // ════════════════════════════════════════════════════════
+    //SIDEBAR
     @FXML private void handleHome() {
         setActiveTab(tabDashboard, btnHome, "🏠 Dashboard");
         loadDashboardData();
@@ -213,9 +208,7 @@ public class AdminDashboardController {
         }
     }
 
-    // ════════════════════════════════════════════════════════
-    // DASHBOARD
-    // ════════════════════════════════════════════════════════
+    //DASHBOARD
     private void loadDashboardData() {
         new Thread(() -> {
             ApiResponse<List<User>>    usersResp   = userApi.getAllUsers();
@@ -259,11 +252,9 @@ public class AdminDashboardController {
         }).start();
     }
 
-    /** Vẽ donut chart bằng PieChart của JavaFX */
+    //Vẽ pie chart
     private void buildPieChart(List<Auction> auctions) {
         if (chartPie == null || auctions == null) return;
-
-        // --- 1. Đếm số lượng theo status ---
         Map<String, Long> counts = new LinkedHashMap<>();
         for (String s : CHART_STATUSES) counts.put(s, 0L);
         for (Auction a : auctions) {
@@ -271,11 +262,7 @@ public class AdminDashboardController {
             counts.merge(st, 1L, Long::sum);
         }
         long total = auctions.size();
-
-        // --- 2. Cập nhật số ở giữa ---
         if (chartCenterCount != null) chartCenterCount.setText(String.valueOf(total));
-
-        // --- 3. Đổ dữ liệu vào PieChart ---
         ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
         for (int i = 0; i < CHART_STATUSES.length; i++) {
             long cnt = counts.getOrDefault(CHART_STATUSES[i], 0L);
@@ -284,8 +271,6 @@ public class AdminDashboardController {
             }
         }
         chartPie.setData(pieData);
-
-        // --- 4. Gắn màu sắc (CSS) cho các lát cắt (Slice) ---
         for (PieChart.Data data : pieData) {
             for (int i = 0; i < CHART_VI.length; i++) {
                 if (data.getName().equals(CHART_VI[i])) {
@@ -300,7 +285,6 @@ public class AdminDashboardController {
             }
         }
 
-        // --- 5. Vẽ lại phần Legend ở bên dưới (giữ nguyên logic cũ) ---
         if (chartLegend == null) return;
         chartLegend.getChildren().clear();
 
@@ -336,10 +320,7 @@ public class AdminDashboardController {
         }
     }
 
-    /**
-     * Activity feed: hiển thị 5 phiên đấu giá gần nhất (ưu tiên ACTIVE trước, rồi FINISHED).
-     * Thay thế hoàn toàn feed cũ dựa trên Order.
-     */
+    //ActivityFeed
     private void updateActivityFeed(List<Auction> auctions) {
         if (activityVBox == null) return;
         activityVBox.getChildren().clear();
@@ -357,7 +338,7 @@ public class AdminDashboardController {
             return;
         }
 
-        // Sắp xếp: ACTIVE lên đầu, sau đó theo endTime giảm dần
+        //Sắp xếp ACTIVE lên đầu, sau đó theo endTime giảm dần
         List<Auction> sorted = auctions.stream()
                 .sorted(Comparator
                         .comparing((Auction a) -> !"ACTIVE".equalsIgnoreCase(a.getStatus()))
@@ -449,9 +430,7 @@ public class AdminDashboardController {
         });
     }
 
-    // ════════════════════════════════════════════════════════
-    // TAB USERS
-    // ════════════════════════════════════════════════════════
+    //TAB USERS
     private void setupUsersTab() {
         if (colUserId    != null) colUserId.setCellValueFactory(new PropertyValueFactory<>("id"));
         if (colUsername  != null) colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
@@ -572,9 +551,7 @@ public class AdminDashboardController {
         });
     }
 
-    // ════════════════════════════════════════════════════════
-    // TAB INVENTORY
-    // ════════════════════════════════════════════════════════
+    //TAB INVENTORY
     private void setupInventoryTab() {
         if (colItemId       != null) colItemId.setCellValueFactory(new PropertyValueFactory<>("id"));
         if (colItemName     != null) colItemName.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -696,9 +673,7 @@ public class AdminDashboardController {
         });
     }
 
-    // ════════════════════════════════════════════════════════
-    // TAB AUCTIONS
-    // ════════════════════════════════════════════════════════
+    //TAB AUCTIONS
     private void setupAuctionsTab() {
         if (cmbAuctionStatus != null) {
             cmbAuctionStatus.setItems(FXCollections.observableArrayList(
@@ -848,9 +823,7 @@ public class AdminDashboardController {
         });
     }
 
-    // ════════════════════════════════════════════════════════
-    // TAB SETTINGS
-    // ════════════════════════════════════════════════════════
+    //TAB SETTINGS
     @FXML private void handleChangeAdminPw() {
         String oldPw = txtAdminOldPw     != null ? txtAdminOldPw.getText()     : "";
         String newPw = txtAdminNewPw     != null ? txtAdminNewPw.getText()     : "";
@@ -880,10 +853,7 @@ public class AdminDashboardController {
             });
         }).start();
     }
-
-    // ════════════════════════════════════════════════════════
-    // HELPERS
-    // ════════════════════════════════════════════════════════
+    //HELPER
     private String formatCurrency(double amount) {
         return NumberFormat.getInstance(new Locale("vi", "VN")).format((long) amount) + " ₫";
     }

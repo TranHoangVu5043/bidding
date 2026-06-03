@@ -24,7 +24,7 @@ public class UserApi {
         this.gson = new Gson();
     }
 
-    // ===== LOGIN =====
+    //LOGIN
 
     public ApiResponse<String> login(
             String username,
@@ -68,7 +68,7 @@ public class UserApi {
             return response;
         }
     }
-    // ===== REGISTER =====
+    //REGISTER
 
     public ApiResponse<Void> register(
             String username,
@@ -112,7 +112,7 @@ public class UserApi {
         }
     }
 
-    // ===== CHANGE PASSWORD =====
+    //CHANGE PASSWORD
 
     public ApiResponse<Void> changePassword(String oldPassword, String newPassword) {
         try {
@@ -135,7 +135,7 @@ public class UserApi {
         }
     }
 
-    // ===== UPDATE NOTIFICATION PREFERENCES =====
+    //UPDATE NOTIFICATION PREFERENCES
 
     public ApiResponse<Void> updatePreferences(boolean notifAuction, boolean notifEmail) {
         try {
@@ -150,7 +150,7 @@ public class UserApi {
         }
     }
 
-    // ===== DELETE ACCOUNT =====
+    //DELETE ACCOUNT
 
     public ApiResponse<Void> deleteAccount() {
         try {
@@ -164,7 +164,7 @@ public class UserApi {
         }
     }
 
-    // ===== GET CURRENT USER =====
+    //GET CURRENT USER
 
     public ApiResponse<User> getMe() {
 
@@ -186,7 +186,7 @@ public class UserApi {
             return response;
         }
     }
-    // ===== DEPOSIT =====
+    //DEPOSIT
 
     public ApiResponse<Double> deposit(double amount) {
         try {
@@ -200,7 +200,7 @@ public class UserApi {
         }
     }
 
-    // ===== LOGOUT =====
+    //LOGOUT
 
     public ApiResponse<Void> logout() {
         try {
@@ -225,7 +225,7 @@ public class UserApi {
             return response;
         }
     }
-    // ===== GET ALL USERS =====
+    //GET ALL USERS
 
     public ApiResponse<List<User>> getAllUsers() {
         try {
@@ -241,8 +241,7 @@ public class UserApi {
             return response;
         }
     }
-
-    // ===== BAN USER =====
+    //BAN USER
 
     public ApiResponse<Void> banUser(int userId) {
         try {
@@ -259,7 +258,7 @@ public class UserApi {
         }
     }
 
-    // ===== UNBAN USER =====
+    //UNBAN USER
 
     public ApiResponse<Void> unbanUser(int userId) {
         try {

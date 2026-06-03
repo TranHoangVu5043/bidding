@@ -25,9 +25,7 @@
 
 <BorderPane prefHeight="720.0" prefWidth="1160.0" style="-fx-background-color: #F0F4F8;" stylesheets="@charts.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.admin.AdminDashboardController">
 
-    <!-- ═══════════════════════════════════════════════════════
-         SIDEBAR
-    ════════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR-->
     <left>
         <VBox prefWidth="220.0" spacing="3.0" style="-fx-background-color: #0F1F35;">
             <padding><Insets bottom="24" left="14" right="14" top="24" /></padding>
@@ -92,9 +90,7 @@
         </VBox>
     </left>
 
-    <!-- ═══════════════════════════════════════════════════════
-         MAIN CONTENT
-    ════════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT-->
     <center>
         <VBox spacing="0">
 
@@ -108,9 +104,7 @@
             <!-- TabPane -->
             <TabPane fx:id="mainTabPane" style="-fx-tab-min-width: 0; -fx-tab-max-width: 0; -fx-background-color: transparent;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 
-                <!-- ══════════════════════════════
-                     TAB: DASHBOARD
-                ══════════════════════════════ -->
+                <!-- TAB: DASHBOARD-->
                 <Tab fx:id="tabDashboard" text="">
                     <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
                         <content>
@@ -215,9 +209,7 @@
                     </ScrollPane>
                 </Tab>
 
-                <!-- ══════════════════════════════
-                     TAB: USERS
-                ══════════════════════════════ -->
+                <!--TAB: USERS-->
                 <Tab fx:id="tabUsers" text="">
                     <VBox spacing="16" style="-fx-padding: 24;">
 
@@ -298,9 +290,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ══════════════════════════════
-                     TAB: INVENTORY
-                ══════════════════════════════ -->
+                <!--TAB: INVENTORY -->
                 <Tab fx:id="tabInventory" text="">
                     <VBox spacing="16" style="-fx-padding: 24;">
 
@@ -379,9 +369,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ══════════════════════════════
-                     TAB: AUCTIONS
-                ══════════════════════════════ -->
+                <!-- TAB: AUCTION-->
                 <Tab fx:id="tabAuctions" text="">
                     <VBox spacing="16" style="-fx-padding: 24;">
                         <HBox alignment="CENTER_LEFT" spacing="10">
@@ -406,9 +394,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ══════════════════════════════
-                     TAB: SETTINGS
-                ══════════════════════════════ -->
+                <!--TAB: SETTINGS -->
                 <Tab fx:id="tabSettings" text="">
                     <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
                         <content>

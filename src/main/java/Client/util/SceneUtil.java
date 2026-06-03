@@ -10,7 +10,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class SceneUtil {
-    // Hiện thông báo
+    //Hiện thông báo
     public static void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
@@ -18,7 +18,7 @@ public class SceneUtil {
         alert.setContentText(content);
         alert.showAndWait();
     }
-    // Chuyển trang
+    //Chuyển trang
     public static void switchToScene(Button btnSource, String fxmlPath, String title){
         try {
             FXMLLoader loader = new FXMLLoader(SceneUtil.class.getResource(fxmlPath));

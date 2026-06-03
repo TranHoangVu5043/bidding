@@ -24,7 +24,7 @@ public class ApiClient {
         this.gson = new Gson();
     }
 
-    // ===== GET =====
+    //GET
 
     public String get(String path)
             throws IOException, InterruptedException {
@@ -41,7 +41,7 @@ public class ApiClient {
         return guardBody(response);
     }
 
-    // ===== POST =====
+    //POST
 
     public String post(String path, Object body)
             throws IOException, InterruptedException {
@@ -119,8 +119,7 @@ public class ApiClient {
         return "Không thể kết nối đến Server (HTTP " + httpStatus + ").";
     }
 
-    // ===== TOKEN =====
-
+    //TOKEN
     private void attachToken(HttpRequest.Builder builder) {
 
         String token = SessionManager.getToken();

@@ -28,7 +28,7 @@
 
 <BorderPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F9FAFB;" stylesheets="@charts.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.seller.SellerController">
 
-    <!-- ═══════════════════ LEFT SIDEBAR ═══════════════════ -->
+    <!-- LEFT SIDEBAR  -->
     <left>
         <VBox prefWidth="200.0" spacing="4.0" style="-fx-background-color: #1a3a5a;">
             <padding><Insets bottom="20" left="12" right="12" top="20" /></padding>
@@ -64,7 +64,7 @@
         </VBox>
     </left>
 
-    <!-- ═══════════════════ CENTER ═══════════════════ -->
+    <!--CENTER-->
     <center>
         <VBox spacing="0">
 
@@ -140,7 +140,7 @@
                     </ScrollPane>
                 </Tab>
 
-                <!-- ═══ TAB: INVENTORY ═══ -->
+                <!--  TAB INVENTORY -->
                 <Tab fx:id="tabInventory" text="">
                     <VBox spacing="15" style="-fx-padding: 22;">
                         <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="📦 Kho Hàng" />
@@ -158,7 +158,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ═══ TAB: ADD PRODUCT ═══ -->
+                <!-- TAB ADD PRODUCT-->
                 <Tab fx:id="tabAddProduct" text="">
                     <ScrollPane fitToWidth="true" style="-fx-background: white; -fx-background-color: white;">
                         <content>
@@ -206,7 +206,7 @@
                     </ScrollPane>
                 </Tab>
 
-                <!-- ═══ TAB: AUCTIONS ═══ -->
+                <!--  TAB AUCTIONS -->
                 <Tab fx:id="tabAuctions" text="">
                     <VBox spacing="15" style="-fx-padding: 22;">
                         <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="🔨 Đấu Giá" />
@@ -241,7 +241,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ═══ TAB: REVENUE ═══ -->
+                <!-- TAB REVENUE -->
                 <Tab fx:id="tabRevenue" text="">
                     <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;">
                         <content>
@@ -282,7 +282,7 @@
                     </ScrollPane>
                 </Tab>
 
-                <!-- ═══ TAB: HISTORY ═══ -->
+                <!-- TAB HISTORY  -->
                 <Tab fx:id="tabHistory" text="">
                     <VBox spacing="15" style="-fx-padding: 22;">
                         <Label style="-fx-font-weight: bold; -fx-font-size: 16;" text="📜 Lịch Sử Giao Dịch" />
@@ -305,7 +305,7 @@
                     </VBox>
                 </Tab>
 
-                <!-- ═══ TAB: PROFILE ═══ -->
+                <!-- TAB PROFILE  -->
                 <Tab fx:id="tabProfile" text="">
                     <ScrollPane fitToWidth="true" style="-fx-background: transparent;">
                         <content>
