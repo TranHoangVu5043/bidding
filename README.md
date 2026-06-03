@@ -109,7 +109,7 @@ Server đã được **deploy sẵn trên Railway** — có thể chạy Client 
 | **Railway (mặc định)** | `https://bidding-production-3e9a.up.railway.app` | `ws://roundhouse.proxy.rlwy.net:43153` |
 | **Local** | `http://localhost:8080` | `ws://localhost:8081` |
 
-Client mặc định kết nối đến **Local**. Để kết nối Railway, chỉnh trực tiếp trong `client/src/main/java/Client/networking/ServerConfig.java`:
+Client mặc định kết nối đến **Railway**. Để kết nối Local, chỉnh trực tiếp trong `client/src/main/java/Client/networking/ServerConfig.java`:
 
 ```java
 // Đổi từ LOCAL_HTTP/LOCAL_WS sang RAILWAY_HTTP/RAILWAY_WS
