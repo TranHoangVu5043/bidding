@@ -49,6 +49,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class UserController {
     //FXML — Top Navbar
@@ -149,8 +150,6 @@ public class UserController {
     /** Cached notifications so filter buttons can re-render without a network call. */
     private List<Notification> cachedNotifications = List.of();
 
-    /** Background thread that polls the notification count every 30 s to keep the badge fresh. */
-    private Thread notifPollerThread;
 
     //  Pagination 
     private static final int PAGE_SIZE = 21;
@@ -192,47 +191,6 @@ public class UserController {
             cmbBidHistoryFilter.valueProperty().addListener((obs, old, val) ->
                     renderBidHistoryCards(cachedBidHistory));
         }
-
-        // Background poller: refresh the notification badge every 30 s
-        startNotifPoller();
-    }
-
-    private void startNotifPoller() {
-        notifPollerThread = new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    Thread.sleep(30_000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                ApiResponse<List<Notification>> resp = notifApi.getNotifications();
-                if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                    List<Notification> fresh = resp.getData();
-                    long unread = fresh.stream().filter(n -> !n.isRead()).count();
-                    Platform.runLater(() -> {
-                        // Always update the badge
-                        if (lblNotifCount != null)
-                            lblNotifCount.setText(unread > 0 ? String.valueOf(unread) : "0");
-
-                        // If new notifications arrived, update the cache and re-render the list
-                        // only if the count changed (avoids unnecessary redraws)
-                        if (fresh.size() != cachedNotifications.size()) {
-                            cachedNotifications = fresh;
-                            // Re-render only when the notification tab is currently selected
-                            if (mainTabPane != null && tabNotification != null
-                                    && mainTabPane.getSelectionModel().getSelectedItem() == tabNotification) {
-                                setActiveNotifFilter(btnNotifAll);
-                                renderNotifications(cachedNotifications);
-                            }
-                        }
-                    });
-                }
-            }
-        });
-        notifPollerThread.setDaemon(true);
-        notifPollerThread.setName("notif-poller");
-        notifPollerThread.start();
     }
 
     /** Reads the User saved by LoginController and fills every label/field that shows user data. */
@@ -296,7 +254,6 @@ public class UserController {
     @FXML
     private void handleSignOut() {
         if (wsClient != null) wsClient.closeConnection();
-        if (notifPollerThread != null) notifPollerThread.interrupt();
         SessionManager.clear();
         SceneUtil.switchToScene(btnSignOut, "/Client/views/LoginView.fxml", "Login");
     }
@@ -371,6 +328,10 @@ public class UserController {
                     } else {
                         renderAuctionCards(currentDisplayList);
                     }
+                    connectWebSocket();
+                    if (countdownTicker == null || countdownTicker.getStatus() != javafx.animation.Animation.Status.RUNNING) {
+                        startCountdownTicker();
+                    }
                 } else {
                     String msg = response != null ? response.getMessage() : "Mất kết nối tới Server";
                     Label err = new Label("❌ Không thể tải dữ liệu: " + msg);
@@ -383,9 +344,14 @@ public class UserController {
 
     /** Opens (or reuses) the WebSocket connection and subscribes to every ACTIVE auction. */
     private void connectWebSocket() {
-        List<Integer> activeIds = liveAuctions.stream()
+        // Subscribe to active auctions from both lists — liveAuctions (Auction tab)
+        // and myBiddingAuctions (Dashboard tab) — so updates work regardless of which
+        // tab triggered the load.
+        List<Integer> activeIds = Stream.concat(
+                        liveAuctions.stream(), myBiddingAuctions.stream())
                 .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
                 .map(Auction::getId)
+                .distinct()
                 .toList();
 
         // If the connection is already alive just re-subscribe — don't tear it down
@@ -403,11 +369,10 @@ public class UserController {
             double newPrice   = update.newPrice();
             String newEndTime = update.newEndTime();
 
-            // Update the in-memory auction object
-            liveAuctions.stream()
+            // Update the in-memory auction object in both lists
+            Stream.concat(liveAuctions.stream(), myBiddingAuctions.stream())
                     .filter(a -> a.getId() == auctionId)
-                    .findFirst()
-                    .ifPresent(a -> {
+                    .forEach(a -> {
                         a.setCurrentPrice(newPrice);
                         if (newEndTime != null) a.setEndTime(newEndTime);
                     });
@@ -796,7 +761,6 @@ public class UserController {
                     btnDeleteAccount.setDisable(false);
                     if (resp != null && resp.getStatus() == 200) {
                         if (wsClient != null) wsClient.closeConnection();
-                        if (notifPollerThread != null) notifPollerThread.interrupt();
                         SessionManager.clear();
                         SceneUtil.switchToScene(btnDeleteAccount, "/Client/views/LoginView.fxml", "Login");
                     } else {

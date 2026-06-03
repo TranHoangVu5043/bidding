@@ -16,20 +16,23 @@ public class AuctionWebSocketClient extends WebSocketClient {
     private static final String WS_URL = Client.networking.ServerConfig.WS_URL;
 
     private final Consumer<BidUpdate> onBidUpdate;
-    /** Auction IDs to (re-)subscribe whenever the connection opens. */
+
     private final Set<Integer> subscribedRooms = ConcurrentHashMap.newKeySet();
-    /** Set to false on explicit close so we don't loop-reconnect after sign-out. */
+
     private volatile boolean autoReconnect = true;
+    private volatile int reconnectAttempts = 0;
+    private static final int MAX_RECONNECT_ATTEMPTS = 3;
 
     public AuctionWebSocketClient(Consumer<BidUpdate> onBidUpdate) {
         super(URI.create(WS_URL));
         this.onBidUpdate = onBidUpdate;
     }
 
-    // ── WebSocketClient callbacks ──────────────────────────────────────────────
+    // WebSocketClient callbacks
 
     @Override
     public void onOpen(ServerHandshake handshake) {
+        reconnectAttempts = 0;
         System.out.println("[WS] Connected → re-subscribing to " + subscribedRooms);
         subscribedRooms.forEach(this::sendSubscribe);
     }
@@ -54,13 +57,15 @@ public class AuctionWebSocketClient extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         System.out.println("[WS] Disconnected (code=" + code + ") — autoReconnect=" + autoReconnect);
-        if (!autoReconnect) return;
+        if (!autoReconnect || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return;
+        reconnectAttempts++;
+        System.out.println("[WS] Reconnect attempt " + reconnectAttempts + "/" + MAX_RECONNECT_ATTEMPTS);
         new Thread(() -> {
             try { Thread.sleep(3_000); } catch (InterruptedException ignored) {}
             try { reconnect(); } catch (Exception e) {
-                System.err.println("[WS] Reconnect failed: " + e.getMessage());
+                System.err.println("[WS] Reconnect attempt " + reconnectAttempts + " failed: " + e.getMessage());
             }
-        }, "ws-reconnect").start();
+        }, "ws-reconnect-" + reconnectAttempts).start();
     }
 
     @Override

@@ -24,11 +24,15 @@ public class DataSourceFactory {
         cfg.setMinimumIdle(2);       // keep 2 warm connections alive at all times
         cfg.setMaximumPoolSize(10);  // max 10 concurrent connections
 
-        //  Timeouts ─
-        cfg.setConnectionTimeout(30_000);  // max wait to borrow a connection: 30 s
-        cfg.setIdleTimeout(600_000);       // retire idle connections after 10 min
-        cfg.setMaxLifetime(1_800_000);     // recycle connections after 30 min
-        cfg.setKeepaliveTime(60_000);      // ping the DB every 60 s to prevent stale conns
+        //  Timeouts
+        cfg.setConnectionTimeout(30_000);   // max wait to borrow a connection: 30 s
+        cfg.setIdleTimeout(600_000);        // retire idle connections after 10 min
+        cfg.setMaxLifetime(1_800_000);      // recycle connections after 30 min
+        cfg.setKeepaliveTime(30_000);       // ping the DB every 30 s to prevent stale conns
+
+        // Validate connection before use — silently discards closed connections
+        // instead of throwing "This connection has been closed" errors
+        cfg.setConnectionTestQuery("SELECT 1");
 
         pool = new HikariDataSource(cfg);
         System.out.println("[DB] HikariCP pool started  (minIdle=2, maxPool=10)");
