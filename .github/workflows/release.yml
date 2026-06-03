@@ -3,8 +3,8 @@ name: Build & Release
 on:
   push:
     tags:
-      - 'v*'          # triggers on: git tag v1.0.0 && git push origin v1.0.0
-  workflow_dispatch:  # also allows manual trigger from GitHub UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -36,21 +36,31 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libgl1-mesa-dri
 
-      - name: Build fat JAR
+      - name: Build JAR
         run: mvn -pl client package -DskipTests --no-transfer-progress
+
+      - name: Copy dependencies to input folder
+        shell: bash
+        run: |
+          mkdir -p app-input
+          cp client/target/bidding-client-1.0.jar app-input/
+          mvn -pl client dependency:copy-dependencies \
+            -DoutputDirectory=app-input \
+            -DincludeScope=runtime \
+            --no-transfer-progress
 
       - name: Package with jpackage
         shell: bash
         run: |
           jpackage \
             --type ${{ matrix.installer-type }} \
-            --input client/target \
-            --main-jar bidding-client-1.0-SNAPSHOT.jar \
+            --input app-input \
+            --main-jar bidding-client-1.0.jar \
             --main-class Client.ClientApp \
             --name BiddingAuction \
             --app-version 1.0.0 \
             --dest installer-output \
-            --java-options "-Dfile.encoding=UTF-8"
+            --java-options "-Dfile.encoding=UTF-8 --add-modules javafx.controls,javafx.fxml,javafx.graphics"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
