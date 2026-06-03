@@ -41,7 +41,7 @@ public final class AuctionCardBuilder {
     public VBox build(Auction auction) {
         String status = auction.getStatus() != null ? auction.getStatus().toUpperCase() : "UNKNOWN";
 
-        // ── Status badge ──
+        //  Status badge 
         String badgeColor = switch (status) {
             case "ACTIVE"   -> "#16A34A";
             case "UPCOMING" -> "#0066CC";
@@ -57,7 +57,7 @@ public final class AuctionCardBuilder {
         Label lblStatus = new Label(statusText);
         lblStatus.setStyle("-fx-text-fill: " + badgeColor + "; -fx-font-size: 11; -fx-font-weight: bold;");
 
-        // ── Image area (click → detail popup) ──
+        //  Image area (click → detail popup) 
         Region imgBg = new Region();
         imgBg.setPrefSize(186, 120);
         imgBg.setStyle("-fx-background-color: #EFF6FF; -fx-background-radius: 8;");
@@ -79,7 +79,7 @@ public final class AuctionCardBuilder {
                 () -> AutoBidDialog.show(auction, cfg.bidApi()),
                 () -> BidHistoryDialog.show(auction, cfg.bidApi())));
 
-        // ── Auction info labels ──
+        //  Auction info labels 
         Label lblTitle = new Label("Phiên đấu giá #" + auction.getId());
         lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 13;");
         lblTitle.setWrapText(true);
@@ -99,13 +99,13 @@ public final class AuctionCardBuilder {
             cfg.liveStatusLabels().put(auction.getId(), lblStatus);
         }
 
-        // ── Countdown label ──
+        //  Countdown label 
         Label lblTime = new Label("🕒 " + cfg.formatTimeRemaining().apply(auction.getEndTime()));
         lblTime.setStyle("-fx-font-size: 11; -fx-text-fill: #0066CC;");
         lblTime.setUserData(auction.getEndTime());   // countdown ticker reads this
         if ("ACTIVE".equals(status)) cfg.liveTimeLabels().put(auction.getId(), lblTime);
 
-        // ── Bid buttons ──
+        //  Bid buttons 
         boolean canBid = "ACTIVE".equals(status);
 
         Button btnBid = new Button("Đặt giá ngay");
@@ -136,7 +136,7 @@ public final class AuctionCardBuilder {
                 "-fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 6;");
         btnHistory.setOnAction(e -> BidHistoryDialog.show(auction, cfg.bidApi()));
 
-        // ── Assemble ──
+        //  Assemble 
         VBox card = new VBox(8, lblStatus, imgPane, lblTitle, lblSeller,
                 lblStartPrice, lblCurrentPrice, lblTime,
                 btnBid, btnAutoBid, btnHistory);

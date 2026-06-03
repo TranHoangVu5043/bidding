@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class AdminDashboardController {
 
-    // ── Chart constants ──
+    //  Chart constants 
     private static final String[] CHART_STATUSES = {"ACTIVE", "UPCOMING", "FINISHED", "CANCELLED"};
     private static final String[] CHART_COLORS = {"#3B82F6", "#F97316", "#10B981", "#EF4444"};
     private static final String[] CHART_VI       = {"Đang diễn ra", "Sắp diễn ra", "Đã kết thúc", "Đã hủy"};
 
-    // ── Sidebar ──
+    //  Sidebar 
     @FXML private Button btnHome;
     @FXML private Button btnUsers;
     @FXML private Button btnInventory;
@@ -46,23 +46,23 @@ public class AdminDashboardController {
     @FXML private Button btnSettings;
     @FXML private Button btnSignOut;
 
-    // ── Top bar ──
+    //  Top bar 
     @FXML private Label lblPageTitle;
     @FXML private Label welcomeLabel;
 
-    // ── Dashboard KPI ──
+    //  Dashboard KPI 
     @FXML private Label lblTotalRevenue;
     @FXML private Label lblTotalUsers;
     @FXML private Label lblTotalSellers;
     @FXML private Label lblTotalAuctions;
 
-    // ── Dashboard Feed & Chart ──
+    //  Dashboard Feed & Chart 
     @FXML private VBox   activityVBox;
     @FXML private PieChart chartPie;
     @FXML private Label  chartCenterCount;
     @FXML private VBox   chartLegend;
 
-    // ── TabPane ──
+    //  TabPane 
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
     @FXML private Tab tabUsers;
@@ -70,7 +70,7 @@ public class AdminDashboardController {
     @FXML private Tab tabAuctions;
     @FXML private Tab tabSettings;
 
-    // ── Tab Users ──
+    //  Tab Users 
     @FXML private Label                      lblUserCount;
     @FXML private Label                      lblActiveUserCount;
     @FXML private Label                      lblSellerCount;
@@ -86,7 +86,7 @@ public class AdminDashboardController {
     @FXML private TextField                  txtUserSearch;
     @FXML private ComboBox<String>           cmbUserRole;
 
-    // ── Tab Inventory ──
+    //  Tab Inventory 
     @FXML private Label                      lblTotalItems;
     @FXML private Label                      lblActiveItems;
     @FXML private Label                      lblPendingItems;
@@ -100,7 +100,7 @@ public class AdminDashboardController {
     @FXML private TextField                  txtProductSearch;
     @FXML private ComboBox<String>           cmbProductCategory;
 
-    // ── Tab Auctions ──
+    //  Tab Auctions 
     @FXML private TextField        txtAuctionSearch;
     @FXML private ComboBox<String> cmbAuctionStatus;
     @FXML private FlowPane         auctionsAdminFlowPane;
@@ -112,13 +112,13 @@ public class AdminDashboardController {
     private int              currentAuctionPage = 0;
     private List<Auction>    filteredAuctions   = List.of();
 
-    // ── Tab Settings ──
+    //  Tab Settings 
     @FXML private PasswordField txtAdminOldPw;
     @FXML private PasswordField txtAdminNewPw;
     @FXML private PasswordField txtAdminConfirmPw;
 
 
-    // ── Observable data ──
+    //  Observable data 
     private final ObservableList<User> allUsers      = FXCollections.observableArrayList();
     private final FilteredList<User>   filteredUsers = new FilteredList<>(allUsers, p -> true);
 
@@ -128,7 +128,7 @@ public class AdminDashboardController {
     // Auction list
     private List<Auction> cachedAuctions = new ArrayList<>();
 
-    // ── APIs ──
+    //  APIs 
     private final UserApi    userApi    = new UserApi();
     private final ItemApi    itemApi    = new ItemApi();
     private final AuctionApi auctionApi = new AuctionApi();

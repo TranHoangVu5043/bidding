@@ -74,7 +74,32 @@ public class AutoBidConfigService {
                     return;
                 }
                 if (previousLeader != null && previousLeader == top1.getUserId()) {
+                    // top1 is already the leader. Give the next challenger a chance to place
+                    // their opening bid, then top1 will auto-respond in the next round.
+
+                    AutoBidConfig savedTop1 = queue.poll();       // temporarily remove top1
+                    AutoBidConfig challenger = queue.peek();       // peek at second-best (stays in queue)
+                    queue.add(savedTop1);                         // restore top1
+
+                    if (challenger == null || challenger.getMaxBid() <= currentPrice) {
+                        conn.commit();
+                        return; // no viable challenger — leader is unchallenged
+                    }
+
+                    double challengePrice = Math.min(
+                            currentPrice + challenger.getIncrement(), challenger.getMaxBid());
+                    if (challengePrice <= currentPrice) {
+                        conn.commit();
+                        return;
+                    }
+
+                    biddingService.placeBidInternal(conn, challenger.getUserId(), auctionId, challengePrice);
                     conn.commit();
+                    BidWebSocketServer.getInstance().broadcastBidUpdate(
+                            auctionId, challengePrice, challenger.getUserId(), challengePrice, null);
+
+                    // top1 now responds to the challenge
+                    triggerAutoBidding(auctionId);
                     return;
                 }
                 AutoBidConfig top1Config = queue.poll();

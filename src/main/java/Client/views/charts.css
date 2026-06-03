@@ -2,7 +2,7 @@
    SHARED CHART STYLES
 ═══════════════════════════════════════════ */
 
-/* ── Chung: xóa background mặc định xấu ── */
+/*  Chung: xóa background mặc định xấu  */
 .chart {
     -fx-background-color: transparent;
     -fx-padding: 8 4 4 4;
@@ -40,7 +40,7 @@
     -fx-fill: transparent;
 }
 
-/* ── LineChart (Seller: doanh thu tuần) ── */
+/*  LineChart (Seller: doanh thu tuần)  */
 .line-chart .chart-series-line {
     -fx-stroke: #F97316;
     -fx-stroke-width: 2.5px;
@@ -55,7 +55,7 @@
     -fx-background-color: #F97316;
 }
 
-/* ── PieChart (Seller: danh mục sản phẩm) ── */
+/*  PieChart (Seller: danh mục sản phẩm)  */
 .default-color0.chart-pie { -fx-pie-color: #3B82F6; } /* Màu thứ 1 */
 .default-color1.chart-pie { -fx-pie-color: #EC4899; } /* Màu thứ 2 */
 .default-color2.chart-pie { -fx-pie-color: #10B981; } /* Màu thứ 3 */
@@ -64,7 +64,7 @@
 /* Style cho chữ (Label) và đường kẻ (Line) nối ra chữ */
 .pie-chart .chart-pie-label      { -fx-fill: #374151; -fx-font-size: 11px; }
 .pie-chart .chart-pie-label-line { -fx-stroke: #D1D5DB; }
-/* ── AreaChart (Seller: doanh thu tháng) ── */
+/*  AreaChart (Seller: doanh thu tháng)  */
 .area-chart .chart-series-area-line {
     -fx-stroke: #3B82F6;
     -fx-stroke-width: 2.5px;
@@ -83,7 +83,7 @@
     -fx-background-color: #3B82F6;
 }
 
-/* ── BarChart (Admin hoặc Seller nếu dùng) ── */
+/*  BarChart (Admin hoặc Seller nếu dùng)  */
 .bar-chart .default-color0.chart-bar { -fx-bar-fill: #3B82F6; }
 .bar-chart .default-color1.chart-bar { -fx-bar-fill: #F97316; }
 .bar-chart .default-color2.chart-bar { -fx-bar-fill: #10B981; }
@@ -92,7 +92,7 @@
     -fx-background-radius: 4 4 0 0;
 }
 
-/* ── PieChart: legend text visible ── */
+/*  PieChart: legend text visible  */
 .pie-chart .chart-legend-item {
     -fx-text-fill: #374151;
     -fx-font-size: 11px;

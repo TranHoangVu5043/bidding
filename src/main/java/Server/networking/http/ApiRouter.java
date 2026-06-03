@@ -62,7 +62,7 @@ public class ApiRouter implements HttpHandler {
         log.info("{} {} → {} ms", method, path, ms);
     }
 
-    // ── Pattern route matcher ──────────────────────────────────────
+    //  Pattern route matcher 
     private static class PatternRoute {
         final String   method;
         final String[] parts;   // e.g. ["api","users","{id}","ban"]

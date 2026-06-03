@@ -56,7 +56,7 @@ public class SellerChartHelper {
         this.masterData     = masterData;
     }
 
-    // ── Week revenue LineChart ────────────────────────────────────────────
+    //  Week revenue LineChart 
 
     public void setupWeekRevenueChart() {
         if (weekChart == null) return;
@@ -100,7 +100,7 @@ public class SellerChartHelper {
         }
     }
 
-    // ── Category PieChart ─────────────────────────────────────────────────
+    //  Category PieChart ─
 
     public void setupCategoryPieChart() {
         if (pieChart == null) return;
@@ -150,7 +150,7 @@ public class SellerChartHelper {
         }
     }
 
-    // ── Revenue AreaChart + finished-auctions table ───────────────────────
+    //  Revenue AreaChart + finished-auctions table ─
 
     public void renderRevenueData(List<Auction> auctions) {
         if (finishedVBox != null) {

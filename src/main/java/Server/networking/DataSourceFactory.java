@@ -20,11 +20,11 @@ public class DataSourceFactory {
         cfg.setSchema("public");
         cfg.setDriverClassName("org.postgresql.Driver");
 
-        // ── Pool sizing ──────────────────────────────────────────────────
+        //  Pool sizing 
         cfg.setMinimumIdle(2);       // keep 2 warm connections alive at all times
         cfg.setMaximumPoolSize(10);  // max 10 concurrent connections
 
-        // ── Timeouts ─────────────────────────────────────────────────────
+        //  Timeouts ─
         cfg.setConnectionTimeout(30_000);  // max wait to borrow a connection: 30 s
         cfg.setIdleTimeout(600_000);       // retire idle connections after 10 min
         cfg.setMaxLifetime(1_800_000);     // recycle connections after 30 min

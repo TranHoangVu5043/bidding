@@ -42,7 +42,7 @@ public final class ItemDetailDialog {
         popup.setTitle("Chi tiết sản phẩm");
         popup.setResizable(false);
 
-        // ── Header ──
+        //  Header 
         Label emoji = new Label(DialogUtil.categoryEmoji(item.getCategory()));
         emoji.setStyle("-fx-font-size: 52;");
 
@@ -61,7 +61,7 @@ public final class ItemDetailDialog {
         header.setPadding(new Insets(24, 24, 16, 24));
         header.setStyle("-fx-background-color: " + DialogUtil.categoryGradient(item.getCategory()) + ";");
 
-        // ── Detail rows ──
+        //  Detail rows 
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(12);
@@ -71,7 +71,7 @@ public final class ItemDetailDialog {
         DialogUtil.addDetailRow(grid, 2, "📦 Tồn kho",      String.valueOf(item.getStock()));
         DialogUtil.addDetailRow(grid, 3, "📊 Trạng thái",   item.getStatus());
 
-        // ── Description ──
+        //  Description 
         Label descTitle = new Label("📝 Mô tả");
         descTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13;");
 
@@ -88,7 +88,7 @@ public final class ItemDetailDialog {
         Separator sep1 = new Separator();
         sep1.setPadding(new Insets(4, 20, 4, 20));
 
-        // ── Auction posting section ──
+        //  Auction posting section 
         boolean hasOngoingAuction = sellerAuctions != null && sellerAuctions.stream()
                 .anyMatch(a -> a.getItemId() == item.getId()
                         && ("ACTIVE".equalsIgnoreCase(a.getStatus())
@@ -200,7 +200,7 @@ public final class ItemDetailDialog {
         Separator sep2 = new Separator();
         sep2.setPadding(new Insets(4, 20, 4, 20));
 
-        // ── Edit button ──
+        //  Edit button 
         Button btnEdit = new Button("✏ Chỉnh sửa");
         btnEdit.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
                 "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand;");
@@ -209,7 +209,7 @@ public final class ItemDetailDialog {
             if (onEditRequested != null) Platform.runLater(() -> onEditRequested.accept(item));
         });
 
-        // ── Delete button ──
+        //  Delete button 
         Button btnDelete = new Button("🗑 Xóa");
         btnDelete.setDisable(hasOngoingAuction);
         btnDelete.setStyle("-fx-background-color: " + (hasOngoingAuction ? "#9ca3af" : "#ef4444") +

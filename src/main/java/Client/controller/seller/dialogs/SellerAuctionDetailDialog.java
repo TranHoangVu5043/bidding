@@ -48,7 +48,7 @@ public final class SellerAuctionDetailDialog {
             default         -> "✕ Đã hủy";
         };
 
-        // ── Header ──
+        //  Header 
         Label iconLabel = new Label(DialogUtil.categoryEmoji(category));
         iconLabel.setStyle("-fx-font-size: 52;");
 
@@ -69,7 +69,7 @@ public final class SellerAuctionDetailDialog {
         header.setPadding(new Insets(24, 24, 16, 24));
         header.setStyle("-fx-background-color: " + headerBg + ";");
 
-        // ── Detail rows ──
+        //  Detail rows 
         javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
         grid.setHgap(20);
         grid.setVgap(12);
@@ -82,7 +82,7 @@ public final class SellerAuctionDetailDialog {
         Separator sep = new Separator();
         sep.setPadding(new Insets(0, 20, 0, 20));
 
-        // ── Action buttons ──
+        //  Action buttons 
         VBox btnBox = new VBox(8);
         btnBox.setPadding(new Insets(14, 28, 24, 28));
 

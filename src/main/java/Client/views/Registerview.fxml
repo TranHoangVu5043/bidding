@@ -34,13 +34,13 @@
                      -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 2);">
             <children>
 
-                <!-- ── Header ── -->
+                <!--  Header  -->
                 <Label text="Tạo Tài Khoản" textFill="#1a337e">
                     <font><Font name="System Bold" size="22.0" /></font>
                 </Label>
                 <Label text="Đăng ký để tham gia đấu giá!" textFill="#888888" />
 
-                <!-- ── Two-tab registration form ── -->
+                <!--  Two-tab registration form  -->
                 <!-- TabPane prefWidth=384; two auto-sized tabs fit without overflow arrow -->
                 <TabPane styleClass="seg-tabs" tabClosingPolicy="UNAVAILABLE" prefWidth="384.0">
                     <tabs>
@@ -108,7 +108,7 @@
                     </tabs>
                 </TabPane>
 
-                <!-- ── Register button ── -->
+                <!--  Register button  -->
                 <Button mnemonicParsing="false"
                         onAction="#handleRegister"
                         prefHeight="42.0" prefWidth="384.0"
@@ -117,7 +117,7 @@
                     <font><Font name="System Bold" size="15.0" /></font>
                 </Button>
 
-                <!-- ── Back-to-login link ── -->
+                <!--  Back-to-login link  -->
                 <HBox alignment="CENTER" spacing="4.0" style="-fx-padding: 4 0 0 0;">
                     <children>
                         <Label text="Đã có tài khoản?" textFill="#888888" />

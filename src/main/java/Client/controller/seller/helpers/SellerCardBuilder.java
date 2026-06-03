@@ -16,11 +16,8 @@ public final class SellerCardBuilder {
 
     private SellerCardBuilder() {}
 
-    // ── Auction card ──────────────────────────────────────────────────────
+    //  Auction card 
 
-    /**
-     * @param onClick  called with the auction when the user clicks the card
-     */
     public static VBox buildAuctionCard(Auction auction, List<Item> masterData,
                                         Consumer<Auction> onClick) {
 
@@ -70,9 +67,8 @@ public final class SellerCardBuilder {
         return card;
     }
 
-    // ── Item (inventory) card ─────────────────────────────────────────────
+    //  Item (inventory) card ─
 
-    /** sellerAuctions is used to show the auction-status overlay on the card. */
     public static VBox buildItemCard(Item item, List<Auction> sellerAuctions) {
         Label iconLabel = new Label(DialogUtil.categoryEmoji(item.getCategory()));
         iconLabel.setStyle("-fx-font-size: 38;");

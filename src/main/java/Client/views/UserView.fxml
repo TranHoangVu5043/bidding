@@ -108,7 +108,7 @@
     <center>
         <TabPane fx:id="mainTabPane" style="-fx-background-color: transparent; -fx-tab-min-width: 0; -fx-tab-max-width: 0;" tabClosingPolicy="UNAVAILABLE">
 
-            <!-- ───── TAB 1: DASHBOARD / AUCTION FLOOR ───── -->
+            <!-- ─ TAB 1: DASHBOARD / AUCTION FLOOR ─ -->
             <Tab fx:id="tabDashboard" text="">
                 <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;">
                     <content>
@@ -176,7 +176,7 @@
             </content>
          </Tab>
 
-            <!-- ───── TAB 6: NOTIFICATION ───── -->
+            <!-- ─ TAB 6: NOTIFICATION ─ -->
             <Tab fx:id="tabNotification" text="">
                 <VBox spacing="15" style="-fx-padding: 25;">
                     <children>
@@ -220,7 +220,7 @@
                 </VBox>
             </Tab>
 
-            <!-- ───── TAB 7: PROFILE ───── -->
+            <!-- ─ TAB 7: PROFILE ─ -->
             <Tab fx:id="tabProfile" text="">
                 <ScrollPane fitToWidth="true" style="-fx-background: transparent;">
                     <content>
@@ -294,7 +294,7 @@
                 </ScrollPane>
             </Tab>
 
-            <!-- ───── TAB 8: SETTINGS ───── -->
+            <!-- ─ TAB 8: SETTINGS ─ -->
             <Tab fx:id="tabSettings" text="">
                 <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                     <content>

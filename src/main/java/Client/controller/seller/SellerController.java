@@ -40,12 +40,12 @@ import java.util.List;
 
 public class SellerController {
 
-    // ── Inventory / History card panes ──
+    //  Inventory / History card panes 
     @FXML private FlowPane inventoryFlowPane;
     @FXML private VBox     historyVBox;
     private Item selectedItem;
 
-    // ── Add-product tab fields ──
+    //  Add-product tab fields 
     @FXML private TextField  txtName;
     @FXML private TextArea   txtDescription;
     @FXML private TextField  txtPrice;
@@ -53,14 +53,14 @@ public class SellerController {
     @FXML private ComboBox<String> cmbCategory;
     @FXML private ComboBox<String> cmbCondition;
 
-    // ── Search & Filter Inventory ──
+    //  Search & Filter Inventory 
     @FXML private TextField txtSearch;
     @FXML private ComboBox<String> cmbInvStatus;
     @FXML private Button btnRevenue;
     @FXML private Tab tabRevenue;
     @FXML private VBox finishedAuctionVBox;
 
-    // ── Sidebar buttons ──
+    //  Sidebar buttons 
     @FXML private Button btnDashboard;
     @FXML private Button btnInventory;
     @FXML private Button btnAddProduct;
@@ -69,7 +69,7 @@ public class SellerController {
     @FXML private Button btnProfile;
     @FXML private Button btnLogout;
 
-    // ── Navigation ──
+    //  Navigation 
     @FXML private TabPane mainTabPane;
     @FXML private Tab tabDashboard;
     @FXML private Tab tabInventory;
@@ -81,7 +81,7 @@ public class SellerController {
     @FXML private Label lblShopName;
     @FXML private Label lblSellerName;
 
-    // ── Các trường FXML phục vụ Dashboard Stats & Charts ──
+    //  Các trường FXML phục vụ Dashboard Stats & Charts 
     @FXML private Label lblMonthRevenue;
     @FXML private Label lblNewOrders;
     @FXML private Label lblActiveProducts;
@@ -94,7 +94,7 @@ public class SellerController {
     @FXML private CategoryAxis               revenueXAxis;
     @FXML private NumberAxis                 revenueYAxis;
     @FXML private VBox   pieLegend;
-    // ── Tab Đấu giá ──
+    //  Tab Đấu giá 
     @FXML private Label     lblSellerActiveAuctions;
     @FXML private Label     lblSellerEndedAuctions;
     @FXML private Label     lblSellerTotalRevenue;
@@ -108,7 +108,7 @@ public class SellerController {
     private static final int PAGE_SIZE = 21;
     private int currentAuctionPage = 0;
     private List<Auction> filteredAuctions = List.of();
-    // ── Hồ sơ người bán & Đổi mật khẩu ──
+    //  Hồ sơ người bán & Đổi mật khẩu 
     @FXML private TextField     txtShopName;
     @FXML private TextField     txtSellerPhone;
     @FXML private TextArea      txtShopDesc;
@@ -117,20 +117,20 @@ public class SellerController {
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;
 
-    // ── History tab filters ──
+    //  History tab filters 
     @FXML private TextField        txtHistorySearch;
     @FXML private ComboBox<String> cmbHistoryDate;
     /** Full list of FINISHED auctions — filtering is applied client-side from this cache. */
     private List<Auction> cachedHistory = List.of();
 
 
-    // ── Instance các Api kết nối trực tiếp Backend ──
+    //  Instance các Api kết nối trực tiếp Backend 
     private final ItemApi         itemApi    = new ItemApi();
     private final AuctionApi      auctionApi = new AuctionApi();
     private final UserApi         userApi    = new UserApi();
 
 
-    // ── Các danh sách dữ liệu ObservableList & FilteredList ──
+    //  Các danh sách dữ liệu ObservableList & FilteredList 
     private final ObservableList<Item>    masterData     = FXCollections.observableArrayList();
     private final ObservableList<Auction> sellerAuctions = FXCollections.observableArrayList();
 
@@ -142,7 +142,7 @@ public class SellerController {
 
     @FXML
     public void initialize() {
-        // ── Cài đặt ComboBox ──
+        //  Cài đặt ComboBox 
         if (cmbCategory != null) {
             cmbCategory.setItems(FXCollections.observableArrayList("ELECTRONICS", "ART", "VEHICLE"));
         }
@@ -160,7 +160,7 @@ public class SellerController {
             cmbAuctionStatus.valueProperty().addListener((obs, oldV, newV) -> applyAuctionFilter());
         }
 
-        // ── Lắng nghe sự kiện tìm kiếm Realtime ──
+        //  Lắng nghe sự kiện tìm kiếm Realtime 
         if (txtSearch != null) {
             txtSearch.textProperty().addListener((obs, oldVal, newVal) -> applyFilter(newVal));
         }
@@ -199,7 +199,7 @@ public class SellerController {
         if (txtShopName   != null) txtShopName.setText(name);
     }
 
-    // ── Tải danh sách sản phẩm  ──
+    //  Tải danh sách sản phẩm  
     private void loadMyItems() {
         new Thread(() -> {
             ApiResponse<List<Item>> response = itemApi.getMyItems();
@@ -276,7 +276,7 @@ public class SellerController {
         switchTab(tabRevenue, "Doanh Thu", btnRevenue);
         loadHistory();
     }
-    // ── Tải danh sách phiên đấu giá của seller ──
+    //  Tải danh sách phiên đấu giá của seller 
     private void loadSellerAuctions() {
         final int myVersion = ++auctionLoadVersion;
         new Thread(() -> {
@@ -303,7 +303,7 @@ public class SellerController {
         }).start();
     }
 
-    // ── Logic tính toán số liệu thống kê ──
+    //  Logic tính toán số liệu thống kê 
     private void updateAuctionStats() {
         long active = sellerAuctions.stream().filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus())).count();
         long ended  = sellerAuctions.stream().filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())).count();
@@ -374,12 +374,12 @@ public class SellerController {
         if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", monthRevenue));
     }
 
-    // ── Charts — delegated to SellerChartHelper ──────────────────────────
+    //  Charts — delegated to SellerChartHelper 
     private void setupWeekRevenueChart()  { if (chartHelper != null) chartHelper.setupWeekRevenueChart(); }
     private void setupCategoryPieChart()  { if (chartHelper != null) chartHelper.setupCategoryPieChart(); }
     private void renderRevenueData(List<Auction> auctions) { if (chartHelper != null) chartHelper.renderRevenueData(auctions); }
 
-    // ── Add product ───────────────────────────────────────────────────────
+    //  Add product ─
     @FXML
     private void handleAddProduct() {
         String name        = txtName        != null ? txtName.getText().trim()  : "";
@@ -415,7 +415,7 @@ public class SellerController {
         }).start();
     }
 
-    // ── Inventory search & filter ─────────────────────────────────────────
+    //  Inventory search & filter ─
     @FXML
     private void handleSearch() { applyFilter(txtSearch != null ? txtSearch.getText() : ""); }
 
@@ -431,7 +431,7 @@ public class SellerController {
         renderInventoryCards(filtered);
     }
 
-    // ── Auction search & filter ───────────────────────────────────────────
+    //  Auction search & filter ─
     private void applyAuctionFilter() {
         String kw  = txtAuctionSearch != null ? txtAuctionSearch.getText().trim().toLowerCase() : "";
         String st  = cmbAuctionStatus != null ? cmbAuctionStatus.getValue() : "Tất cả";
@@ -447,7 +447,7 @@ public class SellerController {
         renderAuctionCards(filteredAuctions);
     }
 
-    // ── Auction card rendering + pagination ───────────────────────────────
+    //  Auction card rendering + pagination ─
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
@@ -503,7 +503,7 @@ public class SellerController {
         if (currentAuctionPage < total - 1) { currentAuctionPage++; renderAuctionCards(filteredAuctions); }
     }
 
-    // ── Inventory card rendering ──────────────────────────────────────────
+    //  Inventory card rendering 
     private void renderInventoryCards(List<Item> items) {
         if (inventoryFlowPane == null) return;
         inventoryFlowPane.getChildren().clear();
@@ -542,7 +542,7 @@ public class SellerController {
         }
     }
 
-    // ── History card rendering ────────────────────────────────────────────
+    //  History card rendering 
     private void renderHistoryCards(List<Auction> auctions) {
         if (historyVBox == null) return;
         historyVBox.getChildren().clear();
@@ -568,7 +568,7 @@ public class SellerController {
         if (cmbCondition   != null) cmbCondition.setValue(null);
     }
 
-    // ── 🔗 ĐỒNG BỘ: Sự kiện chuyển tab của Sidebar Buttons ──
+    //  🔗 ĐỒNG BỘ: Sự kiện chuyển tab của Sidebar Buttons 
     @FXML public void showDashboard()    { switchTab(tabDashboard,    "Dashboard",         btnDashboard);  loadMyItems(); loadSellerAuctions(); }
     @FXML public void showInventory()    { switchTab(tabInventory,    "Kho Hàng",          btnInventory);  loadMyItems(); }
     @FXML public void showAddProduct()   { switchTab(tabAddProduct,   "Thêm Sản Phẩm",     btnAddProduct); }
@@ -600,7 +600,7 @@ public class SellerController {
         };
     }
 
-    // ── Tính năng Đổi mật khẩu  ──
+    //  Tính năng Đổi mật khẩu  
     @FXML
     private void handleChangePw() {
         String oldPw = (txtOldPw != null) ? txtOldPw.getText() : "";
@@ -640,11 +640,11 @@ public class SellerController {
             }
         }).start();
     }
-    // Đổi màu nút bấm ──
+    // Đổi màu nút bấm 
     private final String NORMAL_STYLE = "-fx-background-color: transparent; -fx-text-fill: #CBD5E1; -fx-background-radius: 8; -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
     private final String ACTIVE_STYLE = "-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-size: 13; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
 
-    // ── Hàm điều hướng Tab ──
+    //  Hàm điều hướng Tab 
     private void switchTab(Tab tab, String title, Button activeBtn) {
         if (mainTabPane != null && tab != null) mainTabPane.getSelectionModel().select(tab);
         if (lblPageTitle != null && title != null) lblPageTitle.setText(title);

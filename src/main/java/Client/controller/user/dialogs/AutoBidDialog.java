@@ -74,7 +74,7 @@ public final class AutoBidDialog {
                 new Thread(() -> {
                     ApiResponse<Void> resp = bidApi.registerAutoBid(auction.getId(), maxBid, increment);
                     Platform.runLater(() -> {
-                        if (resp != null && resp.getStatus() == 201) {
+                        if (resp != null && resp.getStatus() == 200) {
                             showAlert(Alert.AlertType.INFORMATION, "Đặt giá tự động thành công",
                                     String.format("Hệ thống sẽ tự động đặt giá cho phiên #%d\n" +
                                             "Giá tối đa: %,.0f ₫  |  Mức tăng: %,.0f ₫",

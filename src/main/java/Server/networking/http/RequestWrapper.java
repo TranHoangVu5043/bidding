@@ -41,7 +41,7 @@ public class RequestWrapper {
         return exchange;
     }
 
-    // ── Path params (set bởi ApiRouter khi match pattern route) ──
+    //  Path params (set bởi ApiRouter khi match pattern route) 
 
     public void setPathParams(Map<String, String> params) {
         this.pathParams = params != null ? params : new HashMap<>();

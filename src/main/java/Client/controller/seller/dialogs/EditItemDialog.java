@@ -27,7 +27,7 @@ public final class EditItemDialog {
         stage.setTitle("Chỉnh sửa sản phẩm");
         stage.setResizable(false);
 
-        // ── Header ──
+        //  Header 
         Label titleLabel = new Label("✏  Chỉnh sửa: " + item.getName());
         titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         titleLabel.setWrapText(true);
@@ -38,7 +38,7 @@ public final class EditItemDialog {
         header.setPadding(new Insets(20, 28, 16, 28));
         header.setStyle("-fx-background-color: " + DialogUtil.categoryGradient(item.getCategory()) + ";");
 
-        // ── Form fields ──
+        //  Form fields 
         Label lblName = new Label("Tên sản phẩm *");
         lblName.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
         TextField tfName = new TextField(item.getName() != null ? item.getName() : "");
@@ -70,7 +70,7 @@ public final class EditItemDialog {
         VBox form = new VBox(10, lblName, tfName, lblDesc, taDesc, lblCat, cbCat, lblCond, cbCond);
         form.setPadding(new Insets(20, 28, 16, 28));
 
-        // ── Buttons ──
+        //  Buttons 
         Button btnSave = new Button("💾 Lưu thay đổi");
         btnSave.setMaxWidth(Double.MAX_VALUE);
         btnSave.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +

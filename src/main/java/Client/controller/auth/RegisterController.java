@@ -19,18 +19,18 @@ import java.util.stream.Stream;
 
 public class RegisterController {
 
-    // ── User tab fields ──
+    //  User tab fields 
     @FXML private TextField     txtFullName;
     @FXML private TextField     txtEmail;
     @FXML private PasswordField txtPassword;
 
-    // ── Seller tab fields ──
+    //  Seller tab fields 
     @FXML private TextField     txtSellerFullName;
     @FXML private TextField     txtSellerStoreName;
     @FXML private TextField     txtSellerEmail;
     @FXML private PasswordField txtSellerPassword;
 
-    // ── Tabs ──
+    //  Tabs 
     @FXML private Tab tabUser;
     @FXML private Tab tabSeller;
 

@@ -14,7 +14,7 @@ public final class NotificationRenderer {
 
     private NotificationRenderer() {}
 
-    // ── List rendering ────────────────────────────────────────────────────
+    //  List rendering 
 
     public static void render(List<Notification> list, VBox container) {
         if (container == null) return;
@@ -28,7 +28,7 @@ public final class NotificationRenderer {
         for (Notification n : list) container.getChildren().add(buildRow(n));
     }
 
-    // ── Single row ────────────────────────────────────────────────────────
+    //  Single row 
 
     public static HBox buildRow(Notification n) {
         Label icon = new Label(n.getMessage().contains("hủy") ? "🚫" : "🔔");
@@ -53,7 +53,7 @@ public final class NotificationRenderer {
         return row;
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────
+    //  Utilities ─
 
     /** Returns true if the notification message is auction-related. */
     public static boolean isAuctionNotif(String msg) {

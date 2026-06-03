@@ -92,7 +92,7 @@ public class UserController {
     @FXML private FlowPane           auctionFlowPane;
     @FXML private Button             btnRefreshAuctions;
 
-    // ── Pagination controls ──
+    //  Pagination controls 
     @FXML private Button btnPrevPage;
     @FXML private Button btnNextPage;
     @FXML private Label  lblPageInfo;
@@ -134,7 +134,7 @@ public class UserController {
     @FXML private ComboBox<String> cmbCurrency;
     @FXML private Button           btnDeleteAccount;
 
-    // ── Tab Bid History ──
+    //  Tab Bid History 
     @FXML private ComboBox<String> cmbBidHistoryFilter;
     @FXML private VBox             bidHistoryList;
 
@@ -174,7 +174,7 @@ public class UserController {
     /** Background thread that polls the notification count every 30 s to keep the badge fresh. */
     private Thread notifPollerThread;
 
-    // ── Pagination ──────────────────────────────────────────────────────────
+    //  Pagination 
     private static final int PAGE_SIZE = 21;
     private int currentPage = 0;
     /** The filtered (but not yet paged) list — kept so next/prev can slice it. */
@@ -564,7 +564,7 @@ public class UserController {
             return;
         }
 
-        // ── Page slice ──────────────────────────────────────────────────────
+        //  Page slice 
         int totalPages = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
         if (currentPage >= totalPages) currentPage = totalPages - 1;
         if (currentPage < 0)          currentPage = 0;

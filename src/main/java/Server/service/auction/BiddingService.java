@@ -107,12 +107,7 @@ public class BiddingService {
                 // Remember previous leader BEFORE inserting the new bid
                 Integer previousLeader = bidDAO.findHighestBidder(auctionId);
                 if (previousLeader != null && previousLeader == userId){
-                    if (notificationService != null) {
-                        notificationService.send(userId,
-                                String.format("⚠️ Bạn đang là người giữ giá cao nhất trong phiên #%d rồi!",
-                                        auctionId));
-                    }
-                    return;
+                    throw new RuntimeException("Bạn đang là người giữ giá cao nhất trong phiên này rồi!");
                 }
 
                 // Only charge the increment above the user's existing highest bid on this auction.

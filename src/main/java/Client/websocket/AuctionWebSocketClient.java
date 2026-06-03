@@ -36,7 +36,7 @@ public class AuctionWebSocketClient extends WebSocketClient {
         this.onBidUpdate = onBidUpdate;
     }
 
-    // ── WebSocketClient callbacks ────────────────────────────────────────
+    //  WebSocketClient callbacks 
 
     @Override
     public void onOpen(ServerHandshake handshake) {
@@ -70,7 +70,7 @@ public class AuctionWebSocketClient extends WebSocketClient {
         System.err.println("[WS Client] Error: " + ex.getMessage());
     }
 
-    // ── Public API ───────────────────────────────────────────────────────
+    //  Public API ─
 
     /** Subscribe to live updates for one auction room. */
     public void subscribe(int auctionId) {

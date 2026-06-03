@@ -49,7 +49,7 @@ public final class AuctionDetailDialog {
             default         -> "✕ Đã hủy";
         };
 
-        // ── Header ──
+        //  Header 
         Label iconLabel = new Label("🏷");
         iconLabel.setStyle("-fx-font-size: 52;");
 
@@ -65,7 +65,7 @@ public final class AuctionDetailDialog {
         header.setPadding(new Insets(24, 24, 16, 24));
         header.setStyle("-fx-background-color: " + headerBg + ";");
 
-        // ── Detail rows ──
+        //  Detail rows 
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(12);
@@ -82,7 +82,7 @@ public final class AuctionDetailDialog {
         Separator sep = new Separator();
         sep.setPadding(new Insets(0, 24, 0, 24));
 
-        // ── Action buttons ──
+        //  Action buttons 
         boolean canBid = "ACTIVE".equals(status);
 
         Button btnBid = new Button("Đặt giá ngay  💸");

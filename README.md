@@ -1,8 +1,8 @@
-# Bidding System - Hệ Thống Đấu Giá Trực Tuyến
+# Bidding System — Hệ Thống Đấu Giá Trực Tuyến
 
 ## Mô Tả Hệ Thống
 
-Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép người dùng đăng ký, đăng nhập, tạo phiên đấu giá và đặt giá thầu theo thời gian thực thông qua WebSocket. Hệ thống hỗ trợ ba vai trò: **Admin**, **Seller** (người bán) và **Bidder** (người đặt giá). Giao diện người dùng được xây dựng bằng JavaFX.
+Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép nhiều người dùng cùng cạnh tranh đặt giá để mua sản phẩm trong một khoảng thời gian xác định. Hệ thống hỗ trợ ba vai trò: **Admin**, **Seller** (người bán) và **Bidder** (người đặt giá), với giao diện đồ họa xây dựng bằng JavaFX và cập nhật giá thời gian thực qua WebSocket.
 
 ---
 
@@ -11,24 +11,24 @@ Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép 
 | Thành phần | Công nghệ |
 |---|---|
 | Ngôn ngữ | Java 25 (JDK 25) |
-| Giao diện | JavaFX 25 |
+| Giao diện | JavaFX 25 + FXML |
 | Giao tiếp | HTTP REST API + WebSocket |
-| Kiến trúc | Client-Server (MVC phía Client, DAO/Service phía Server) |
+| Kiến trúc | Client-Server (MVC phía Client, Controller-Service-DAO phía Server) |
 | Database | PostgreSQL (hosted trên Supabase) |
-| Build tool | Maven |
+| Build tool | Maven 3.9+ |
 | Serialization | Gson 2.10.1 |
 | WebSocket | Java-WebSocket 1.5.4 |
 | Connection Pool | HikariCP 5.1.0 |
-| Bảo mật | BCrypt (at.favre.lib:bcrypt:0.10.2) |
-| Logging | SLF4J 2.0.13 |
-| Testing | JUnit 5.14, Mockito 5.15.2 |
+| Bảo mật | BCrypt (at.favre.lib 0.10.2) |
+| Logging | SLF4J Simple 2.0.13 |
+| Testing | JUnit 5.14, Mockito 5.15.2, H2 (in-memory) |
 | Deploy | Docker + Railway |
 
 ### Yêu Cầu Cài Đặt
 
-- Java JDK 11 trở lên (khuyến nghị JDK 25)
-- Maven 3.6+
-- Kết nối Internet (để kết nối Supabase/PostgreSQL)
+- **Java JDK 25** (bắt buộc — project dùng `--release 25`)
+- **Maven 3.9+**
+- Kết nối Internet (để kết nối database Supabase)
 - Hệ điều hành: Windows, Linux, macOS
 
 ---
@@ -37,162 +37,81 @@ Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép 
 
 ```
 bidding/
-├── supabase/                        # Cấu hình database Supabase
-│   ├── config.toml
-│   └── .gitignore
-├── src/
-│   ├── main/
-│   │   └── java/
-│   │       ├── Client/
-│   │       │   ├── controller/
-│   │       │   │   ├── admin/
-│   │       │   │   │   └── AdminDashboardController
-│   │       │   │   ├── auth/
-│   │       │   │   │   ├── LoginController
-│   │       │   │   │   └── RegisterController
-│   │       │   │   ├── seller/
-│   │       │   │   │   └── SellerController
-│   │       │   │   └── user/
-│   │       │   │       ├── AuctionDetailController
-│   │       │   │       └── UserController
-│   │       │   ├── dto.requests/
-│   │       │   ├── model/
-│   │       │   │   ├── admin/
-│   │       │   │   │   └── ActivityLog
-│   │       │   │   ├── auction/
-│   │       │   │   │   ├── Auction
-│   │       │   │   │   ├── Bid
-│   │       │   │   │   └── BidHistoryItem
-│   │       │   │   ├── item/
-│   │       │   │   │   └── Item
-│   │       │   │   └── user/
-│   │       │   │       └── Notification
-│   │       │   ├── networking/
-│   │       │   │   ├── endpoints/
-│   │       │   │   │   ├── AuctionApi
-│   │       │   │   │   ├── BidApi
-│   │       │   │   │   ├── ItemApi
-│   │       │   │   │   ├── NotificationApi
-│   │       │   │   │   └── UserApi
-│   │       │   │   ├── ApiClient
-│   │       │   │   ├── ApiResponse
-│   │       │   │   ├── ServerConfig
-│   │       │   │   └── SessionManager
-│   │       │   ├── util/
-│   │       │   │   └── SceneUtil
-│   │       │   ├── views/
-│   │       │   ├── websocket/
-│   │       │   │   └── AuctionWebSocketClient
-│   │       │   └── ClientApp
-│   │       └── Server/
-│   │           ├── controller/
-│   │           │   ├── responseObjects/
-│   │           │   │   └── ApiResponse
-│   │           │   ├── AuctionApiController
-│   │           │   ├── BidApiController
-│   │           │   ├── ItemApiController
-│   │           │   ├── NotificationApiController
-│   │           │   └── UserApiController
-│   │           ├── dao/
-│   │           │   ├── auction/
-│   │           │   │   ├── AuctionDAO
-│   │           │   │   ├── BidDAO
-│   │           │   │   └── ItemDAO
-│   │           │   ├── users/
-│   │           │   │   └── UserDAO
-│   │           │   └── NotificationDAO
-│   │           ├── dto/
-│   │           │   ├── requests/
-│   │           │   │   ├── AuctionIdRequest
-│   │           │   │   ├── AutoBidRequest
-│   │           │   │   ├── CreateAuctionRequest
-│   │           │   │   ├── CreateItemRequest
-│   │           │   │   ├── ItemIdRequest
-│   │           │   │   ├── PlaceBidRequest
-│   │           │   │   ├── UpdateItemRequest
-│   │           │   │   └── UserRequestDTO
-│   │           │   └── responses/
-│   │           │       ├── AuctionDTO
-│   │           │       ├── BidDTO
-│   │           │       └── BidHistoryDTO
-│   │           ├── exception/
-│   │           │   ├── AuthException
-│   │           │   ├── ConflictException
-│   │           │   └── ValidationException
-│   │           ├── filters/
-│   │           │   └── sessionFilter
-│   │           ├── model/
-│   │           │   ├── auction/
-│   │           │   │   ├── items/
-│   │           │   │   │   ├── Art
-│   │           │   │   │   ├── Electronics
-│   │           │   │   │   ├── Item
-│   │           │   │   │   └── Vehicle
-│   │           │   │   ├── Auction
-│   │           │   │   ├── AutoBidConfig
-│   │           │   │   ├── Bid
-│   │           │   │   └── ItemFactory
-│   │           │   └── users/
-│   │           │       ├── records/
-│   │           │       │   └── UserRow
-│   │           │       ├── ActivityLog
-│   │           │       ├── Admin
-│   │           │       ├── Bidder
-│   │           │       ├── Seller
-│   │           │       ├── User
-│   │           │       └── UserFactory
-│   │           ├── networking/
-│   │           ├── service/
-│   │           ├── websocket/
-│   │           └── ServerApp
-│   └── test/
-│       └── java/
-│           ├── Client/
-│           │   └── ClientAppTest
-│           └── Server/
-│               ├── controller/
-│               ├── dao.auction/
-│               │   ├── AuctionDAOTest
-│               │   ├── BidDAOTest
-│               │   └── ItemDAOTest
-│               └── service.auction/
-│                   ├── AuctionServiceTest
-│                   ├── AutoBidConfigServiceTest
-│                   ├── BiddingServiceTest
-│                   └── ItemServiceTest
-├── Dockerfile
-├── railway.toml
-├── .dockerignore
-├── pom.xml
-└── README.md
+├ src/
+│   ├ main/
+│   │   ├ java/
+│   │   │   ├ Client/                   # JavaFX desktop client
+│   │   │   │   ├ controller/           # MVC controllers (admin, auth, seller, user)
+│   │   │   │   ├ model/                # Client-side data models
+│   │   │   │   ├ networking/           # HTTP ApiClient + API endpoint classes
+│   │   │   │   ├ util/                 # SceneUtil, DialogUtil
+│   │   │   │   ├ views/                # FXML layouts + CSS
+│   │   │   │   ├ websocket/            # AuctionWebSocketClient (realtime)
+│   │   │   │   └ ClientApp.java        # JavaFX entry point
+│   │   │   └ Server/                   # HTTP REST server
+│   │   │       ├ controller/           # REST route handlers
+│   │   │       ├ dao/                  # Database access layer (JDBC)
+│   │   │       ├ dto/                  # Request / Response DTOs
+│   │   │       ├ exception/            # Custom exceptions
+│   │   │       ├ filters/              # sessionFilter (auth middleware)
+│   │   │       ├ model/                # Domain entities (User, Item, Auction, Bid)
+│   │   │       ├ networking/           # ServerConnection, ApiRouter, HikariCP
+│   │   │       ├ service/              # Business logic services
+│   │   │       ├ websocket/            # BidWebSocketServer (realtime broadcast)
+│   │   │       └ ServerApp.java        # Server entry point
+│   │   └ resources/
+│   │       └ simplelogger.properties   # Logging config
+│   └ test/java/                        # JUnit 5 test suites
+│       ├ Client/
+│       └ Server/                       # DAO, Service, Controller tests
+├ Dockerfile                            # Multi-stage Docker build
+├ railway.toml                          # Railway deployment config
+├ pom.xml                               # Maven build config
+└ README.md
 ```
 
 ---
 
-## Các Lệnh Dòng Lệnh Để Chạy Chương Trình
+## Hướng Dẫn Chạy Server / Client
 
-> **Lưu ý:** Kiểm tra máy đã cài đặt Java JDK 11+ và Maven 3.6+ trước khi chạy. Các lệnh dưới đây tương thích với **Windows, Linux và macOS**.
+> **Lưu ý:** Luôn khởi động **Server trước**, sau đó mới khởi động **Client**.  
+> Để chạy nhiều client cùng lúc, mở nhiều terminal và lặp lại Bước 3.
 
-### Build project
+### Bước 1 — Clone và build project
 
 ```bash
-# Windows / Linux / macOS
-mvn clean install
+git clone https://github.com/TranHoangVu5043/bidding.git
+cd bidding
+mvn clean package -DskipTests
 ```
 
-### Chạy Server
+### Bước 2 — Khởi động Server
 
 ```bash
 # Windows / Linux / macOS
 mvn exec:java -Dexec.mainClass="Server.ServerApp"
 ```
 
-### Chạy Client
+Server khởi động thành công khi console hiển thị:
+```
+[DB] HikariCP pool started
+Server started
+HTTP server listening on port 8080
+WebSocket server listening on port 8081
+```
+
+### Bước 3 — Khởi động Client
+
+Mở một terminal **mới** (giữ nguyên terminal Server đang chạy):
 
 ```bash
 # Windows / Linux / macOS
-mvn exec:java -Dexec.mainClass="Client.ClientApp"
+mvn javafx:run
 ```
+
+Giao diện JavaFX sẽ hiển thị. Đăng ký tài khoản mới hoặc đăng nhập để sử dụng.
+
+> **Chạy nhiều client:** Mở thêm terminal mới và lặp lại lệnh `mvn javafx:run`.
 
 ### Chạy Tests
 
@@ -200,94 +119,61 @@ mvn exec:java -Dexec.mainClass="Client.ClientApp"
 mvn test
 ```
 
-### Build Docker image (deploy)
-
-```bash
-docker build -t bidding-server .
-docker run -p 8080:8080 bidding-server
-```
-
 ---
 
-## Hướng Dẫn Chạy Máy Chủ / Máy Khách
+## Danh Sách Chức Năng Đã Hoàn Thành
 
-### Bước 1: Cấu hình Database
+### Chức năng bắt buộc
 
-Hệ thống sử dụng **PostgreSQL** hosted trên **Supabase**. Đảm bảo file cấu hình kết nối database đã được thiết lập đúng trong `ServerConfig` (host, port, username, password).
+**Quản lý người dùng**
+- [x] Đăng ký / đăng nhập tài khoản (BCrypt password hashing)
+- [x] Ba vai trò: Bidder, Seller, Admin — mỗi vai trò có giao diện và quyền hạn riêng
+- [x] Quản lý phiên đăng nhập với session token (`sessionFilter`)
 
-### Bước 2: Khởi động Server
+**Quản lý sản phẩm đấu giá**
+- [x] Thêm / sửa / xóa sản phẩm (`ItemApiController`)
+- [x] Ba loại sản phẩm: Art, Electronics, Vehicle (kế thừa `Item` — Factory Pattern)
+- [x] Thông tin đầy đủ: tên, mô tả, giá khởi điểm, giá hiện tại, thời gian
 
-1. Mở terminal/command prompt.
-2. Di chuyển vào thư mục gốc của project:
-```bash
-cd bidding
-```
-3. Build và khởi động Server:
-```bash
-mvn clean install
-mvn exec:java -Dexec.mainClass="Server.ServerApp"
-```
-4. Server khởi động thành công khi hiển thị thông báo lắng nghe cổng kết nối.
+**Tham gia đấu giá**
+- [x] Đặt giá cao hơn giá hiện tại (`BiddingService`)
+- [x] Kiểm tra tính hợp lệ của giá đấu
+- [x] Cập nhật người dẫn đầu phiên đấu giá
 
-### Bước 3: Khởi động Client
+**Kết thúc phiên đấu giá**
+- [x] Tự động đóng phiên khi hết thời gian (`AuctionExpiryScheduler`)
+- [x] Xác định người thắng cuộc
+- [x] Chuyển trạng thái: `OPEN → RUNNING → FINISHED`
 
-1. Mở một terminal **mới** (giữ nguyên terminal Server đang chạy).
-2. Di chuyển vào thư mục gốc của project.
-3. Chạy Client:
-```bash
-mvn exec:java -Dexec.mainClass="Client.ClientApp"
-```
-4. Giao diện JavaFX sẽ hiển thị. Đăng ký tài khoản mới hoặc đăng nhập.
+**Xử lý lỗi & ngoại lệ**
+- [x] Đặt giá thấp hơn giá hiện tại → báo lỗi rõ ràng
+- [x] Đấu giá khi phiên đã đóng → từ chối với thông báo
+- [x] Custom exception hierarchy: `AuthException`, `ValidationException`, `ConflictException`
 
-> ⚠️ **Lưu ý:** Luôn khởi động **Server trước**, sau đó mới khởi động **Client**.
+**Giao diện (GUI)**
+- [x] JavaFX + FXML: Login, Register, UserView, SellerView, AuctionDetailView, AdminView
+- [x] Màn hình đấu giá trực tiếp với realtime update
+- [x] Quản lý sản phẩm và phiên đấu giá cho Seller
 
----
+### Chức năng nâng cao
 
-## Danh Sách Các Chức Năng Đã Hoàn Thành
+- [x] **Auto-Bidding:** Người dùng đặt `maxBid` + `increment`, hệ thống tự động trả giá khi có bid mới từ đối thủ — ưu tiên theo thời điểm đăng ký, không vượt `maxBid` (`AutoBidConfigService`)
+- [x] **Anti-sniping:** Nếu có bid trong 2 phút cuối → tự động gia hạn thêm 2 phút (`BiddingService`)
+- [x] **Bid History Visualization:** Biểu đồ đường (LineChart) giá đấu theo thời gian, tự động cập nhật khi có bid mới (`BidHistoryDialog`)
 
-### Xác thực & Tài khoản
-- [x] Đăng ký tài khoản — `RegisterController`
-- [x] Đăng nhập — `LoginController`
-- [x] Quản lý phiên đăng nhập — `SessionManager`, `sessionFilter`
-- [x] Mã hóa mật khẩu — BCrypt
+### Kỹ thuật & kiến trúc
 
-### Người dùng (Bidder)
-- [x] Xem danh sách phiên đấu giá — `UserController`
-- [x] Xem chi tiết phiên đấu giá — `AuctionDetailController`
-- [x] Đặt giá thầu — `BidApi`, `PlaceBidRequest`
-- [x] Đặt giá thầu tự động — `AutoBidRequest`, `AutoBidConfig`
-- [x] Nhận thông báo thời gian thực — `AuctionWebSocketClient`, `NotificationApi`
-
-### Người bán (Seller)
-- [x] Tạo phiên đấu giá — `SellerController`, `CreateAuctionRequest`
-- [x] Thêm sản phẩm đấu giá (Art, Electronics, Vehicle) — `CreateItemRequest`, `ItemFactory`
-- [x] Cập nhật thông tin sản phẩm — `UpdateItemRequest`
-
-### Quản trị viên (Admin)
-- [x] Dashboard quản trị — `AdminDashboardController`
-- [x] Theo dõi hoạt động hệ thống — `ActivityLog`
-
-### Server & Kết nối
-- [x] REST API đấu giá — `AuctionApiController`, `BidApiController`
-- [x] REST API sản phẩm — `ItemApiController`
-- [x] REST API người dùng — `UserApiController`
-- [x] REST API thông báo — `NotificationApiController`
-- [x] WebSocket thời gian thực — `websocket/`
-- [x] Xử lý ngoại lệ — `AuthException`, `ConflictException`, `ValidationException`
-- [x] Kết nối database qua HikariCP connection pool
-
-### Kiểm thử (Testing)
-- [x] Unit test DAO — `AuctionDAOTest`, `BidDAOTest`, `ItemDAOTest`
-- [x] Unit test Service — `AuctionServiceTest`, `BiddingServiceTest`, `ItemServiceTest`, `AutoBidConfigServiceTest`
-- [x] Integration test — `ClientAppTest`, `ServerAppTest`
-
-### Triển khai (Deploy)
-- [x] Docker hóa Server — `Dockerfile`, `.dockerignore`
-- [x] Deploy lên Railway — `railway.toml`
+- [x] **Concurrent Bidding an toàn:** Transaction-level locking qua HikariCP + PostgreSQL — tránh lost update, race condition, hai người cùng thắng
+- [x] **Realtime update:** WebSocket Observer Pattern — toàn bộ client đang xem phiên nhận thông báo ngay lập tức, không polling (`BidWebSocketServer`)
+- [x] **Design Patterns:** Singleton (`ServerConnection`, `BidWebSocketServer`), Factory Method (`ItemFactory`, `UserFactory`), Observer (WebSocket), DAO, MVC, Strategy (bid types)
+- [x] **OOP đầy đủ:** Encapsulation, Inheritance (`User → Admin/Bidder/Seller`, `Item → Art/Electronics/Vehicle`), Polymorphism, Abstraction (`Entity` interface, abstract classes)
+- [x] **Unit Tests:** JUnit 5 + Mockito — DAO, Service, Controller layers (`AuctionServiceTest`, `BiddingServiceTest`, `AutoBidConfigServiceTest`, v.v.)
+- [x] **CI/CD:** GitHub Actions + JUnit tự động
+- [x] **Deploy:** Docker multi-stage build → Railway (HTTP port 8080, WebSocket port 8081 qua TCP proxy)
 
 ---
 
 ## Liên Kết
 
-- 📄 [Báo cáo PDF](#) *(cập nhật link sau khi nộp)*
-- 🎥 [Video minh họa](#) *(cập nhật link sau khi nộp)*
+- 📄 [Báo cáo PDF](#) *(cập nhật link trước khi nộp)*
+- 🎥 [Video demo](#) *(cập nhật link trước khi nộp)*
