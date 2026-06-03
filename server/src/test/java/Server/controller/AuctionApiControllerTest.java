@@ -7,7 +7,9 @@ import Server.model.users.Seller;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
+import Server.dao.auction.BidDAO;
 import Server.service.auction.AuctionService;
+import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 import com.google.gson.Gson;
@@ -28,17 +30,20 @@ import static org.mockito.Mockito.*;
 public class AuctionApiControllerTest {
     private AuctionApiController auctionApiController;
 
-    @Mock private AuctionService auctionService;
-    @Mock private UserService    userService;
-    @Mock private ItemService    itemService;
-    @Mock private RequestWrapper requestWrapper;
+    @Mock private AuctionService  auctionService;
+    @Mock private UserService     userService;
+    @Mock private ItemService     itemService;
+    @Mock private BiddingService  biddingService;
+    @Mock private BidDAO          bidDAO;
+    @Mock private RequestWrapper  requestWrapper;
     @Mock private ResponseWrapper responseWrapper;
 
     private final Gson gson = new Gson();
 
     @BeforeEach
     void setUp() {
-        auctionApiController = new AuctionApiController(auctionService, userService, itemService);
+        lenient().when(biddingService.getBidDAO()).thenReturn(bidDAO);
+        auctionApiController = new AuctionApiController(auctionService, userService, itemService, biddingService);
     }
     @Test
     void createAuction_Unauthorized_Returns41() {

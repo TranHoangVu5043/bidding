@@ -72,7 +72,7 @@ public class BiddingServiceTest {
         assertDoesNotThrow(() -> biddingService.placeBid(0, 0, 300.0));
 
         // Balance should drop by only 100 (the increment), leaving 400
-        assertEquals(200.0, fakeUserDAO.getUpdatedBalance(),
+        assertEquals(400.0, fakeUserDAO.getUpdatedBalance(),
                 "Chỉ trừ 100₫ tiền chênh lệch so với giá cũ, không trừ toàn bộ 300₫");
         assertEquals(300.0, fakeAuctionDAO.getUpdatedPrice(),
                 "Giá phiên phải được cập nhật lên 300₫");

@@ -6,6 +6,7 @@ import Server.model.users.Seller;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
+import Server.dao.auction.BidDAO;
 import Server.service.auction.AutoBidConfigService;
 import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
@@ -32,14 +33,15 @@ public class BidApiControllerTest {
     @Mock private BiddingService biddingService;
     @Mock private UserService userService;
     @Mock private ItemService itemService;
+    @Mock private BidDAO bidDAO;
     @Mock private RequestWrapper requestWrapper;
     @Mock private ResponseWrapper responseWrapper;
 
-    // Mock thêm service quản lý tự động đặt giá để tránh bị NullPointer
     @Mock private AutoBidConfigService autoBidConfigService;
 
     @BeforeEach
     void setUp() {
+        lenient().when(biddingService.getBidDAO()).thenReturn(bidDAO);
         bidApiController = new BidApiController(biddingService, userService, itemService);
     }
 
