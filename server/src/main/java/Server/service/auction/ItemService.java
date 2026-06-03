@@ -2,10 +2,14 @@ package Server.service.auction;
 
 import Server.dao.auction.ItemDAO;
 import Server.model.auction.items.Item;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class ItemService {
+
+    private static final Logger log = LoggerFactory.getLogger(ItemService.class);
     private final ItemDAO itemDAO;
     public ItemService(ItemDAO itemDAO){
         this.itemDAO = itemDAO;
@@ -29,7 +33,7 @@ public class ItemService {
 
     public boolean updateItem(Item item){
         if(itemDAO.findById(item.getId()) == null){
-            System.err.println("Lỗi: Không tìm thấy sản phẩm");
+            log.warn("updateItem: item {} not found", item.getId());
             return false;
         }
         itemDAO.update(item);

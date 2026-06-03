@@ -20,7 +20,11 @@ import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import Server.model.auction.items.Item;
+
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class BidApiController {
 
@@ -82,8 +86,10 @@ public class BidApiController {
             }
 
             List<Bid> bids = biddingService.getBidHistory(body.auctionId);
+            Map<Integer, User> userMap = userService.getAllUsers().stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
             List<BidDTO> dtos = bids.stream().map(b -> {
-                User u = userService.getUserById(b.getUserId());
+                User u = userMap.get(b.getUserId());
                 String username = (u != null) ? u.getUsername() : "User#" + b.getUserId();
                 return new BidDTO(b, username);
             }).toList();
@@ -101,7 +107,13 @@ public class BidApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = biddingService.getAuctionsForBidder(user.getId());
-            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
+            Map<Integer, User> sellerMap = userService.getAllUsers().stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+            Map<Integer, Item> itemMap = itemService.getAllItems().stream()
+                    .collect(Collectors.toMap(Item::getId, i -> i));
+            List<AuctionDTO> dtos = auctions.stream()
+                    .map(a -> new AuctionDTO(a, sellerMap.get(a.getOwnerId()), itemMap.get(a.getItemId())))
+                    .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
@@ -149,8 +161,14 @@ public class BidApiController {
             List<BiddingService.BidHistoryEntry> entries =
                     biddingService.getBidHistoryForUser(user.getId());
 
+            Map<Integer, User> sellerMap = userService.getAllUsers().stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+            Map<Integer, Item> itemMap = itemService.getAllItems().stream()
+                    .collect(Collectors.toMap(Item::getId, i -> i));
             List<BidHistoryDTO> dtos = entries.stream()
-                    .map(e -> new BidHistoryDTO(e, userService, itemService))
+                    .map(e -> new BidHistoryDTO(e,
+                            sellerMap.get(e.auction().getOwnerId()),
+                            itemMap.get(e.auction().getItemId())))
                     .toList();
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));

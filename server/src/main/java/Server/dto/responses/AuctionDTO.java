@@ -20,6 +20,13 @@ public class AuctionDTO {
 
     /** Full constructor that also resolves the item name. */
     public AuctionDTO(Auction a, UserService userService, ItemService itemService) {
+        this(a,
+             userService != null ? userService.getUserById(a.getOwnerId()) : null,
+             itemService != null ? itemService.getItemDetail(a.getItemId()) : null);
+    }
+
+    /** Batch-friendly constructor — caller pre-fetches seller and item to avoid N+1 queries. */
+    public AuctionDTO(Auction a, User seller, Item item) {
         id            = a.getId();
         itemId        = a.getItemId();
         ownerId       = a.getOwnerId();
@@ -28,11 +35,7 @@ public class AuctionDTO {
         startTime     = a.getStartTime() != null ? a.getStartTime().toString() : null;
         endTime       = a.getEndTime()   != null ? a.getEndTime().toString()   : null;
         status        = a.getStatus();
-        User seller   = userService.getUserById(a.getOwnerId());
         sellerName    = seller != null ? seller.getUsername() : "Seller #" + a.getOwnerId();
-        if (itemService != null) {
-            Item item = itemService.getItemDetail(a.getItemId());
-            itemName  = item != null ? item.getName() : null;
-        }
+        itemName      = item   != null ? item.getName()       : null;
     }
 }

@@ -26,7 +26,7 @@ public class UserService {
             return false;
         }
 
-        String hash = BCrypt.withDefaults().hashToString(12, req.getPassword().toCharArray());
+        String hash = BCrypt.withDefaults().hashToString(10, req.getPassword().toCharArray());
 
         String role = (req.getRole() != null && !req.getRole().isBlank()) ? req.getRole() : "USER";
         UserRow userRow = new UserRow(0, req.getUsername(), hash, req.getEmail(), role, 0, req.getStoreName(), "ACTIVE");

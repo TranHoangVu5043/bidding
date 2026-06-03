@@ -16,9 +16,14 @@ import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import Server.model.auction.items.Item;
+import Server.model.users.User;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class AuctionApiController {
 
@@ -91,7 +96,11 @@ public class AuctionApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = auctionService.getAuctionsByOwner(user.getId());
-            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
+            Map<Integer, Item> itemMap = itemService.getAllItems().stream()
+                    .collect(Collectors.toMap(Item::getId, i -> i));
+            List<AuctionDTO> dtos = auctions.stream()
+                    .map(a -> new AuctionDTO(a, user, itemMap.get(a.getItemId())))
+                    .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             log.error("Unhandled exception", e);
@@ -104,7 +113,13 @@ public class AuctionApiController {
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
             List<Auction> auctions = auctionService.getAllAuctions();
-            List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
+            Map<Integer, User> sellerMap = userService.getAllUsers().stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+            Map<Integer, Item> itemMap = itemService.getAllItems().stream()
+                    .collect(Collectors.toMap(Item::getId, i -> i));
+            List<AuctionDTO> dtos = auctions.stream()
+                    .map(a -> new AuctionDTO(a, sellerMap.get(a.getOwnerId()), itemMap.get(a.getItemId())))
+                    .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
             log.error("Unhandled exception", e);
