@@ -25,22 +25,25 @@ public class AuctionWebSocketClient extends WebSocketClient {
 
     private static final String WS_URL = Client.networking.ServerConfig.WS_URL;
 
-    /**
-     * Called on the JavaFX thread whenever a bid_update arrives.
-     * Carries auctionId, newPrice, and optionally a new end-time (anti-snipe reset).
-     */
     private final Consumer<BidUpdate> onBidUpdate;
+    private Runnable onConnected;
 
     public AuctionWebSocketClient(Consumer<BidUpdate> onBidUpdate) {
         super(URI.create(WS_URL));
         this.onBidUpdate = onBidUpdate;
     }
 
-    //  WebSocketClient callbacks 
+    /** Callback fired on the WebSocket thread once the handshake completes. */
+    public void setOnConnected(Runnable onConnected) {
+        this.onConnected = onConnected;
+    }
+
+    //  WebSocketClient callbacks
 
     @Override
     public void onOpen(ServerHandshake handshake) {
         System.out.println("[WS Client] Connected to " + WS_URL);
+        if (onConnected != null) onConnected.run();
     }
 
     @Override

@@ -440,18 +440,15 @@ public class UserController {
             }
         });
 
-        // connect() is non-blocking — safe to call on FX thread
-        wsClient.connect();
-
-        // Subscribe once the handshake completes
-        new Thread(() -> {
-            for (int i = 0; i < 20; i++) {
-                if (wsClient.isOpen()) break;
-                try { Thread.sleep(100); } catch (InterruptedException ignored) {}
-            }
+        // Subscribe inside onOpen() so it fires no matter how long the handshake takes.
+        // The old polling-thread approach silently dropped subscriptions when Railway's
+        // TCP proxy handshake took longer than the 2s timeout.
+        wsClient.setOnConnected(() -> {
             activeIds.forEach(wsClient::subscribe);
             System.out.println("[WS Client] Subscribed to " + activeIds.size() + " active auction(s): " + activeIds);
-        }).start();
+        });
+
+        wsClient.connect();
     }
 
     // ticks every second — updates the countdown labels and flips cards to "ended"
