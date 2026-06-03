@@ -37,7 +37,7 @@ jobs:
 
       - name: Install GTK libs (Linux only)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libgl1-mesa-dri
+        run: sudo apt-get update --allow-releaseinfo-change || true && sudo apt-get install -y libgtk-3-0 libgl1-mesa-dri
 
       - name: Build JAR
         run: mvn -pl client package -DskipTests --no-transfer-progress
