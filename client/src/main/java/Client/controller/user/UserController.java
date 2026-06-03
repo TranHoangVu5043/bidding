@@ -10,6 +10,7 @@ import Client.networking.SessionManager;
 import Client.websocket.AuctionWebSocketClient;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import Client.networking.endpoints.AuctionApi;
 import Client.networking.endpoints.BidApi;
 import Client.networking.endpoints.NotificationApi;
@@ -135,6 +136,8 @@ public class UserController {
     private final Map<Integer, Button>    liveBidButtons   = new ConcurrentHashMap<>();
     /** auctionId → the "Đặt giá tự động" Button on the card */
     private final Map<Integer, Button>    liveAutoBidBtns  = new ConcurrentHashMap<>();
+    /** auctionId → price updater for the currently open AuctionDetailDialog (if any) */
+    private final Map<Integer, Consumer<Double>> liveDialogPriceUpdaters = new ConcurrentHashMap<>();
     /** Ticks every second to keep countdown labels fresh and flip expired cards to FINISHED state. */
     private Timeline countdownTicker;
     /** Single persistent WebSocket connection for the auction floor */
@@ -166,6 +169,7 @@ public class UserController {
                 bidApi,
                 livePriceLabels, liveStatusLabels, liveTimeLabels,
                 liveBidButtons, liveAutoBidBtns,
+                liveDialogPriceUpdaters,
                 this::onBidSuccess,
                 this::formatTimeRemaining));
 
@@ -408,12 +412,16 @@ public class UserController {
                         if (newEndTime != null) a.setEndTime(newEndTime);
                     });
 
-            // Update price label — no full re-render needed
+            // Update price label on the card
             Label priceLabel = livePriceLabels.get(auctionId);
             if (priceLabel != null) {
                 priceLabel.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
                 priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #16A34A;");
             }
+
+            // Update the open detail dialog for this auction (if any)
+            Consumer<Double> dialogUpdater = liveDialogPriceUpdaters.get(auctionId);
+            if (dialogUpdater != null) dialogUpdater.accept(newPrice);
 
             // Anti-snipe: if the server reset the timer, update the time label live
             if (newEndTime != null) {

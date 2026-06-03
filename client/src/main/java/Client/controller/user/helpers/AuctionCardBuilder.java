@@ -21,15 +21,16 @@ public final class AuctionCardBuilder {
 
 
     public record Config(
-            Supplier<Window>          windowSupplier,
-            BidApi                    bidApi,
-            Map<Integer, Label>       livePriceLabels,
-            Map<Integer, Label>       liveStatusLabels,
-            Map<Integer, Label>       liveTimeLabels,
-            Map<Integer, Button>      liveBidButtons,
-            Map<Integer, Button>      liveAutoBidBtns,
-            Consumer<Double>          onBidSuccess,
-            Function<String, String>  formatTimeRemaining
+            Supplier<Window>             windowSupplier,
+            BidApi                       bidApi,
+            Map<Integer, Label>          livePriceLabels,
+            Map<Integer, Label>          liveStatusLabels,
+            Map<Integer, Label>          liveTimeLabels,
+            Map<Integer, Button>         liveBidButtons,
+            Map<Integer, Button>         liveAutoBidBtns,
+            Map<Integer, Consumer<Double>> liveDialogPriceUpdaters,
+            Consumer<Double>             onBidSuccess,
+            Function<String, String>     formatTimeRemaining
     ) {}
 
     private final Config cfg;
@@ -73,11 +74,16 @@ public final class AuctionCardBuilder {
         imgContent.setAlignment(Pos.CENTER);
         StackPane imgPane = new StackPane(imgBg, imgContent);
         imgPane.setStyle("-fx-cursor: hand;");
-        imgPane.setOnMouseClicked(e -> AuctionDetailDialog.show(
+        imgPane.setOnMouseClicked(e -> {
+            AuctionDetailDialog.show(
                 cfg.windowSupplier().get(), auction,
                 () -> PlaceBidDialog.show(auction, cfg.bidApi(), cfg.onBidSuccess()),
                 () -> AutoBidDialog.show(auction, cfg.bidApi()),
-                () -> BidHistoryDialog.show(auction, cfg.bidApi())));
+                () -> BidHistoryDialog.show(auction, cfg.bidApi()),
+                updater -> cfg.liveDialogPriceUpdaters().put(auction.getId(), updater));
+            // dialog closed — unregister the live updater
+            cfg.liveDialogPriceUpdaters().remove(auction.getId());
+        });
 
         //  Auction info labels 
         Label lblTitle = new Label("Phiên đấu giá #" + auction.getId());

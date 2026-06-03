@@ -2,6 +2,7 @@ package Client.controller.user.dialogs;
 
 import Client.model.auction.Auction;
 import Client.util.DialogUtil;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -10,6 +11,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+
+import java.util.function.Consumer;
 
 public final class AuctionDetailDialog {
 
@@ -20,7 +23,8 @@ public final class AuctionDetailDialog {
             Auction auction,
             Runnable onBidRequested,
             Runnable onAutoBidRequested,
-            Runnable onHistoryRequested) {
+            Runnable onHistoryRequested,
+            Consumer<Consumer<Double>> registerPriceUpdater) {
 
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
@@ -73,11 +77,23 @@ public final class AuctionDetailDialog {
 
         String itemDisplay = (auction.getItemName() != null && !auction.getItemName().isBlank())
                 ? auction.getItemName() : "#" + auction.getItemId();
-        DialogUtil.addDetailRow(grid, 0, "📦 Sản phẩm",    itemDisplay);
+        DialogUtil.addDetailRow(grid, 0, "📦 Sản phẩm",     itemDisplay);
         DialogUtil.addDetailRow(grid, 1, "💵 Giá khởi điểm", String.format("%,.0f ₫", auction.getStartingPrice()));
-        DialogUtil.addDetailRow(grid, 2, "🔥 Giá hiện tại",  String.format("%,.0f ₫", auction.getCurrentPrice()));
-        DialogUtil.addDetailRow(grid, 3, "🕐 Bắt đầu",       DialogUtil.formatDisplayTime(auction.getStartTime()));
-        DialogUtil.addDetailRow(grid, 4, "🕔 Kết thúc",       DialogUtil.formatDisplayTime(auction.getEndTime()));
+
+        // Live price row — kept as a field so the WebSocket callback can update it
+        Label priceKey = new Label("🔥 Giá hiện tại");
+        priceKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 12;");
+        Label priceVal = new Label(String.format("%,.0f ₫", auction.getCurrentPrice()));
+        priceVal.setStyle("-fx-text-fill: #16A34A; -fx-font-size: 12; -fx-font-weight: bold;");
+        grid.add(priceKey, 0, 2);
+        grid.add(priceVal, 1, 2);
+        if (registerPriceUpdater != null) {
+            registerPriceUpdater.accept(
+                price -> Platform.runLater(() -> priceVal.setText(String.format("%,.0f ₫", price))));
+        }
+
+        DialogUtil.addDetailRow(grid, 3, "🕐 Bắt đầu",  DialogUtil.formatDisplayTime(auction.getStartTime()));
+        DialogUtil.addDetailRow(grid, 4, "🕔 Kết thúc", DialogUtil.formatDisplayTime(auction.getEndTime()));
 
         Separator sep = new Separator();
         sep.setPadding(new Insets(0, 24, 0, 24));
