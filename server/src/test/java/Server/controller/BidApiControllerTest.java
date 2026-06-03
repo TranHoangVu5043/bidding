@@ -109,7 +109,6 @@ public class BidApiControllerTest {
         when(biddingService.getBidHistory(1)).thenReturn(List.of(mockBid));
 
         User mockUser = new Bidder(1, "john", "123", "q@g.c", 1000 );
-        when(userService.getUserById(1)).thenReturn(mockUser);
         bidApiController.getBidHistory(requestWrapper, responseWrapper);
         verify(responseWrapper).sendJson(eq(200), anyString());
     }

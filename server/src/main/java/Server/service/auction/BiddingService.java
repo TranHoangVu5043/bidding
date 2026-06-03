@@ -122,9 +122,11 @@ public class BiddingService {
 
                 // All three writes share the same connection and will commit or rollback together.
 
-                userDAO.updateBalance(conn, userId, user.getBalance() - extra);
+                userDAO.updateBalance(conn, userId, user.getBalance() - amount);
+
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
+
 
                 // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
                 LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
