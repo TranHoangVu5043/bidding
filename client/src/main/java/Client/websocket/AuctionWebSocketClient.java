@@ -7,43 +7,31 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-/**
- * Single persistent WebSocket connection for the main auction floor.
- * Supports subscribing to multiple auction rooms on one connection.
- *
- * Usage:
- *   client = new AuctionWebSocketClient(update -> handleUpdate(update));
- *   client.connect();                    // non-blocking, safe to call on FX thread
- *   client.subscribe(5);                 // subscribe to auction #5
- *   client.subscribe(7);                 // subscribe to auction #7
- *   ...
- *   client.closeConnection();            // on sign-out or scene change
- */
 public class AuctionWebSocketClient extends WebSocketClient {
 
     private static final String WS_URL = Client.networking.ServerConfig.WS_URL;
 
     private final Consumer<BidUpdate> onBidUpdate;
-    private Runnable onConnected;
+    /** Auction IDs to (re-)subscribe whenever the connection opens. */
+    private final Set<Integer> subscribedRooms = ConcurrentHashMap.newKeySet();
+    /** Set to false on explicit close so we don't loop-reconnect after sign-out. */
+    private volatile boolean autoReconnect = true;
 
     public AuctionWebSocketClient(Consumer<BidUpdate> onBidUpdate) {
         super(URI.create(WS_URL));
         this.onBidUpdate = onBidUpdate;
     }
 
-    /** Callback fired on the WebSocket thread once the handshake completes. */
-    public void setOnConnected(Runnable onConnected) {
-        this.onConnected = onConnected;
-    }
-
-    //  WebSocketClient callbacks
+    // ── WebSocketClient callbacks ──────────────────────────────────────────────
 
     @Override
     public void onOpen(ServerHandshake handshake) {
-        System.out.println("[WS Client] Connected to " + WS_URL);
-        if (onConnected != null) onConnected.run();
+        System.out.println("[WS] Connected → re-subscribing to " + subscribedRooms);
+        subscribedRooms.forEach(this::sendSubscribe);
     }
 
     @Override
@@ -59,33 +47,38 @@ public class AuctionWebSocketClient extends WebSocketClient {
 
             Platform.runLater(() -> onBidUpdate.accept(new BidUpdate(auctionId, newPrice, newEndTime)));
         } catch (Exception e) {
-            System.err.println("[WS Client] Parse error: " + e.getMessage());
+            System.err.println("[WS] Parse error: " + e.getMessage());
         }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        System.out.println("[WS Client] Disconnected (code=" + code + ", reason=" + reason + ")");
+        System.out.println("[WS] Disconnected (code=" + code + ") — autoReconnect=" + autoReconnect);
+        if (!autoReconnect) return;
+        new Thread(() -> {
+            try { Thread.sleep(3_000); } catch (InterruptedException ignored) {}
+            try { reconnect(); } catch (Exception e) {
+                System.err.println("[WS] Reconnect failed: " + e.getMessage());
+            }
+        }, "ws-reconnect").start();
     }
 
     @Override
     public void onError(Exception ex) {
-        System.err.println("[WS Client] Error: " + ex.getMessage());
+        System.err.println("[WS] Error: " + ex.getMessage());
     }
 
-    //  Public API ─
+    // ── Public API ─────────────────────────────────────────────────────────────
 
-    /** Subscribe to live updates for one auction room. */
+    /** Subscribe to live updates for an auction room. Safe to call before connect(). */
     public void subscribe(int auctionId) {
-        if (!isOpen()) return;
-        JsonObject msg = new JsonObject();
-        msg.addProperty("type",      "subscribe");
-        msg.addProperty("auctionId", auctionId);
-        send(msg.toString());
+        subscribedRooms.add(auctionId);
+        if (isOpen()) sendSubscribe(auctionId);
     }
 
-    /** Unsubscribe from one auction room. */
+    /** Unsubscribe from an auction room. */
     public void unsubscribe(int auctionId) {
+        subscribedRooms.remove(auctionId);
         if (!isOpen()) return;
         JsonObject msg = new JsonObject();
         msg.addProperty("type",      "unsubscribe");
@@ -93,8 +86,18 @@ public class AuctionWebSocketClient extends WebSocketClient {
         send(msg.toString());
     }
 
-    /** Gracefully close the connection. Safe to call even if already closed. */
+    /** Explicitly close — disables auto-reconnect (sign-out / scene change). */
     public void closeConnection() {
-        if (isOpen()) close();
+        autoReconnect = false;
+        if (!isClosed()) close();
+    }
+
+    // ── private ────────────────────────────────────────────────────────────────
+
+    private void sendSubscribe(int auctionId) {
+        JsonObject msg = new JsonObject();
+        msg.addProperty("type",      "subscribe");
+        msg.addProperty("auctionId", auctionId);
+        send(msg.toString());
     }
 }

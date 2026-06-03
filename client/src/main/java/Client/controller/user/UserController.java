@@ -440,14 +440,8 @@ public class UserController {
             }
         });
 
-        // Subscribe inside onOpen() so it fires no matter how long the handshake takes.
-        // The old polling-thread approach silently dropped subscriptions when Railway's
-        // TCP proxy handshake took longer than the 2s timeout.
-        wsClient.setOnConnected(() -> {
-            activeIds.forEach(wsClient::subscribe);
-            System.out.println("[WS Client] Subscribed to " + activeIds.size() + " active auction(s): " + activeIds);
-        });
-
+        // subscribe() now tracks rooms internally and re-subscribes automatically on reconnect.
+        activeIds.forEach(wsClient::subscribe);
         wsClient.connect();
     }
 
