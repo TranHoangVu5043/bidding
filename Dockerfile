@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certifi
 
 COPY pom.xml .
 COPY server/pom.xml server/
+COPY client/pom.xml client/
 RUN mvn dependency:go-offline -pl server --no-transfer-progress
 
 COPY server/src ./server/src
