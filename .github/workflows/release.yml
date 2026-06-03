@@ -1,4 +1,4 @@
-name: Build Native Installers
+name: Build & Release
 
 on:
   push:
@@ -32,8 +32,12 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Install GTK libs (Linux only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libgl1-mesa-dri
+
       - name: Build fat JAR
-        run: mvn -pl client package -DskipTests
+        run: mvn -pl client package -DskipTests --no-transfer-progress
 
       - name: Package with jpackage
         shell: bash
@@ -48,9 +52,10 @@ jobs:
             --dest installer-output \
             --java-options "-Dfile.encoding=UTF-8"
 
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: ${{ matrix.artifact-name }}
-          path: installer-output/*
-```
+          files: installer-output/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
