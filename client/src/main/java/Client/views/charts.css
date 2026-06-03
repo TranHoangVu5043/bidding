@@ -1,0 +1,97 @@
+/*SHARED CHART STYLES */
+
+
+.chart {
+    -fx-background-color: transparent;
+    -fx-padding: 8 4 4 4;
+}
+.chart-plot-background {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 8;
+}
+.chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 6 0 0 0;
+}
+.chart-legend-item-symbol {
+    -fx-background-radius: 4;
+}
+.axis {
+    -fx-tick-label-fill: #9CA3AF;
+    -fx-tick-label-font-size: 11px;
+}
+.axis-label {
+    -fx-text-fill: #6B7280;
+    -fx-font-size: 11px;
+}
+.chart-vertical-grid-lines {
+    -fx-stroke: transparent;
+}
+.chart-horizontal-grid-lines {
+    -fx-stroke: #E5E7EB;
+    -fx-stroke-dash-array: 4 4;
+}
+.chart-alternative-row-fill {
+    -fx-fill: transparent;
+}
+.chart-alternative-column-fill {
+    -fx-fill: transparent;
+}
+
+/*LineChart  */
+.line-chart .chart-series-line {
+    -fx-stroke: #F97316;
+    -fx-stroke-width: 2.5px;
+}
+.line-chart .chart-line-symbol {
+    -fx-background-color: #F97316, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6px;
+    -fx-padding: 5px;
+}
+.line-chart .chart-legend-item-symbol {
+    -fx-background-color: #F97316;
+}
+
+/*PieChart  */
+.default-color0.chart-pie { -fx-pie-color: #3B82F6; } /* Màu thứ 1 */
+.default-color1.chart-pie { -fx-pie-color: #EC4899; } /* Màu thứ 2 */
+.default-color2.chart-pie { -fx-pie-color: #10B981; } /* Màu thứ 3 */
+.default-color3.chart-pie { -fx-pie-color: #F97316; } /* Màu thứ 4 */
+
+/* Style cho chữ (Label) và đường kẻ (Line) nối ra chữ */
+.pie-chart .chart-pie-label      { -fx-fill: #374151; -fx-font-size: 11px; }
+.pie-chart .chart-pie-label-line { -fx-stroke: #D1D5DB; }
+/*  AreaChart (Seller: doanh thu tháng)  */
+.area-chart .chart-series-area-line {
+    -fx-stroke: #3B82F6;
+    -fx-stroke-width: 2.5px;
+}
+.area-chart .chart-series-area-fill {
+    -fx-fill: linear-gradient(to bottom, rgba(59,130,246,0.25), rgba(59,130,246,0.03));
+    -fx-stroke: transparent;
+}
+.area-chart .chart-area-symbol {
+    -fx-background-color: #3B82F6, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 5px;
+    -fx-padding: 4px;
+}
+.area-chart .chart-legend-item-symbol {
+    -fx-background-color: #3B82F6;
+}
+
+/*BarChart (Admin hoặc Seller nếu dùng)  */
+.bar-chart .default-color0.chart-bar { -fx-bar-fill: #3B82F6; }
+.bar-chart .default-color1.chart-bar { -fx-bar-fill: #F97316; }
+.bar-chart .default-color2.chart-bar { -fx-bar-fill: #10B981; }
+.bar-chart .default-color3.chart-bar { -fx-bar-fill: #EF4444; }
+.bar-chart .chart-bar {
+    -fx-background-radius: 4 4 0 0;
+}
+
+/*PieChart: legend text visible  */
+.pie-chart .chart-legend-item {
+    -fx-text-fill: #374151;
+    -fx-font-size: 11px;
+}
