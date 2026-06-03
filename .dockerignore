@@ -1,7 +1,5 @@
 target/
 .git/
 .github/
-.claude/
 src.zip
-src_analysis/
 *.md
