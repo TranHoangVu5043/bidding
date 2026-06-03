@@ -1,6 +1,5 @@
 package Server.controller;
 
-import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.users.Bidder;
 import Server.model.users.Seller;
@@ -38,8 +37,6 @@ public class BidApiControllerTest {
 
     // Mock thêm service quản lý tự động đặt giá để tránh bị NullPointer
     @Mock private AutoBidConfigService autoBidConfigService;
-
-    private final Gson gson = new Gson();
 
     @BeforeEach
     void setUp() {

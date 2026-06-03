@@ -9,14 +9,9 @@ import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.auction.ItemService;
 import com.google.gson.Gson;
-import static org.mockito.ArgumentMatchers.contains;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-import javax.sql.DataSource;
-import java.io.IOException;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -27,7 +22,6 @@ public class ItemApiControllerTest {
     private ItemApiController controller;
     private RequestWrapper req;
     private ResponseWrapper res;
-    private Gson gson;
 
     @BeforeEach
     public void setUp() {
@@ -35,7 +29,7 @@ public class ItemApiControllerTest {
         itemService = mock(ItemService.class);
         req = mock(RequestWrapper.class);
         res = mock(ResponseWrapper.class);
-        gson = new Gson();
+        Gson gson = new Gson();
 
         // Khởi tạo Controller cần test với service giả lập
         controller = new ItemApiController(itemService);

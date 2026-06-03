@@ -1,6 +1,5 @@
 package Server.service.auction;
 
-import Server.dao.users.UserDAO;
 import Server.model.auction.AutoBidConfig;
 import Server.model.users.User;
 import Server.websocket.BidWebSocketServer;

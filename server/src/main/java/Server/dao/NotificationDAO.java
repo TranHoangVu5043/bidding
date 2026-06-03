@@ -1,12 +1,18 @@
 package Server.dao;
 
 import Server.model.Notification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class NotificationDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationDAO.class);
+
     private final DataSource dataSource;
 
     public NotificationDAO(DataSource ds) {
@@ -22,7 +28,7 @@ public class NotificationDAO {
             ps.setString(2, message);
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[NotificationDAO] create: " + e.getMessage());
+            log.error("create notification failed", e);
         }
     }
 
@@ -39,7 +45,7 @@ public class NotificationDAO {
             while (rs.next()) list.add(map(rs));
 
         } catch (SQLException e) {
-            System.err.println("[NotificationDAO] findByUserId: " + e.getMessage());
+            log.error("findByUserId failed", e);
         }
         return list;
     }
@@ -55,7 +61,7 @@ public class NotificationDAO {
 
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[NotificationDAO] markRead: " + e.getMessage());
+            log.error("markRead failed", e);
         }
     }
 
@@ -69,7 +75,7 @@ public class NotificationDAO {
 
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[NotificationDAO] markAllRead: " + e.getMessage());
+            log.error("markAllRead failed", e);
         }
     }
 
