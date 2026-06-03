@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.chart.PieChart?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -23,8 +23,7 @@
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 
-<?import javafx.scene.chart.PieChart?>
-<BorderPane prefHeight="720.0" prefWidth="1160.0" style="-fx-background-color: #F0F4F8;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.admin.AdminDashboardController" stylesheets="@charts.css">
+<BorderPane prefHeight="720.0" prefWidth="1160.0" style="-fx-background-color: #F0F4F8;" stylesheets="@charts.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Client.controller.admin.AdminDashboardController">
 
     <!-- ═══════════════════════════════════════════════════════
          SIDEBAR
@@ -200,9 +199,9 @@
                                         </HBox>
                                         <Separator opacity="0.5" />
                                         <StackPane alignment="CENTER">
-                                            <PieChart fx:id="chartPie" prefHeight="220.0" prefWidth="220.0" legendVisible="false" labelsVisible="false" animated="false" style="-fx-background-color: transparent;" />
+                                            <PieChart fx:id="chartPie" animated="false" labelsVisible="false" legendVisible="false" prefHeight="220.0" prefWidth="220.0" style="-fx-background-color: transparent;" />
 
-                                            <VBox alignment="CENTER" spacing="2" style="-fx-background-color: white; -fx-background-radius: 50%; -fx-min-width: 130; -fx-min-height: 130; -fx-max-width: 130; -fx-max-height: 130;" mouseTransparent="true">
+                                            <VBox alignment="CENTER" mouseTransparent="true" spacing="2" style="-fx-background-color: white; -fx-background-radius: 50%; -fx-min-width: 130; -fx-min-height: 130; -fx-max-width: 130; -fx-max-height: 130;">
                                                 <Label fx:id="chartCenterCount" style="-fx-font-weight: bold; -fx-font-size: 28; -fx-text-fill: #0F1F35;" text="0" />
                                                 <Label style="-fx-font-size: 11; -fx-text-fill: #9CA3AF;" text="phiên đấu giá" />
                                             </VBox>
@@ -368,11 +367,11 @@
                         <VBox style="-fx-background-color: white; -fx-background-radius: 14; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),10,0,0,3);" VBox.vgrow="ALWAYS">
                             <TableView fx:id="tblItems" style="-fx-background-color: transparent; -fx-background-radius: 14; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
                                 <columns>
-                                    <TableColumn fx:id="colItemId" prefWidth="60" style="-fx-alignment: CENTER;" text="ID" />
-                                    <TableColumn fx:id="colItemName" prefWidth="265" text="Tên sản phẩm" />
-                                    <TableColumn fx:id="colItemCategory" prefWidth="145" style="-fx-alignment: CENTER;" text="Danh mục" />
-                                    <TableColumn fx:id="colItemPrice" prefWidth="145" style="-fx-alignment: CENTER_RIGHT;" text="Giá bán (VNĐ)" />
-                                    <TableColumn fx:id="colItemStock" prefWidth="100" style="-fx-alignment: CENTER;" text="Kho" />
+                                    <TableColumn fx:id="colItemId" prefWidth="76.80001831054688" style="-fx-alignment: CENTER;" text="ID" />
+                                    <TableColumn fx:id="colItemName" prefWidth="233.5999755859375" text="Tên sản phẩm" />
+                                    <TableColumn fx:id="colItemCategory" prefWidth="228.0" style="-fx-alignment: CENTER;" text="Danh mục" />
+                                    <TableColumn fx:id="colItemPrice" prefWidth="178.39996337890625" style="-fx-alignment: CENTER_RIGHT;" text="Giá bán (VNĐ)" />
+                                    <TableColumn fx:id="colItemStock" prefWidth="174.39996337890625" style="-fx-alignment: CENTER;" text="Kho" />
                                 </columns>
                             </TableView>
                         </VBox>

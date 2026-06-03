@@ -247,4 +247,7 @@ public class BiddingService {
             throw e;
         }
     }
+    public UserDAO getUserDAO() {
+        return userDAO;
+    }
 }

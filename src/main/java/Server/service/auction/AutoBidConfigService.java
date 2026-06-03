@@ -1,6 +1,8 @@
 package Server.service.auction;
 
+import Server.dao.users.UserDAO;
 import Server.model.auction.AutoBidConfig;
+import Server.model.users.User;
 import Server.websocket.BidWebSocketServer;
 
 import org.slf4j.Logger;
@@ -23,11 +25,32 @@ public class AutoBidConfigService {
     }
 
     public synchronized void registerAutoBid(int auctionId, int userId, double maxBid, double increment){
+        try (Connection conn = biddingService.getDataSource().getConnection()) {
+            User user = biddingService.getUserDAO().findById(conn, userId);
+            double balance = user.getBalance();
+            if (maxBid > balance) {
+                throw new RuntimeException(String.format(
+                        "Cài đặt Bot thất bại! Hạn mức tối đa của Bot (%,.0f ₫) không được vượt quá số tiền hiện có trong ví của bạn (%,.0f ₫).",
+                        maxBid, balance));
+            }
+            double currentPrice = biddingService.getCurrentPriceforUpdate(conn, auctionId);
+            if (maxBid <= currentPrice) {
+                throw new RuntimeException("Hạn mức tối đa của Bot phải lớn hơn giá hiện tại của phòng đấu giá!");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
         AutoBidConfig autoBid = new AutoBidConfig(auctionId, userId, maxBid, increment);
 
         autoBidmaps.putIfAbsent(auctionId, new PriorityQueue<>());
         autoBidmaps.get(auctionId).removeIf(config -> config.getUserId() == userId);
         autoBidmaps.get(auctionId).add(autoBid);
+        if (biddingService.getNotificationService() != null) {
+            biddingService.getNotificationService().send(userId,
+                    String.format("🤖 Kích hoạt Bot tự động thành công cho phiên #%d! Hạn mức: %,.0f ₫ | Bước nhảy: %,.0f ₫.",
+                            auctionId, maxBid, increment));
+        }
 
         triggerAutoBidding(auctionId);
 

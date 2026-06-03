@@ -8,6 +8,10 @@ import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.util.logging.Logger;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ItemServiceTest {
@@ -64,14 +68,14 @@ public class ItemServiceTest {
     }
 
 }
-class ForItemSimpleFakeDataSource implements javax.sql.DataSource {
-    @Override public java.sql.Connection getConnection() { return null; }
-    @Override public java.sql.Connection getConnection(String u, String p) { return null; }
-    @Override public java.io.PrintWriter getLogWriter() { return null; }
-    @Override public void setLogWriter(java.io.PrintWriter out) {}
+class ForItemSimpleFakeDataSource implements DataSource {
+    @Override public Connection getConnection() { return null; }
+    @Override public Connection getConnection(String u, String p) { return null; }
+    @Override public PrintWriter getLogWriter() { return null; }
+    @Override public void setLogWriter(PrintWriter out) {}
     @Override public void setLoginTimeout(int s) {}
     @Override public int getLoginTimeout() { return 0; }
-    @Override public java.util.logging.Logger getParentLogger() { return null; }
+    @Override public Logger getParentLogger() { return null; }
     @Override public <T> T unwrap(Class<T> i) { return null; }
     @Override public boolean isWrapperFor(Class<?> i) { return false; }
 }

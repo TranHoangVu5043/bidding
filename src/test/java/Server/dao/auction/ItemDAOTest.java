@@ -27,9 +27,7 @@ public class ItemDAOTest {
         dataSource.setURL("jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
         dataSource.setUser("sa");
         dataSource.setPassword("");
-
         conn = dataSource.getConnection();
-
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS items (" +
                     "id SERIAL PRIMARY KEY, " +
@@ -39,7 +37,8 @@ public class ItemDAOTest {
                     "category VARCHAR(100), " +
                     "condition VARCHAR(100), " +
                     "price DOUBLE, " +
-                    "stock INT" +
+                    "stock INT, " +
+                    "status VARCHAR(50)" +
                     ")");
         }
 
@@ -66,8 +65,8 @@ public class ItemDAOTest {
     @Test
     public void testFindById_Success() throws Exception {
         try(Statement stmt = conn.createStatement()) {
-            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
-                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock, status) " +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12, 'AVAILABLE')";
             stmt.execute(sql1);
         }
 
@@ -80,8 +79,8 @@ public class ItemDAOTest {
     @Test
     public void testFindByOwnerIdSuccess() throws SQLException {
         try(Statement stmt = conn.createStatement()) {
-            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
-                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock, status) " +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12, 'AVAILABLE')";
             stmt.execute(sql1);
         }
         List<Item> item = itemDAO.findByOwnerId(100);
@@ -92,8 +91,8 @@ public class ItemDAOTest {
     @Test
     public void testDeleteItem() throws Exception{
         try(Statement stmt = conn.createStatement()) {
-            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
-                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock, status) " +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12, 'AVAILABLE')";
             stmt.execute(sql1);
         }
         itemDAO.delete(1);
@@ -104,10 +103,10 @@ public class ItemDAOTest {
     @Test
     public void testUpdateItem() throws Exception{
         try(Statement stmt = conn.createStatement()) {
-            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
-                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
-            String sql2 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock)" +
-                    "VALUES (2, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12)";
+            String sql1 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock, status) " +
+                    "VALUES (1, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12, 'AVAILABLE')";
+            String sql2 = "INSERT INTO items (id, name, description, owner_id, category, condition, price, stock, status) " +
+                    "VALUES (2, 'Tranh', 'Đẹp', 100, '100', '100', 120, 12, 'AVAILABLE')";
             stmt.execute(sql1);
             stmt.execute(sql2);
         }

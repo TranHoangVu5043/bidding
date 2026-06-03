@@ -601,12 +601,18 @@ public class AdminDashboardController {
     private void loadAllItems() {
         new Thread(() -> {
             ApiResponse<List<Item>> resp = itemApi.getAllItems();
+            ApiResponse<List<Auction>> auctionResp = auctionApi.getAllAuctions(); // ← load luôn ở đây
+
             Platform.runLater(() -> {
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
                     List<Item> safeItems = resp.getData().stream()
                             .filter(item -> item != null)
                             .collect(Collectors.toList());
                     allItems.setAll(safeItems);
+
+                    if (auctionResp != null && auctionResp.getStatus() == 200 && auctionResp.getData() != null) {
+                        cachedAuctions = auctionResp.getData();
+                    }
 
                     if (cmbProductCategory != null) {
                         String cur = cmbProductCategory.getValue();
@@ -631,9 +637,18 @@ public class AdminDashboardController {
     }
 
     private void updateItemStatCards(List<Item> items) {
-        long total    = items.size();
-        long active   = items.stream().filter(i -> "AVAILABLE".equalsIgnoreCase(i.getStatus())).count();
-        long sold     = items.stream().filter(i -> "SOLD".equalsIgnoreCase(i.getStatus())).count();
+        long total = items.size();
+        Set<Integer> activeAuctionItemIds = cachedAuctions.stream()
+                .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .map(Auction::getItemId)
+                .collect(Collectors.toSet());
+        Set<Integer> soldAuctionItemIds = cachedAuctions.stream()
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
+                .map(Auction::getItemId)
+                .collect(Collectors.toSet());
+
+        long active   = items.stream().filter(i -> activeAuctionItemIds.contains(i.getId())).count();
+        long sold     = items.stream().filter(i -> soldAuctionItemIds.contains(i.getId())).count();
         long inactive = items.stream().filter(i -> "INACTIVE".equalsIgnoreCase(i.getStatus())).count();
 
         if (lblTotalItems   != null) lblTotalItems.setText(String.valueOf(total));
@@ -702,9 +717,6 @@ public class AdminDashboardController {
                 if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
                     cachedAuctions = resp.getData();
                     renderAuctionCards();
-                } else {
-                    System.err.println("[Auctions] API lỗi: " +
-                            (resp != null ? resp.getStatus() + " - " + resp.getMessage() : "null"));
                 }
             });
         }).start();
