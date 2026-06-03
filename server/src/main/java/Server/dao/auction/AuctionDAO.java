@@ -154,8 +154,6 @@ public class AuctionDAO {
         }
     }
 
-    // only flips the status if it's not already that value
-    // returns true exactly once per real transition — the refund logic uses this to avoid double-firing
     public boolean updateStatus(int auctionId, String status) {
         String sql = "UPDATE auctions SET status = ? WHERE id = ? AND status != ?";
         try (Connection conn = dataSource.getConnection();

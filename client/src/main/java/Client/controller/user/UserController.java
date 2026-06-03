@@ -359,7 +359,6 @@ public class UserController {
             return;
         }
 
-        // Close a stale (not-yet-open or errored) connection before creating a new one
         if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
 
         wsClient = new AuctionWebSocketClient(update -> {

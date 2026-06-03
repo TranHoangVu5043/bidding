@@ -19,18 +19,18 @@ import java.util.stream.Stream;
 
 public class RegisterController {
 
-    //  User tab fields 
+    //User tab
     @FXML private TextField     txtFullName;
     @FXML private TextField     txtEmail;
     @FXML private PasswordField txtPassword;
 
-    //  Seller tab fields 
+    //Seller tab
     @FXML private TextField     txtSellerFullName;
     @FXML private TextField     txtSellerStoreName;
     @FXML private TextField     txtSellerEmail;
     @FXML private PasswordField txtSellerPassword;
 
-    //  Tabs 
+    //Tabs
     @FXML private Tab tabUser;
     @FXML private Tab tabSeller;
 
@@ -95,7 +95,6 @@ public class RegisterController {
         alert.setContentText(content);
         alert.showAndWait();
     }
-
     private void clearForm() {
         Stream.of(txtFullName, txtEmail, txtSellerFullName, txtSellerStoreName, txtSellerEmail)
               .filter(f -> f != null).forEach(TextField::clear);

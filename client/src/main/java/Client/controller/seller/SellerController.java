@@ -82,7 +82,7 @@ public class SellerController {
     @FXML private Label lblShopName;
     @FXML private Label lblSellerName;
 
-    //Các trường FXML phục vụ Dashboard Stats & Charts
+    // Dashboard Stats and Charts
     @FXML private Label lblMonthRevenue;
     @FXML private Label lblNewOrders;
     @FXML private Label lblActiveProducts;
@@ -95,7 +95,7 @@ public class SellerController {
     @FXML private CategoryAxis               revenueXAxis;
     @FXML private NumberAxis                 revenueYAxis;
     @FXML private VBox   pieLegend;
-    //Tab Đấu giá
+    //Tab auction
     @FXML private Label     lblSellerActiveAuctions;
     @FXML private Label     lblSellerEndedAuctions;
     @FXML private Label     lblSellerTotalRevenue;
@@ -109,7 +109,7 @@ public class SellerController {
     private static final int PAGE_SIZE = 21;
     private int currentAuctionPage = 0;
     private List<Auction> filteredAuctions = List.of();
-    //Hồ sơ người bán & Đổi mật khẩu
+    //Ho so nguoi ban va mat khau
     @FXML private TextField     txtShopName;
     @FXML private TextField     txtSellerPhone;
     @FXML private TextArea      txtShopDesc;
@@ -124,7 +124,7 @@ public class SellerController {
     private List<Auction> cachedHistory = List.of();
 
 
-    //Instance các Api kết nối trực tiếp Backend
+    // Api
     private final ItemApi         itemApi    = new ItemApi();
     private final AuctionApi      auctionApi = new AuctionApi();
     private final BidApi          bidApi     = new BidApi();
@@ -143,19 +143,19 @@ public class SellerController {
     private SellerCardBuilder auctionCardBuilder;
 
 
-    //Các danh sách dữ liệu ObservableList & FilteredList
+    // ObservableList & FilteredList
     private final ObservableList<Item>    masterData     = FXCollections.observableArrayList();
     private final ObservableList<Auction> sellerAuctions = FXCollections.observableArrayList();
 
-    // Ngăn các response load auction chạy ngầm ghi đè lên lệnh cancel
+    // Ngan cac response load auction chay ngam ghi de len lenh cancel
     private volatile int auctionLoadVersion = 0;
 
-    // Khởi tạo trễ (lazy-init) sau khi inject FXML — vì trước đó các node chart đều bị null
+    // Khoi tao tre (lazy-init) sau khi inject FXML — vi truoc do cac node chart deu null
     private SellerChartHelper chartHelper;
 
     @FXML
     public void initialize() {
-        //  Cài đặt ComboBox 
+        //  Setup ComboBox
         if (cmbCategory != null) {
             cmbCategory.setItems(FXCollections.observableArrayList("ELECTRONICS", "ART", "VEHICLE"));
         }
@@ -173,7 +173,7 @@ public class SellerController {
             cmbAuctionStatus.valueProperty().addListener((obs, oldV, newV) -> applyAuctionFilter());
         }
 
-        //Lắng nghe sự kiện tìm kiếm Realtime
+        //Lang nghe sk tim kiem Realtime
         if (txtSearch != null) {
             txtSearch.textProperty().addListener((obs, oldVal, newVal) -> applyFilter(newVal));
         }
@@ -199,7 +199,7 @@ public class SellerController {
                 this::onAuctionActionComplete,
                 this::formatTimeRemaining));
 
-        // Chart helper — phải được khởi tạo khi đã inject FXML để các node biểu đồ không bị null
+        // Chart helper — phai duoc khoi tao khi da inject FXML de cac node bieu do khong bi null
         chartHelper = new SellerChartHelper(
                 chartWeekRevenue, weekYAxis,
                 chartCategories, pieLegend,
@@ -207,7 +207,7 @@ public class SellerController {
                 finishedAuctionVBox,
                 sellerAuctions, masterData);
 
-        //Tải dữ liệu từ mạng khi khởi chạy ứng dụng lần đầu
+        //Tai du lieu khi chay lan dau tien
         populateSellerInfo();
         loadMyItems();
         loadSellerAuctions();
@@ -222,7 +222,7 @@ public class SellerController {
         if (txtShopName   != null) txtShopName.setText(name);
     }
 
-    //Tải danh sách sản phẩm
+    //Tai danh sach san pham
     private void loadMyItems() {
         new Thread(() -> {
             ApiResponse<List<Item>> response = itemApi.getMyItems();
@@ -298,7 +298,7 @@ public class SellerController {
         switchTab(tabRevenue, "Doanh Thu", btnRevenue);
          loadHistory();
     }
-    //Tải danh sách phiên đấu giá của seller
+    //Tai danh sach phien dau gia cua seller
     private void loadSellerAuctions() {
         final int myVersion = ++auctionLoadVersion;
         new Thread(() -> {
@@ -325,17 +325,17 @@ public class SellerController {
         }).start();
     }
 
-    //Logic tính toán số liệu thống kê
+    //Logic tinh toan so lieu thong ke
     private void updateAuctionStats() {
         long active = sellerAuctions.stream().filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus())).count();
         long ended  = sellerAuctions.stream().filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())).count();
 
-        //Tổng doanh thu tab Auctions
+        //Tong doanh thu tab Auctions
         double totalRevenue = sellerAuctions.stream()
                 .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
                 .mapToDouble(Auction::getCurrentPrice).sum();
 
-        //Doanh thu tháng này
+        //Doanh thu thang nay
         int thisMonth = java.time.LocalDate.now().getMonthValue();
         int thisYear  = java.time.LocalDate.now().getYear();
         double monthRevenue = sellerAuctions.stream()
@@ -348,7 +348,7 @@ public class SellerController {
                 })
                 .mapToDouble(Auction::getCurrentPrice).sum();
 
-        //Doanh thu tháng trước (để tính % tăng trưởng)
+        //Doanh thu thang truoc (de tinh % tang truong)
         java.time.LocalDate lastMonthDate = java.time.LocalDate.now().minusMonths(1);
         int lastMonth = lastMonthDate.getMonthValue();
         int lastYear  = lastMonthDate.getYear();
@@ -362,7 +362,7 @@ public class SellerController {
                 })
                 .mapToDouble(Auction::getCurrentPrice).sum();
 
-        // Phiên kết thúc hôm nay
+        // Phien ket thuc hom nay
         java.time.LocalDate today = java.time.LocalDate.now();
         long endingToday = sellerAuctions.stream()
                 .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()) && a.getEndTime() != null)
@@ -374,10 +374,10 @@ public class SellerController {
                 })
                 .count();
 
-        // Sản phẩm sắp hết hàng (stock <= 3)
+        // Sp het hang(stock <= 3)
         long lowStock = masterData.stream().filter(i -> i.getStock() <= 3).count();
 
-        // % tăng trưởng so tháng trước
+        // % tang so voi thang truoc
         String growthText;
         if (lastMonthRevenue == 0) {
             growthText = monthRevenue > 0 ? "▲ Mới có doanh thu" : "Chưa có doanh thu";
@@ -401,7 +401,7 @@ public class SellerController {
     private void setupCategoryPieChart()  { if (chartHelper != null) chartHelper.setupCategoryPieChart(); }
     private void renderRevenueData(List<Auction> auctions) { if (chartHelper != null) chartHelper.renderRevenueData(auctions); }
 
-    //Thêm Sp
+    //Them Sp
     @FXML
     private void handleAddProduct() {
         String name        = txtName        != null ? txtName.getText().trim()  : "";
@@ -437,7 +437,7 @@ public class SellerController {
         }).start();
     }
 
-    //Tìm kiếm + filter
+    //Search + filter
     @FXML
     private void handleSearch() { applyFilter(txtSearch != null ? txtSearch.getText() : ""); }
 
@@ -453,7 +453,7 @@ public class SellerController {
         renderInventoryCards(filtered);
     }
 
-    //Tìm kiếm + filter
+    //Auction search + filter
     private void applyAuctionFilter() {
         String kw  = txtAuctionSearch != null ? txtAuctionSearch.getText().trim().toLowerCase() : "";
         String st  = cmbAuctionStatus != null ? cmbAuctionStatus.getValue() : "Tất cả";
@@ -469,7 +469,7 @@ public class SellerController {
         renderAuctionCards(filteredAuctions);
     }
 
-    //Render card đấu giá
+    //Render card dau gia
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
@@ -506,17 +506,17 @@ public class SellerController {
         if (btnAuctionPrev != null) btnAuctionPrev.setDisable(page <= 0);
         if (btnAuctionNext != null) btnAuctionNext.setDisable(page >= total - 1);
     }
-    //Quay về trang trước
+    //Quay ve trang truoc
     @FXML private void handleAuctionPrevPage() {
         if (currentAuctionPage > 0) { currentAuctionPage--; renderAuctionCards(filteredAuctions); }
     }
-    //Chuyển trang tiếp
+    //Chuyen trang tiep
     @FXML private void handleAuctionNextPage() {
         int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
         if (currentAuctionPage < total - 1) { currentAuctionPage++; renderAuctionCards(filteredAuctions); }
     }
 
-    //Render card kho hàng
+    //Render card kho hang
     private void renderInventoryCards(List<Item> items) {
         if (inventoryFlowPane == null) return;
         inventoryFlowPane.getChildren().clear();
@@ -530,15 +530,15 @@ public class SellerController {
             VBox card = SellerCardBuilder.buildItemCard(item, sellerAuctions);
             card.setOnMouseClicked(e -> {
                 selectedItem = item;
-                // Bỏ highlight tất cả card
+                // Bo highlight  card
                 inventoryFlowPane.getChildren().forEach(n -> n.setStyle(
                         "-fx-background-color: white; -fx-background-radius: 10;" +
                         "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;"));
-                //Highlight card đang chọn
+                //Highlight card dang chon
                 card.setStyle("-fx-background-color: #eff6ff; -fx-background-radius: 10;" +
                         "-fx-border-color: #3b82f6; -fx-border-radius: 10; -fx-border-width: 2;" +
                         "-fx-effect: dropshadow(gaussian,rgba(59,130,246,0.3),10,0,0,3); -fx-cursor: hand;");
-                //Mở dialog chi tiết với các callback: tạo đấu giá, xoá, sửa sản phẩm
+                //Mo dialog chi tiet voi cac callback:tao dau gia,xoa,sua sp
                 ItemDetailDialog.show(
                     mainTabPane.getScene().getWindow(),
                     item, sellerAuctions, auctionApi, itemApi,
@@ -558,7 +558,7 @@ public class SellerController {
         }
     }
 
-    //Render lịch sử giao dịch
+    //Render lich su giao dich
     private void renderHistoryCards(List<Auction> auctions) {
         if (historyVBox == null) return;
         historyVBox.getChildren().clear();
@@ -584,7 +584,7 @@ public class SellerController {
         if (cmbCondition   != null) cmbCondition.setValue(null);
     }
 
-    //Điều hướng sibe bar
+    //Dieu huong sibe bar
     @FXML public void showDashboard()    { switchTab(tabDashboard,    "Dashboard",         btnDashboard);  loadMyItems(); loadSellerAuctions(); }
     @FXML public void showInventory()    { switchTab(tabInventory,    "Kho Hàng",          btnInventory);  loadMyItems(); }
     @FXML public void showAddProduct()   { switchTab(tabAddProduct,   "Thêm Sản Phẩm",     btnAddProduct); }
@@ -689,7 +689,7 @@ public class SellerController {
         }
     }
 
-    //Đăng xuất
+    //Logout
     @FXML
     public void showLogout() {
         if (wsClient != null) wsClient.closeConnection();
@@ -702,7 +702,7 @@ public class SellerController {
         }).start();
     }
 
-    //Lưu thông tin cửa hàng
+    //Luu thong tin shop
     @FXML private void handleSaveShop()    { SceneUtil.showAlert("Thành công", "Thông tin cửa hàng đã được lưu lại."); }
     private static int statusPriority(String s) {
         if (s == null) return 3;
@@ -714,7 +714,7 @@ public class SellerController {
         };
     }
 
-    //Tính năng Đổi mật khẩu
+    //Doi pass
     @FXML
     private void handleChangePw() {
         String oldPw = (txtOldPw != null) ? txtOldPw.getText() : "";
@@ -754,11 +754,11 @@ public class SellerController {
             }
         }).start();
     }
-    //Đổi màu nút bấm
+    //Doi mau nut bam
     private final String NORMAL_STYLE = "-fx-background-color: transparent; -fx-text-fill: #CBD5E1; -fx-background-radius: 8; -fx-font-size: 13; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
     private final String ACTIVE_STYLE = "-fx-background-color: #f97316; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-size: 13; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; -fx-padding: 10 14;";
 
-    //  Hàm điều hướng Tab 
+    //Chuyen tab
     private void switchTab(Tab tab, String title, Button activeBtn) {
         if (mainTabPane != null && tab != null) mainTabPane.getSelectionModel().select(tab);
         if (lblPageTitle != null && title != null) lblPageTitle.setText(title);
@@ -767,7 +767,7 @@ public class SellerController {
     }
 
     private void highlightButton(Button active) {
-        // Gom các nút của Seller vào mảng
+        // Gom cac nut seller vao 1 mang
         Button[] allButtons = {
                 btnDashboard, btnInventory, btnAddProduct,
                 btnAuctions, btnRevenue, btnHistory, btnProfile,

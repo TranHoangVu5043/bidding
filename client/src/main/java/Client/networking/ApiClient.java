@@ -13,7 +13,7 @@ public class ApiClient {
 
     private static final String BASE_URL = ServerConfig.HTTP_BASE + "/api";
 
-    // Shared across all ApiClient instances — reuses the connection pool
+    // Share chung cho tat ca instance ApiClient
     private static final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();

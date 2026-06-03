@@ -75,9 +75,8 @@ public class AuctionWebSocketClient extends WebSocketClient {
         System.err.println("[WS] Error: " + ex.getMessage());
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────────
+    // Public API
 
-    /** Subscribe to live updates for an auction room. Safe to call before connect(). */
     public void subscribe(int auctionId) {
         subscribedRooms.add(auctionId);
         if (isOpen()) sendSubscribe(auctionId);
@@ -99,7 +98,7 @@ public class AuctionWebSocketClient extends WebSocketClient {
         if (!isClosed()) close();
     }
 
-    // ── private ────────────────────────────────────────────────────────────────
+    // private
 
     private void sendSubscribe(int auctionId) {
         JsonObject msg = new JsonObject();

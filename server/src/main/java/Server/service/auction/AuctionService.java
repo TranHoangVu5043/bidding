@@ -123,8 +123,6 @@ public class AuctionService {
         }
 
         if (!current.equals(newStatus)) {
-            // updateStatus only returns true on the first actual DB change,
-            // so refund logic can't double-fire even if this runs twice quickly
             boolean didTransition = auctionDAO.updateStatus(auctionId, newStatus);
 
             if (didTransition && "FINISHED".equals(newStatus)) {

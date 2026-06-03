@@ -172,7 +172,7 @@ public class BiddingService {
             throw new RuntimeException(e);
         }
     }
-    //Dành cho bot
+    //Danh cho bot
     public void placeBidInternal(Connection conn, int userId, int auctionId, double price) throws Exception {
         // Lock the auction row for this transaction to prevent concurrent updates.
         Auction auction = auctionDAO.findByIdForUpdate(conn, auctionId);

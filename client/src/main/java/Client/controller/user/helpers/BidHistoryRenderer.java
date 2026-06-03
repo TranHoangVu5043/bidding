@@ -16,7 +16,7 @@ public final class BidHistoryRenderer {
         Auction a   = item.getAuction();
         boolean won = item.isWon();
 
-        //  Outcome badge 
+        //Outcome badge
         String outcomeColor = won ? "#16A34A" : "#D32F2F";
         String outcomeText  = won ? "🏆 Đã thắng" : "❌ Đã thua";
         Label lblOutcome = new Label(outcomeText);
@@ -24,7 +24,7 @@ public final class BidHistoryRenderer {
                 "-fx-background-color: " + outcomeColor + "; " +
                 "-fx-background-radius: 6; -fx-padding: 3 8;");
 
-        //  Info column 
+        //Info column
         Label lblTitle = new Label("Phiên đấu giá #" + (a != null ? a.getId() : "?"));
         lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
 
@@ -54,13 +54,13 @@ public final class BidHistoryRenderer {
         VBox infoBox = new VBox(5, lblTitle, lblItem, lblSeller, lblEndDate, lblMyBid, lblWinPrice, lblCount);
         HBox.setHgrow(infoBox, Priority.ALWAYS);
 
-        //  Left accent bar 
+        //Left accent bar
         Region bar = new Region();
         bar.setPrefWidth(5);
         bar.setMinHeight(80);
         bar.setStyle("-fx-background-color: " + outcomeColor + "; -fx-background-radius: 4 0 0 4;");
 
-        //  Badge column 
+        //Badge column
         VBox badgeCol = new VBox(lblOutcome);
         badgeCol.setAlignment(Pos.CENTER);
         badgeCol.setPrefWidth(90);
