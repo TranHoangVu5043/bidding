@@ -2,6 +2,7 @@ package Client.util;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import java.time.LocalDateTime;
 
 public final class DialogUtil {
 
@@ -20,8 +21,7 @@ public final class DialogUtil {
     public static String formatDisplayTime(String timeStr) {
         if (timeStr == null) return "—";
         try {
-            java.time.LocalDateTime dt =
-                java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
+            LocalDateTime dt = LocalDateTime.parse(timeStr.replace(" ", "T"));
             return String.format("%02d/%02d/%d  %02d:%02d",
                 dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear(),
                 dt.getHour(), dt.getMinute());

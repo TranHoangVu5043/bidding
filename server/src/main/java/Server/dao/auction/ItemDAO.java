@@ -1,8 +1,9 @@
 package Server.dao.auction;
 
-
 import Server.model.auction.ItemFactory;
 import Server.model.auction.items.Item;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -10,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ItemDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(ItemDAO.class);
 
     private final DataSource dataSource;
 
@@ -29,7 +32,7 @@ public class ItemDAO {
             if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
-            log("findById item failed", e);
+            log.error("findById item failed", e);
         }
 
         return null;
@@ -43,7 +46,7 @@ public class ItemDAO {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) items.add(mapRow(rs));
         } catch (SQLException e) {
-            log("findAll items failed", e);
+            log.error("findAll items failed", e);
         }
         return items;
     }
@@ -60,7 +63,7 @@ public class ItemDAO {
             while (rs.next()) items.add(mapRow(rs));
 
         } catch (SQLException e) {
-            log("findByOwnerId failed", e);
+            log.error("findByOwnerId failed", e);
         }
 
         return items;
@@ -93,7 +96,7 @@ public class ItemDAO {
             return item;
 
         } catch (SQLException e) {
-            log("create item failed", e);
+            log.error("create item failed", e);
             return null;
         }
     }
@@ -118,7 +121,7 @@ public class ItemDAO {
             stmt.executeUpdate();
 
         } catch (SQLException e) {
-            log("update item failed", e);
+            log.error("update item failed", e);
         }
     }
     public void delete(int id){
@@ -128,7 +131,7 @@ public class ItemDAO {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         }catch (SQLException e){
-            log("delete item failed", e);
+            log.error("delete item failed", e);
         }
 
     }
@@ -154,7 +157,4 @@ public class ItemDAO {
         );
     }
 
-    private void log(String msg, Exception e) {
-        System.err.println("[ERROR] " + msg + ": " + e.getMessage());
-    }
 }

@@ -3,11 +3,14 @@ package Server.networking.http;
 import Server.controller.responseObjects.ApiResponse;
 import com.sun.net.httpserver.HttpExchange;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.OutputStream;
 
 public class ResponseWrapper {
+
+    private static final Logger log = LoggerFactory.getLogger(ResponseWrapper.class);
 
     private final HttpExchange exchange;
     private final Gson gson;
@@ -32,9 +35,7 @@ public class ResponseWrapper {
 
         } catch (Exception e) {
 
-            System.err.println("[ERROR] Response send failed: " + e.getMessage());
-
-            e.printStackTrace();
+            log.error("Response send failed", e);
         }
     }
 

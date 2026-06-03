@@ -1,15 +1,18 @@
 package Server.dao.auction;
 
 import Server.model.auction.Bid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class BidDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(BidDAO.class);
 
     private final DataSource dataSource;
 
@@ -45,7 +48,7 @@ public class BidDAO {
             while (rs.next()) bids.add(mapRow(rs));
 
         } catch (SQLException e) {
-            System.err.println("[ERROR] getBidsByAuction failed: " + e.getMessage());
+            log.error("getBidsByAuction failed", e);
         }
 
         return bids;
@@ -62,7 +65,7 @@ public class BidDAO {
             if (rs.next()) return rs.getInt("user_id");
 
         } catch (SQLException e) {
-            System.err.println("[ERROR] findHighestBidder failed: " + e.getMessage());
+            log.error("findHighestBidder failed", e);
         }
 
         return null;
@@ -89,7 +92,7 @@ public class BidDAO {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getDouble(1);
         } catch (SQLException e) {
-            System.err.println("[ERROR] getMaxBidByUser failed: " + e.getMessage());
+            log.error("getMaxBidByUser failed", e);
         }
         return 0;
     }
@@ -102,7 +105,7 @@ public class BidDAO {
             ps.setInt(1, auctionId);
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[ERROR] deleteByAuctionId failed: " + e.getMessage());
+            log.error("deleteByAuctionId failed", e);
         }
     }
 
@@ -127,7 +130,7 @@ public class BidDAO {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
-            System.err.println("[ERROR] getBidCountByUser failed: " + e.getMessage());
+            log.error("getBidCountByUser failed", e);
         }
         return 0;
     }

@@ -37,36 +37,39 @@ Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép 
 
 ```
 bidding/
-├ src/
-│   ├ main/
-│   │   ├ java/
-│   │   │   ├ Client/                   # JavaFX desktop client
-│   │   │   │   ├ controller/           # MVC controllers (admin, auth, seller, user)
-│   │   │   │   ├ model/                # Client-side data models
-│   │   │   │   ├ networking/           # HTTP ApiClient + API endpoint classes
-│   │   │   │   ├ util/                 # SceneUtil, DialogUtil
-│   │   │   │   ├ views/                # FXML layouts + CSS
-│   │   │   │   ├ websocket/            # AuctionWebSocketClient (realtime)
-│   │   │   │   └ ClientApp.java        # JavaFX entry point
-│   │   │   └ Server/                   # HTTP REST server
-│   │   │       ├ controller/           # REST route handlers
-│   │   │       ├ dao/                  # Database access layer (JDBC)
-│   │   │       ├ dto/                  # Request / Response DTOs
-│   │   │       ├ exception/            # Custom exceptions
-│   │   │       ├ filters/              # sessionFilter (auth middleware)
-│   │   │       ├ model/                # Domain entities (User, Item, Auction, Bid)
-│   │   │       ├ networking/           # ServerConnection, ApiRouter, HikariCP
-│   │   │       ├ service/              # Business logic services
-│   │   │       ├ websocket/            # BidWebSocketServer (realtime broadcast)
-│   │   │       └ ServerApp.java        # Server entry point
-│   │   └ resources/
-│   │       └ simplelogger.properties   # Logging config
-│   └ test/java/                        # JUnit 5 test suites
-│       ├ Client/
-│       └ Server/                       # DAO, Service, Controller tests
-├ Dockerfile                            # Multi-stage Docker build
+├ server/                               # Maven module — HTTP REST server
+│   ├ pom.xml
+│   └ src/
+│       ├ main/
+│       │   ├ java/Server/
+│       │   │   ├ controller/           # REST route handlers
+│       │   │   ├ dao/                  # Database access layer (JDBC)
+│       │   │   ├ dto/                  # Request / Response DTOs
+│       │   │   ├ exception/            # Custom exceptions
+│       │   │   ├ filters/              # sessionFilter (auth middleware)
+│       │   │   ├ model/                # Domain entities (User, Item, Auction, Bid)
+│       │   │   ├ networking/           # ServerConnection, ApiRouter, HikariCP
+│       │   │   ├ service/              # Business logic services
+│       │   │   ├ websocket/            # BidWebSocketServer (realtime broadcast)
+│       │   │   └ ServerApp.java        # Server entry point
+│       │   └ resources/
+│       │       └ simplelogger.properties
+│       └ test/java/Server/             # DAO, Service, Controller tests
+├ client/                               # Maven module — JavaFX desktop client
+│   ├ pom.xml
+│   └ src/
+│       ├ main/java/Client/
+│       │   ├ controller/               # MVC controllers (admin, auth, seller, user)
+│       │   ├ model/                    # Client-side data models
+│       │   ├ networking/               # HTTP ApiClient + API endpoint classes
+│       │   ├ util/                     # SceneUtil, DialogUtil
+│       │   ├ views/                    # FXML layouts + CSS
+│       │   ├ websocket/                # AuctionWebSocketClient (realtime)
+│       │   └ ClientApp.java            # JavaFX entry point
+│       └ test/java/Client/
+├ Dockerfile                            # Multi-stage Docker build (server only)
 ├ railway.toml                          # Railway deployment config
-├ pom.xml                               # Maven build config
+├ pom.xml                               # Parent POM (aggregator)
 └ README.md
 ```
 
@@ -88,7 +91,7 @@ mvn clean package -DskipTests
 ### Bước 2 — Khởi động Server
 
 ```bash
-# Windows / Linux / macOS
+cd server
 mvn exec:java -Dexec.mainClass="Server.ServerApp"
 ```
 
@@ -105,18 +108,22 @@ WebSocket server listening on port 8081
 Mở một terminal **mới** (giữ nguyên terminal Server đang chạy):
 
 ```bash
-# Windows / Linux / macOS
+cd client
 mvn javafx:run
 ```
 
 Giao diện JavaFX sẽ hiển thị. Đăng ký tài khoản mới hoặc đăng nhập để sử dụng.
 
-> **Chạy nhiều client:** Mở thêm terminal mới và lặp lại lệnh `mvn javafx:run`.
+> **Chạy nhiều client:** Mở thêm terminal mới và lặp lại lệnh `cd client && mvn javafx:run`.
 
 ### Chạy Tests
 
 ```bash
+# Tất cả tests (server + client)
 mvn test
+
+# Chỉ server tests
+cd server && mvn test
 ```
 
 ---

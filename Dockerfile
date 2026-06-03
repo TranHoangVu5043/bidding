@@ -10,16 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certifi
     rm /tmp/maven.tar.gz && rm -rf /var/lib/apt/lists/*
 
 COPY pom.xml .
-RUN mvn dependency:go-offline --no-transfer-progress
+COPY server/pom.xml server/
+RUN mvn dependency:go-offline -pl server --no-transfer-progress
 
-COPY src ./src
-RUN mvn package -DskipTests --no-transfer-progress
+COPY server/src ./server/src
+RUN mvn package -pl server -DskipTests --no-transfer-progress
 
 #  Run stage
 FROM eclipse-temurin:25-jre-noble
 WORKDIR /app
 
-COPY --from=builder /build/target/bidding-1.0-server.jar app.jar
+COPY --from=builder /build/server/target/bidding-server-1.0-server.jar app.jar
 
 EXPOSE 8080
 EXPOSE 8081

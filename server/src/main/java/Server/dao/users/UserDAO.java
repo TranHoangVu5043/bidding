@@ -4,6 +4,8 @@ import Server.model.users.User;
 import Server.model.users.UserFactory;
 import Server.model.users.UserSettings;
 import Server.model.users.records.UserRow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 
@@ -19,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(UserDAO.class);
 
     private final DataSource dataSource;
 
@@ -163,7 +167,7 @@ public class UserDAO {
             ps.setInt(2, userId);
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[UserDAO] addBalance: " + e.getMessage());
+            log.error("addBalance failed", e);
         }
     }
 
@@ -178,7 +182,7 @@ public class UserDAO {
             stmt.executeUpdate();
 
         } catch (SQLException e) {
-            System.err.println("[ERROR] updateBalance failed: " + e.getMessage());
+            log.error("updateBalance failed", e);
             throw new RuntimeException(e);
         }
     }
@@ -381,7 +385,6 @@ public class UserDAO {
     }
 
     private void log(String message, Exception e) {
-        System.err.println("[ERROR] " + message);
-        System.err.println("Cause: " + e.getMessage());
+        log.error(message, e);
     }
 }

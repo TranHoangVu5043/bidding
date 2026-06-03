@@ -237,8 +237,7 @@ public class BiddingService {
                 throw  new RuntimeException("Không tìm thấy phiên đấu giá");
             }
             return auction.getCurrentPrice();
-        }catch (RuntimeException e){
-            System.out.println("Lỗi: " + e.getMessage());
+        } catch (RuntimeException e) {
             throw e;
         }
     }

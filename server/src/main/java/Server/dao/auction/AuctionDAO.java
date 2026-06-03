@@ -1,7 +1,8 @@
 package Server.dao.auction;
 
-
 import Server.model.auction.Auction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -9,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AuctionDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(AuctionDAO.class);
 
     private final DataSource dataSource;
 
@@ -28,7 +31,7 @@ public class AuctionDAO {
             if (rs.next()) return mapRow(rs);
 
         } catch (SQLException e) {
-            log("find auction failed", e);
+            log.error("find auction failed", e);
         }
 
         return null;
@@ -56,7 +59,7 @@ public class AuctionDAO {
             while (rs.next()) auctions.add(mapRow(rs));
 
         } catch (SQLException e) {
-            log("findAll auctions failed", e);
+            log.error("findAll auctions failed", e);
         }
 
         return auctions;
@@ -74,7 +77,7 @@ public class AuctionDAO {
             while (rs.next()) auctions.add(mapRow(rs));
 
         } catch (SQLException e) {
-            log("findByOwnerId auctions failed", e);
+            log.error("findByOwnerId auctions failed", e);
         }
 
         return auctions;
@@ -107,7 +110,7 @@ public class AuctionDAO {
             return auction;
 
         } catch (SQLException e) {
-            log("create auction failed", e);
+            log.error("create auction failed", e);
             return null;
         }
     }
@@ -123,7 +126,7 @@ public class AuctionDAO {
             stmt.executeUpdate();
 
         } catch (SQLException e) {
-            log("update auction price failed", e);
+            log.error("update auction price failed", e);
         }
     }
 
@@ -147,7 +150,7 @@ public class AuctionDAO {
             stmt.executeUpdate();
 
         } catch (SQLException e) {
-            log("delete auction failed", e);
+            log.error("delete auction failed", e);
         }
     }
 
@@ -164,7 +167,7 @@ public class AuctionDAO {
             return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            log("update auction status failed for ID: " + auctionId, e);
+            log.error("update auction status failed for ID: {}", auctionId, e);
             return false;
         }
     }
@@ -196,7 +199,7 @@ public class AuctionDAO {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) auctions.add(mapRow(rs));
         } catch (SQLException e) {
-            log("findByBidder failed for userId=" + userId, e);
+            log.error("findByBidder failed for userId={}", userId, e);
         }
         return auctions;
     }
@@ -213,7 +216,7 @@ public class AuctionDAO {
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) list.add(mapRow(rs));
         } catch (SQLException e) {
-            log("findNeedingStatusUpdate failed", e);
+            log.error("findNeedingStatusUpdate failed", e);
         }
         return list;
     }
@@ -228,12 +231,9 @@ public class AuctionDAO {
                 list.add(mapRow(rs));
             }
         }catch (SQLException e){
-            log("Lấy danh sách thất bại" , e);
+            log.error("Lấy danh sách thất bại", e);
         }
         return list;
     }
 
-    private void log(String msg, Exception e) {
-        System.err.println("[ERROR] " + msg + ": " + e.getMessage());
-    }
 }
