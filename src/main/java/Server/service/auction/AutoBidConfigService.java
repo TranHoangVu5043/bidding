@@ -3,11 +3,17 @@ package Server.service.auction;
 import Server.model.auction.AutoBidConfig;
 import Server.websocket.BidWebSocketServer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
+
 public class AutoBidConfigService {
+
+    private static final Logger log = LoggerFactory.getLogger(AutoBidConfigService.class);
 
     private final Map<Integer, PriorityQueue<AutoBidConfig>> autoBidmaps = new ConcurrentHashMap<>();
     private final BiddingService biddingService;
@@ -28,15 +34,18 @@ public class AutoBidConfigService {
     }
     public synchronized void triggerAutoBidding(int auctionId){
         PriorityQueue<AutoBidConfig> queue = autoBidmaps.get(auctionId);
+
         if (queue == null || queue.isEmpty()) return;
 
         try (Connection conn = biddingService.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
             try {
-                // Capture the current leader before auto-bid fires (for outbid notification)
+                //get current leader for noti
                 Integer previousLeader = biddingService.getBidDAO().findHighestBidder(auctionId);
+
                 double currentPrice = biddingService.getCurrentPriceforUpdate(conn, auctionId);
                 AutoBidConfig top1 = queue.peek();
+
                 if (top1 == null) {
                     conn.commit();
                     return;
@@ -48,7 +57,7 @@ public class AutoBidConfigService {
                 AutoBidConfig top1Config = queue.poll();
                 AutoBidConfig top2Config = queue.poll();
                 if (top1Config == null || top1Config.getMaxBid() <= currentPrice) {
-                    conn.commit(); // Giải phóng nếu Bot không cần chạy
+                    conn.commit(); //release cn
                     return;
                 }
 
@@ -57,41 +66,55 @@ public class AutoBidConfigService {
 
                 if (top1Config.getMaxBid() <= finalPrice) return;
 
-                else if (top2Config == null) {
+                else if (top2Config == null) { // only 1 auto-bidder
                     winnerBotId = top1Config.getUserId();
+
                     queue.add(top1Config);
+
                     if (previousLeader == null){
                         finalPrice = currentPrice;
                     }else {
                         finalPrice = Math.min(currentPrice + top1Config.getIncrement(), top1Config.getMaxBid());
                     }
+
                 } else if (top1Config.getMaxBid() == top2Config.getMaxBid()) {
+
                     finalPrice = top1Config.getMaxBid();
                     winnerBotId = top1Config.getUserId();
+
                     queue.add(top1Config);
+
                 } else {
                     double max2 = top2Config.getMaxBid();
                     double inc1 = top1Config.getIncrement();
                     double inc2 = top2Config.getIncrement();
                     double totalIncrement = inc1 + inc2;
                     double buggetLeftB = max2 - currentPrice;
+
                     long loop = (long) (buggetLeftB / totalIncrement);
                     finalPrice = currentPrice + loop * totalIncrement;
+
                     if (finalPrice + inc2 <= max2) {
                         finalPrice += inc2;
                     } else {
                         finalPrice = max2;
                     }
+
                     finalPrice = Math.min(finalPrice + inc1, top1Config.getMaxBid());
+
                     winnerBotId = top1Config.getUserId();
+
                     queue.add(top1Config);
                 }
+
                 if (winnerBotId != -1 && ( finalPrice > currentPrice||previousLeader == null)) {
                     biddingService.placeBidInternal(conn, winnerBotId, auctionId, finalPrice);
                 }
+
                 conn.commit();
+
                 if (winnerBotId != -1 && ( finalPrice > currentPrice ||previousLeader == null)) {
-                    System.out.println("BotWinner: " + winnerBotId + " || FinalPrice: " + finalPrice);
+                    log.info("Auto-bid fired — auction #{} winner bot user#{} at price {}", auctionId, winnerBotId, finalPrice);
                     // Notify the person the auto-bid just outbid
                     if (previousLeader != null && previousLeader != winnerBotId
                             && biddingService.getNotificationService() != null) {
@@ -109,7 +132,7 @@ public class AutoBidConfigService {
                 throw e;
             }
         } catch (Exception e) {
-            System.out.println(" Lỗi hệ thống điều phối Bot: " + e.getMessage());
+            log.error("Auto-bid coordinator failed for auction #{}", auctionId, e);
         }
     }
 }

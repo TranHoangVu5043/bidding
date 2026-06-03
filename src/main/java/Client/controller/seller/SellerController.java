@@ -8,6 +8,12 @@ import Client.networking.SessionManager;
 import Client.networking.endpoints.AuctionApi;
 import Client.networking.endpoints.ItemApi;
 import Client.networking.endpoints.UserApi;
+import Client.controller.seller.dialogs.EditItemDialog;
+import Client.controller.seller.dialogs.ItemDetailDialog;
+import Client.controller.seller.dialogs.SellerAuctionDetailDialog;
+import Client.controller.seller.helpers.SellerCardBuilder;
+import Client.controller.seller.helpers.SellerChartHelper;
+import Client.util.DialogUtil;
 import Client.util.SceneUtil;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -131,6 +137,9 @@ public class SellerController {
     // Prevents stale background auction-load responses from overwriting a cancel
     private volatile int auctionLoadVersion = 0;
 
+    // Lazy-initialized after FXML injection — chart nodes are null until then
+    private SellerChartHelper chartHelper;
+
     @FXML
     public void initialize() {
         // ── Cài đặt ComboBox ──
@@ -166,6 +175,14 @@ public class SellerController {
         if (txtHistorySearch != null) {
             txtHistorySearch.textProperty().addListener((obs, o, n) -> applyHistoryFilter());
         }
+
+        // Chart helper — must be created AFTER FXML injection so chart nodes are non-null
+        chartHelper = new SellerChartHelper(
+                chartWeekRevenue, weekYAxis,
+                chartCategories, pieLegend,
+                chartRevenueArea, revenueYAxis,
+                finishedAuctionVBox,
+                sellerAuctions, masterData);
 
         // Tải dữ liệu từ mạng khi khởi chạy ứng dụng lần đầu
         populateSellerInfo();
@@ -357,310 +374,136 @@ public class SellerController {
         if (lblMonthRevenue         != null) lblMonthRevenue.setText(String.format("%,.0f ₫", monthRevenue));
     }
 
-    // ── Biểu đồ Doanh thu tuần — LineChart ──
-    private void setupWeekRevenueChart() {
-        if (chartWeekRevenue == null) return;
+    // ── Charts — delegated to SellerChartHelper ──────────────────────────
+    private void setupWeekRevenueChart()  { if (chartHelper != null) chartHelper.setupWeekRevenueChart(); }
+    private void setupCategoryPieChart()  { if (chartHelper != null) chartHelper.setupCategoryPieChart(); }
+    private void renderRevenueData(List<Auction> auctions) { if (chartHelper != null) chartHelper.renderRevenueData(auctions); }
 
-        java.time.LocalDate today = java.time.LocalDate.now();
-        String[] dayNames = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
-        String[] labels = new String[7];
-        double[] values = new double[7];
-
-        for (int i = 0; i < 7; i++) {
-            java.time.LocalDate day = today.minusDays(6 - i);
-            labels[i] = dayNames[day.getDayOfWeek().getValue() % 7];
-            values[i] = 0;
-        }
-
-        for (Auction a : sellerAuctions) {
-            if (!"FINISHED".equalsIgnoreCase(a.getStatus()) || a.getEndTime() == null) continue;
-            try {
-                java.time.LocalDate endDate = java.time.LocalDateTime
-                        .parse(a.getEndTime().replace(" ", "T")).toLocalDate();
-                long daysAgo = today.toEpochDay() - endDate.toEpochDay();
-                if (daysAgo >= 0 && daysAgo < 7) values[(int)(6 - daysAgo)] += a.getCurrentPrice();
-            } catch (Exception ignored) {}
-        }
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        for (int i = 0; i < 7; i++) {
-            series.getData().add(new XYChart.Data<>(labels[i], values[i]));
-        }
-
-        chartWeekRevenue.getData().clear();
-        chartWeekRevenue.getData().add(series);
-
-        // Format trục Y hiển thị triệu ₫
-        if (weekYAxis != null) {
-            weekYAxis.setTickLabelFormatter(new javafx.util.StringConverter<Number>() {
-                @Override public String toString(Number n) {
-                    double v = n.doubleValue();
-                    if (v >= 1_000_000) return String.format("%.0fM", v / 1_000_000);
-                    if (v >= 1_000)     return String.format("%.0fK", v / 1_000);
-                    return String.format("%.0f", v);
-                }
-                @Override public Number fromString(String s) { return 0; }
-            });
-        }
-    }
-
-    // ── Biểu đồ hình tròn phân loại danh mục — PieChart ──
-    private static final String[][] PIE_LEGEND = {
-            {"Điện tử",    "#3B82F6"},
-            {"Nghệ thuật", "#EC4899"},
-            {"Xe cộ",      "#10B981"},
-    };
-
-    private void setupCategoryPieChart() {
-        if (chartCategories == null) return;
-        long electronics = masterData.stream().filter(i -> "ELECTRONICS".equalsIgnoreCase(i.getCategory())).count();
-        long art         = masterData.stream().filter(i -> "ART".equalsIgnoreCase(i.getCategory())).count();
-        long vehicle     = masterData.stream().filter(i -> "VEHICLE".equalsIgnoreCase(i.getCategory())).count();
-        long total       = electronics + art + vehicle;
-        long[] counts    = {electronics, art, vehicle};
-
-        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList(
-                new PieChart.Data("Điện tử ("    + electronics + ")", electronics),
-                new PieChart.Data("Nghệ thuật (" + art         + ")", art),
-                new PieChart.Data("Xe cộ ("      + vehicle     + ")", vehicle)
-        );
-
-        chartCategories.setData(pieData);
-
-        // Tô màu từng phần theo PIE_LEGEND
-        String[] colors = {"#3B82F6", "#EC4899", "#10B981"};
-        for (int i = 0; i < pieData.size(); i++) {
-            pieData.get(i).getNode().setStyle("-fx-pie-color: " + colors[i] + ";");
-        }
-
-        // Cập nhật custom legend
-        if (pieLegend != null) {
-            pieLegend.getChildren().clear();
-            for (int i = 0; i < PIE_LEGEND.length; i++) {
-                String lbl   = PIE_LEGEND[i][0];
-                String color = PIE_LEGEND[i][1];
-                long cnt     = counts[i];
-                double pct   = total > 0 ? (cnt * 100.0 / total) : 0;
-
-                javafx.scene.shape.Rectangle dot = new javafx.scene.shape.Rectangle(10, 10);
-                dot.setArcWidth(3); dot.setArcHeight(3);
-                dot.setFill(javafx.scene.paint.Color.web(color));
-
-                Label lblName = new Label(lbl);
-                lblName.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-                HBox.setHgrow(lblName, Priority.ALWAYS);
-
-                Label lblVal = new Label(String.format("%,.0f sp  •  %.0f%%", (double) cnt, pct));
-                lblVal.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
-
-                HBox row = new HBox(8, dot, lblName, lblVal);
-                row.setAlignment(Pos.CENTER_LEFT);
-                pieLegend.getChildren().add(row);
-            }
-        }
-    }
-
-
-
-    // ── Thêm sản phẩm mới  ──
+    // ── Add product ───────────────────────────────────────────────────────
     @FXML
     private void handleAddProduct() {
-        String name        = txtName        != null ? txtName.getText().trim()        : "";
+        String name        = txtName        != null ? txtName.getText().trim()  : "";
         String description = txtDescription != null ? txtDescription.getText().trim() : "";
-        String category    = cmbCategory    != null ? cmbCategory.getValue()          : null;
-        String condition   = cmbCondition   != null ? cmbCondition.getValue()         : "Mới";
+        String category    = cmbCategory    != null ? cmbCategory.getValue()   : null;
+        String condition   = cmbCondition   != null ? cmbCondition.getValue()  : null;
+        String priceText   = txtPrice       != null ? txtPrice.getText().trim() : "";
+        String stockText   = txtStock       != null ? txtStock.getText().trim() : "";
+
+        if (name.isEmpty())   { SceneUtil.showAlert("Thiếu thông tin", "Vui lòng nhập tên sản phẩm."); return; }
+        if (category == null) { SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn danh mục.");     return; }
+        if (condition == null){ SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn tình trạng.");   return; }
 
         double price = 0;
-        int stock = 0;
-        try {
-            price = txtPrice != null ? Double.parseDouble(txtPrice.getText().trim()) : 0;
-            stock = txtStock != null ? Integer.parseInt(txtStock.getText().trim())   : 0;
-        } catch (NumberFormatException e) {
-            SceneUtil.showAlert("Lỗi", "Giá và số lượng phải là số hợp lệ.");
-            return;
-        }
+        int    stock = 0;
+        try { price = Double.parseDouble(priceText.replace(",", "").replace(".", "")); } catch (NumberFormatException ignored) {}
+        try { stock = Integer.parseInt(stockText); } catch (NumberFormatException ignored) {}
 
-        if (name.isEmpty() || category == null) {
-            SceneUtil.showAlert("Thiếu thông tin", "Vui lòng điền tên sản phẩm và chọn danh mục.");
-            return;
-        }
-
-        double finalPrice = price;
-        int finalStock = stock;
+        final double fp = price;
+        final int    fs = stock;
         new Thread(() -> {
-            ApiResponse<Void> response = itemApi.createItem(name, description, category, condition, finalPrice, finalStock);
+            ApiResponse<Void> resp = itemApi.createItem(name, description, category, condition, fp, fs);
             Platform.runLater(() -> {
-                if (response != null && response.getStatus() == 201) {
-                    SceneUtil.showAlert("Thành công", "Sản phẩm đã được thêm vào hệ thống!");
+                if (resp != null && resp.getStatus() == 201) {
+                    SceneUtil.showAlert("Thành công", "Sản phẩm \"" + name + "\" đã được thêm vào kho!");
                     clearFields();
                     loadMyItems();
                     showInventory();
                 } else {
-                    String msg = response != null ? response.getMessage() : "Mất kết nối";
-                    SceneUtil.showAlert("Lỗi", "Không thể thêm sản phẩm: " + msg);
+                    SceneUtil.showAlert("Thêm thất bại", resp != null ? resp.getMessage() : "Mất kết nối");
                 }
             });
         }).start();
     }
 
+    // ── Inventory search & filter ─────────────────────────────────────────
     @FXML
-    private void handleSearch() {
-        applyFilter(txtSearch != null ? txtSearch.getText() : "");
-    }
+    private void handleSearch() { applyFilter(txtSearch != null ? txtSearch.getText() : ""); }
 
-    // Bộ lọc Realtime cho Kho hàng
     private void applyFilter(String keyword) {
-        String kw = keyword == null ? "" : keyword.toLowerCase().trim();
-        String statusFilter = (cmbInvStatus != null && cmbInvStatus.getValue() != null) ? cmbInvStatus.getValue() : "Tất cả";
+        String kw  = keyword != null ? keyword.trim().toLowerCase() : "";
+        String statusFilter = cmbInvStatus != null ? cmbInvStatus.getValue() : "Tất cả";
+
         List<Item> filtered = masterData.stream()
-                .filter(item -> kw.isEmpty() || item.getName().toLowerCase().contains(kw))
-                .filter(item -> statusFilter.equals("Tất cả") || statusFilter.equalsIgnoreCase(item.getStatus()))
+                .filter(i -> kw.isEmpty() || i.getName().toLowerCase().contains(kw))
+                .filter(i -> "Tất cả".equals(statusFilter) || statusFilter == null
+                        || statusFilter.equalsIgnoreCase(i.getStatus()))
                 .toList();
         renderInventoryCards(filtered);
     }
 
-    // Bộ lọc Realtime cho Đấu giá — resets to page 1 on every change
+    // ── Auction search & filter ───────────────────────────────────────────
     private void applyAuctionFilter() {
-        String keyword = (txtAuctionSearch != null) ? txtAuctionSearch.getText().toLowerCase().trim() : "";
-        String statusFilter = (cmbAuctionStatus != null && cmbAuctionStatus.getValue() != null) ? cmbAuctionStatus.getValue() : "Tất cả";
+        String kw  = txtAuctionSearch != null ? txtAuctionSearch.getText().trim().toLowerCase() : "";
+        String st  = cmbAuctionStatus != null ? cmbAuctionStatus.getValue() : "Tất cả";
 
         filteredAuctions = sellerAuctions.stream()
-                .filter(a -> statusFilter.equals("Tất cả") || statusFilter.equalsIgnoreCase(a.getStatus()))
-                .filter(a -> keyword.isEmpty()
-                        || String.valueOf(a.getId()).contains(keyword)
-                        || String.valueOf(a.getItemId()).contains(keyword))
+                .filter(a -> kw.isEmpty()
+                        || String.valueOf(a.getId()).contains(kw)
+                        || (a.getItemName() != null && a.getItemName().toLowerCase().contains(kw)))
+                .filter(a -> "Tất cả".equals(st) || st == null || st.equalsIgnoreCase(a.getStatus()))
+                .sorted((a, b) -> statusPriority(a.getStatus()) - statusPriority(b.getStatus()))
                 .toList();
-
         currentAuctionPage = 0;
         renderAuctionCards(filteredAuctions);
     }
 
-    // ── Render auction cards ──
+    // ── Auction card rendering + pagination ───────────────────────────────
     private void renderAuctionCards(List<Auction> auctions) {
         if (auctionFlowPane == null) return;
         auctionFlowPane.getChildren().clear();
 
-        if (auctions == null || auctions.isEmpty()) {
-            Label empty = new Label("Bạn chưa có phiên đấu giá nào.");
-            empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 30;");
+        int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
+        int start = currentAuctionPage * PAGE_SIZE;
+        int end   = Math.min(start + PAGE_SIZE, filteredAuctions.size());
+        List<Auction> page = filteredAuctions.isEmpty() ? List.of() : filteredAuctions.subList(start, end);
+
+        if (page.isEmpty()) {
+            Label empty = new Label("Không có phiên đấu giá nào.");
+            empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
             auctionFlowPane.getChildren().add(empty);
-            updateAuctionPagination(0, 0);
-            return;
+        } else {
+            for (Auction a : page) {
+                auctionFlowPane.getChildren().add(
+                    SellerCardBuilder.buildAuctionCard(a, masterData, this::onAuctionCardClick));
+            }
         }
+        updateAuctionPagination(currentAuctionPage, total);
+    }
 
-        int totalPages = (int) Math.ceil((double) auctions.size() / PAGE_SIZE);
-        if (currentAuctionPage >= totalPages) currentAuctionPage = totalPages - 1;
-        if (currentAuctionPage < 0)          currentAuctionPage = 0;
-
-        int from = currentAuctionPage * PAGE_SIZE;
-        int to   = Math.min(from + PAGE_SIZE, auctions.size());
-        for (Auction a : auctions.subList(from, to)) {
-            auctionFlowPane.getChildren().add(buildAuctionCard(a));
-        }
-        updateAuctionPagination(currentAuctionPage, totalPages);
+    /** Fired when any auction card is clicked — opens the detail dialog. */
+    private void onAuctionCardClick(Auction auction) {
+        Item relatedItem = masterData.stream()
+                .filter(i -> i.getId() == auction.getItemId())
+                .findFirst().orElse(null);
+        String itemName = relatedItem != null ? relatedItem.getName() : "SP #" + auction.getItemId();
+        String category = relatedItem != null ? relatedItem.getCategory() : "";
+        SellerAuctionDetailDialog.show(
+            mainTabPane.getScene().getWindow(),
+            auction, itemName, category, auctionApi,
+            () -> {
+                auctionLoadVersion++;
+                sellerAuctions.removeIf(a -> a.getId() == auction.getId());
+                updateAuctionStats();
+                renderAuctionCards(sellerAuctions);
+                applyFilter(txtSearch != null ? txtSearch.getText() : "");
+            });
     }
 
     private void updateAuctionPagination(int page, int total) {
-        if (lblAuctionPage != null)
-            lblAuctionPage.setText(total == 0 ? "—" : "Trang " + (page + 1) + " / " + total);
+        if (lblAuctionPage != null) lblAuctionPage.setText("Trang " + (total == 0 ? 0 : page + 1) + " / " + Math.max(1, total));
         if (btnAuctionPrev != null) btnAuctionPrev.setDisable(page <= 0);
-        if (btnAuctionNext != null) btnAuctionNext.setDisable(total == 0 || page >= total - 1);
+        if (btnAuctionNext != null) btnAuctionNext.setDisable(page >= total - 1);
     }
 
     @FXML private void handleAuctionPrevPage() {
         if (currentAuctionPage > 0) { currentAuctionPage--; renderAuctionCards(filteredAuctions); }
     }
-
     @FXML private void handleAuctionNextPage() {
         int total = (int) Math.ceil((double) filteredAuctions.size() / PAGE_SIZE);
         if (currentAuctionPage < total - 1) { currentAuctionPage++; renderAuctionCards(filteredAuctions); }
     }
 
-    private VBox buildAuctionCard(Auction auction) {
-        Item item = masterData.stream()
-                .filter(i -> i.getId() == auction.getItemId())
-                .findFirst().orElse(null);
-
-        String itemName = item != null ? item.getName() : "SP #" + auction.getItemId();
-        String category = item != null ? item.getCategory() : "";
-
-        // ── Image / icon area ──
-        Label iconLabel = new Label(categoryEmoji(category));
-        iconLabel.setStyle("-fx-font-size: 46;");
-
-        StackPane imageArea = new StackPane(iconLabel);
-        imageArea.setPrefSize(170, 125);
-        imageArea.setStyle("-fx-background-color: " + categoryGradient(category) + ";" +
-                "-fx-background-radius: 10 10 0 0;");
-
-        // ── Price badge ──
-        Label priceLabel = new Label(String.format("$ %,.0f", auction.getCurrentPrice()));
-        priceLabel.setMaxWidth(Double.MAX_VALUE);
-        priceLabel.setAlignment(Pos.CENTER);
-        priceLabel.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;" +
-                "-fx-font-weight: bold; -fx-font-size: 13; -fx-padding: 5 10;");
-
-        // ── Item name ──
-        Label nameLabel = new Label(itemName);
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(154);
-        nameLabel.setStyle("-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
-
-        // ── Status badge ──
-        Label statusLabel = new Label(auction.getStatus());
-        statusLabel.setStyle("-fx-background-color: " + statusColor(auction.getStatus()) + ";" +
-                "-fx-text-fill: white; -fx-font-size: 10; -fx-font-weight: bold;" +
-                "-fx-padding: 2 7; -fx-background-radius: 4;");
-
-        HBox statusBox = new HBox(statusLabel);
-        statusBox.setPadding(new Insets(4, 0, 0, 0));
-
-        // ── Bottom info area ──
-        VBox info = new VBox(4, nameLabel, statusBox);
-        info.setPadding(new Insets(8, 8, 10, 8));
-
-        // ── Assemble card ──
-        VBox card = new VBox(imageArea, priceLabel, info);
-        card.setPrefWidth(170);
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 8, 0, 0, 3);" +
-                "-fx-cursor: hand;");
-        card.setOnMouseClicked(e -> showSellerAuctionDetail(auction));
-        return card;
-    }
-
-    private String categoryEmoji(String cat) {
-        if (cat == null) return "📦";
-        return switch (cat.toUpperCase()) {
-            case "ELECTRONICS" -> "📱";
-            case "ART"         -> "🎨";
-            case "VEHICLE"     -> "🚗";
-            default            -> "📦";
-        };
-    }
-
-    private String categoryGradient(String cat) {
-        if (cat == null) return "#f1f5f9, #cbd5e1";
-        return switch (cat.toUpperCase()) {
-            case "ELECTRONICS" -> "linear-gradient(to bottom, #dbeafe, #93c5fd)";
-            case "ART"         -> "linear-gradient(to bottom, #fce7f3, #f9a8d4)";
-            case "VEHICLE"     -> "linear-gradient(to bottom, #d1fae5, #6ee7b7)";
-            default            -> "linear-gradient(to bottom, #f1f5f9, #cbd5e1)";
-        };
-    }
-
-    private String statusColor(String status) {
-        if (status == null) return "#9ca3af";
-        return switch (status.toUpperCase()) {
-            case "ACTIVE"    -> "#22c55e";
-            case "UPCOMING"  -> "#3b82f6";
-            case "FINISHED"  -> "#6b7280";
-            case "CANCELLED" -> "#ef4444";
-            default          -> "#9ca3af";
-        };
-    }
-
-    // ── Inventory cards ──
+    // ── Inventory card rendering ──────────────────────────────────────────
     private void renderInventoryCards(List<Item> items) {
         if (inventoryFlowPane == null) return;
         inventoryFlowPane.getChildren().clear();
@@ -671,613 +514,35 @@ public class SellerController {
             return;
         }
         for (Item item : items) {
-            VBox card = buildItemCard(item);
+            VBox card = SellerCardBuilder.buildItemCard(item, sellerAuctions);
             card.setOnMouseClicked(e -> {
                 selectedItem = item;
-                // Highlight selected card, reset others
                 inventoryFlowPane.getChildren().forEach(n -> n.setStyle(
                         "-fx-background-color: white; -fx-background-radius: 10;" +
-                                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;"));
+                        "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;"));
                 card.setStyle("-fx-background-color: #eff6ff; -fx-background-radius: 10;" +
                         "-fx-border-color: #3b82f6; -fx-border-radius: 10; -fx-border-width: 2;" +
                         "-fx-effect: dropshadow(gaussian,rgba(59,130,246,0.3),10,0,0,3); -fx-cursor: hand;");
-                // Show detail popup
-                showItemDetail(item);
+                ItemDetailDialog.show(
+                    mainTabPane.getScene().getWindow(),
+                    item, sellerAuctions, auctionApi, itemApi,
+                    () -> { loadSellerAuctions(); showAuctions(); },
+                    deletedItem -> {
+                        masterData.removeIf(i -> i.getId() == deletedItem.getId());
+                        renderInventoryCards(masterData);
+                        if (lblActiveProducts != null) lblActiveProducts.setText(masterData.size() + " sản phẩm");
+                    },
+                    itemToEdit -> EditItemDialog.show(
+                        mainTabPane.getScene().getWindow(), itemToEdit, itemApi,
+                        () -> { renderInventoryCards(masterData); setupCategoryPieChart(); }
+                    )
+                );
             });
             inventoryFlowPane.getChildren().add(card);
         }
     }
 
-    // ── Item Detail Popup (with inline auction posting) ──
-    private void showItemDetail(Item item) {
-        Stage popup = new Stage();
-        popup.initModality(Modality.APPLICATION_MODAL);
-        popup.initOwner(mainTabPane.getScene().getWindow());
-        popup.setTitle("Chi tiết sản phẩm");
-        popup.setResizable(false);
-
-        // ── Colored header ──
-        Label emoji = new Label(categoryEmoji(item.getCategory()));
-        emoji.setStyle("-fx-font-size: 52;");
-
-        Label nameLabel = new Label(item.getName() != null ? item.getName() : "—");
-        nameLabel.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(360);
-
-        String catColor = switch (item.getCategory() == null ? "" : item.getCategory().toUpperCase()) {
-            case "ELECTRONICS" -> "#3b82f6";
-            case "ART"         -> "#ec4899";
-            case "VEHICLE"     -> "#10b981";
-            default            -> "#9ca3af";
-        };
-        Label catBadge = new Label(item.getCategory() != null ? item.getCategory() : "OTHER");
-        catBadge.setStyle("-fx-background-color: " + catColor + "; -fx-text-fill: white;" +
-                "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 9; -fx-background-radius: 20;");
-
-        VBox header = new VBox(8, emoji, nameLabel, catBadge);
-        header.setAlignment(Pos.CENTER);
-        header.setPadding(new Insets(24, 24, 16, 24));
-        header.setStyle("-fx-background-color: " + categoryGradient(item.getCategory()) + ";");
-
-        // ── Detail rows ──
-        GridPane grid = new GridPane();
-        grid.setHgap(20);
-        grid.setVgap(12);
-        grid.setPadding(new Insets(20, 28, 4, 28));
-
-        addDetailRow(grid, 0, "🔧 Tình trạng",  item.getCondition());
-        addDetailRow(grid, 1, "💰 Giá gốc",      String.format("%,.0f ₫", item.getPrice()));
-        addDetailRow(grid, 2, "📦 Tồn kho",      String.valueOf(item.getStock()));
-        addDetailRow(grid, 3, "📊 Trạng thái",   item.getStatus());
-
-        // ── Description ──
-        Label descTitle = new Label("📝 Mô tả");
-        descTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13;");
-
-        String descText = (item.getDescription() != null && !item.getDescription().isBlank())
-                ? item.getDescription() : "(Không có mô tả)";
-        Label descLabel = new Label(descText);
-        descLabel.setWrapText(true);
-        descLabel.setMaxWidth(364);
-        descLabel.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12; -fx-line-spacing: 2;");
-
-        VBox descBox = new VBox(6, descTitle, descLabel);
-        descBox.setPadding(new Insets(14, 28, 10, 28));
-
-        // ── Divider ──
-        Separator sep1 = new Separator();
-        sep1.setPadding(new Insets(4, 20, 4, 20));
-
-        // ── Auction Posting Section ──
-        boolean hasOngoingAuction = sellerAuctions.stream()
-                .anyMatch(a -> a.getItemId() == item.getId()
-                        && ("ACTIVE".equalsIgnoreCase(a.getStatus())
-                        || "UPCOMING".equalsIgnoreCase(a.getStatus())));
-
-        Label auctionHeader = new Label("🏷  Đăng lên sàn đấu giá");
-        auctionHeader.setStyle("-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #c2410c;");
-
-        VBox auctionBox;
-        if (hasOngoingAuction) {
-            // Already on auction — show a notice instead of the form
-            Label notice = new Label("⚠️  Sản phẩm này đang có phiên đấu giá chưa kết thúc. "
-                    + "Bạn có thể tạo phiên mới sau khi phiên hiện tại hoàn thành hoặc bị hủy.");
-            notice.setWrapText(true);
-            notice.setMaxWidth(364);
-            notice.setStyle("-fx-text-fill: #92400e; -fx-font-size: 11; -fx-line-spacing: 2;");
-            auctionBox = new VBox(8, auctionHeader, notice);
-        } else {
-            Label priceHint = new Label("Giá khởi điểm (₫)");
-            priceHint.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-            TextField priceField = new TextField(String.format("%.0f", item.getPrice()));
-            priceField.setStyle("-fx-background-radius: 6; -fx-border-color: #D1D5DB;" +
-                    " -fx-border-radius: 6; -fx-padding: 7; -fx-font-size: 12;");
-
-            Label startHint = new Label("Ngày bắt đầu");
-            startHint.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-            DatePicker dpStart = new DatePicker(java.time.LocalDate.now());
-            dpStart.setMaxWidth(Double.MAX_VALUE);
-
-            Label endHint = new Label("Ngày kết thúc");
-            endHint.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-            DatePicker dpEnd = new DatePicker();
-            dpEnd.setPromptText("Chọn ngày kết thúc...");
-            dpEnd.setMaxWidth(Double.MAX_VALUE);
-
-            // ── Giờ kết thúc ──
-            Label endTimeHint = new Label("Giờ kết thúc");
-            endTimeHint.setStyle("-fx-font-size: 11; -fx-text-fill: #374151;");
-            ObservableList<String> hours = FXCollections.observableArrayList();
-            for (int h = 0; h < 24; h++) hours.add(String.format("%02d", h));
-            ObservableList<String> minutes = FXCollections.observableArrayList("00", "15", "30", "45");
-            ComboBox<String> cbHour = new ComboBox<>(hours);
-            ComboBox<String> cbMin  = new ComboBox<>(minutes);
-            cbHour.setValue("23");
-            cbMin.setValue("59");
-            cbHour.setStyle("-fx-background-radius: 6;");
-            cbMin.setStyle("-fx-background-radius: 6;");
-            Label colonLabel = new Label(":");
-            colonLabel.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #374151;");
-            HBox endTimeBox = new HBox(6, cbHour, colonLabel, cbMin);
-            endTimeBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            Button btnPost = new Button("Đăng lên sàn  →");
-            btnPost.setMaxWidth(Double.MAX_VALUE);
-            btnPost.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; " +
-                    "-fx-font-weight: bold; -fx-font-size: 13; -fx-background-radius: 8; " +
-                    "-fx-padding: 10; -fx-cursor: hand;");
-            btnPost.setOnAction(e -> {
-                try {
-                    double price = Double.parseDouble(
-                            priceField.getText().trim().replace(",", "").replace(".", ""));
-                    java.time.LocalDate startDate = dpStart.getValue();
-                    java.time.LocalDate endDate   = dpEnd.getValue();
-
-                    if (startDate == null) {
-                        SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn ngày bắt đầu!");
-                        return;
-                    }
-                    if (endDate == null) {
-                        SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn ngày kết thúc!");
-                        return;
-                    }
-                    if (startDate.isBefore(java.time.LocalDate.now())) {
-                        SceneUtil.showAlert("Ngày không hợp lệ", "Ngày bắt đầu không được là ngày trong quá khứ!");
-                        return;
-                    }
-                    if (!endDate.isAfter(startDate)) {
-                        SceneUtil.showAlert("Ngày không hợp lệ", "Ngày kết thúc phải sau ngày bắt đầu!");
-                        return;
-                    }
-
-                    int endHour = Integer.parseInt(cbHour.getValue());
-                    int endMin  = Integer.parseInt(cbMin.getValue());
-                    java.time.LocalDateTime endDateTime = endDate.atTime(endHour, endMin, 0);
-                    if (!endDateTime.isAfter(startDate.atStartOfDay())) {
-                        SceneUtil.showAlert("Giờ không hợp lệ", "Thời gian kết thúc phải sau thời gian bắt đầu!");
-                        return;
-                    }
-
-                    String startTime = startDate.atStartOfDay().withNano(0).toString();
-                    String endTime   = endDateTime.withNano(0).toString();
-                    btnPost.setDisable(true);
-                    btnPost.setText("Đang đăng...");
-                    new Thread(() -> {
-                        ApiResponse<Auction> resp = auctionApi.createAuction(
-                                item.getId(), price, startTime, endTime);
-                        Platform.runLater(() -> {
-                            btnPost.setDisable(false);
-                            btnPost.setText("Đăng lên sàn  →");
-                            if (resp != null && resp.getStatus() == 201) {
-                                popup.close();
-                                SceneUtil.showAlert("Thành công",
-                                        "\"" + item.getName() + "\" đã được đưa lên sàn đấu giá!");
-                                loadSellerAuctions();
-                                showAuctions();
-                            } else {
-                                String msg = resp != null ? resp.getMessage() : "Mất kết nối";
-                                SceneUtil.showAlert("Đăng thất bại", msg);
-                            }
-                        });
-                    }).start();
-                } catch (NumberFormatException ex) {
-                    SceneUtil.showAlert("Lỗi nhập liệu", "Giá khởi điểm phải là số hợp lệ!");
-                }
-            });
-            auctionBox = new VBox(8, auctionHeader,
-                    priceHint, priceField,
-                    startHint, dpStart,
-                    endHint, dpEnd,
-                    endTimeHint, endTimeBox,
-                    btnPost);
-        }
-
-        auctionBox.setPadding(new Insets(12, 28, 4, 28));
-        auctionBox.setStyle("-fx-background-color: #fff7ed;");
-
-        // ── Divider 2 ──
-        Separator sep2 = new Separator();
-        sep2.setPadding(new Insets(4, 20, 4, 20));
-
-        // ── Edit button ──
-        Button btnEdit = new Button("✏ Chỉnh sửa");
-        btnEdit.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 9 18; -fx-cursor: hand;");
-        btnEdit.setOnAction(e -> { popup.close(); Platform.runLater(() -> showEditItemDialog(item)); });
-
-        // ── Delete button (disabled when item is in an active/upcoming auction) ──
-        Button btnDelete = new Button("🗑 Xóa");
-        btnDelete.setDisable(hasOngoingAuction);
-        btnDelete.setStyle("-fx-background-color: " + (hasOngoingAuction ? "#9ca3af" : "#ef4444") + "; " +
-                "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; " +
-                "-fx-padding: 9 18; -fx-cursor: " + (hasOngoingAuction ? "default" : "hand") + ";");
-        if (!hasOngoingAuction) {
-            btnDelete.setOnAction(e -> {
-                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                confirm.setTitle("Xác nhận xóa");
-                confirm.setHeaderText(null);
-                confirm.setContentText("Bạn có chắc muốn xóa sản phẩm \"" + item.getName() + "\"?\n"
-                        + "Hành động này không thể hoàn tác.");
-                confirm.showAndWait().ifPresent(resp -> {
-                    if (resp != ButtonType.OK) return;
-                    new Thread(() -> {
-                        ApiResponse<Void> res = itemApi.deleteItem(item.getId());
-                        Platform.runLater(() -> {
-                            popup.close();
-                            if (res != null && res.getStatus() == 200) {
-                                masterData.removeIf(i -> i.getId() == item.getId());
-                                renderInventoryCards(masterData);
-                                if (lblActiveProducts != null)
-                                    lblActiveProducts.setText(masterData.size() + " sản phẩm");
-                                SceneUtil.showAlert("Đã xóa",
-                                        "Sản phẩm \"" + item.getName() + "\" đã được xóa.");
-                            } else {
-                                String msg = res != null ? res.getMessage() : "Mất kết nối";
-                                SceneUtil.showAlert("Xóa thất bại", msg);
-                            }
-                        });
-                    }).start();
-                });
-            });
-        }
-
-        // ── Return button ──
-        Button btnClose = new Button("← Quay lại");
-        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #6B7280; " +
-                "-fx-font-weight: bold; -fx-font-size: 12; -fx-background-radius: 8; " +
-                "-fx-padding: 9 18; -fx-cursor: hand; " +
-                "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
-        btnClose.setOnAction(e -> popup.close());
-
-        HBox btnBar = new HBox(8, btnEdit, btnDelete, btnClose);
-        btnBar.setAlignment(Pos.CENTER);
-        btnBar.setPadding(new Insets(12, 20, 20, 20));
-
-        ScrollPane scroll = new ScrollPane(
-                new VBox(header, grid, descBox, sep1, auctionBox, sep2, btnBar));
-        scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #f8fafc; -fx-background: #f8fafc;");
-        scroll.setPrefHeight(620);
-
-        popup.setScene(new Scene(scroll, 420, 620));
-        popup.showAndWait();
-    }
-
-    // ── Edit Item Popup ──
-    private void showEditItemDialog(Item item) {
-        Stage editStage = new Stage();
-        editStage.initModality(Modality.APPLICATION_MODAL);
-        editStage.initOwner(mainTabPane.getScene().getWindow());
-        editStage.setTitle("Chỉnh sửa sản phẩm");
-        editStage.setResizable(false);
-
-        // ── Header ──
-        Label titleLabel = new Label("✏  Chỉnh sửa: " + item.getName());
-        titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
-        titleLabel.setWrapText(true);
-        titleLabel.setMaxWidth(360);
-
-        VBox header = new VBox(titleLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(20, 28, 16, 28));
-        header.setStyle("-fx-background-color: " + categoryGradient(item.getCategory()) + ";");
-
-        // ── Form fields ──
-        Label lblName = new Label("Tên sản phẩm *");
-        lblName.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
-        TextField tfName = new TextField(item.getName() != null ? item.getName() : "");
-        tfName.setStyle("-fx-background-radius: 6; -fx-border-color: #D1D5DB; " +
-                "-fx-border-radius: 6; -fx-padding: 7; -fx-font-size: 12;");
-
-        Label lblDesc = new Label("Mô tả");
-        lblDesc.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
-        TextArea taDesc = new TextArea(item.getDescription() != null ? item.getDescription() : "");
-        taDesc.setWrapText(true);
-        taDesc.setPrefRowCount(3);
-        taDesc.setStyle("-fx-background-radius: 6; -fx-border-color: #D1D5DB; " +
-                "-fx-border-radius: 6; -fx-font-size: 12;");
-
-        Label lblCat = new Label("Danh mục *");
-        lblCat.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
-        ComboBox<String> cbCat = new ComboBox<>();
-        cbCat.setItems(FXCollections.observableArrayList("ELECTRONICS", "ART", "VEHICLE"));
-        cbCat.setValue(item.getCategory());
-        cbCat.setMaxWidth(Double.MAX_VALUE);
-
-        Label lblCond = new Label("Tình trạng *");
-        lblCond.setStyle("-fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #374151;");
-        ComboBox<String> cbCond = new ComboBox<>();
-        cbCond.setItems(FXCollections.observableArrayList("NEW", "USED", "REFURBISHED"));
-        cbCond.setValue(item.getCondition());
-        cbCond.setMaxWidth(Double.MAX_VALUE);
-
-        VBox form = new VBox(10, lblName, tfName, lblDesc, taDesc, lblCat, cbCat, lblCond, cbCond);
-        form.setPadding(new Insets(20, 28, 16, 28));
-
-        // ── Save button ──
-        Button btnSave = new Button("💾 Lưu thay đổi");
-        btnSave.setMaxWidth(Double.MAX_VALUE);
-        btnSave.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-font-size: 13; -fx-background-radius: 8; " +
-                "-fx-padding: 10; -fx-cursor: hand;");
-        btnSave.setOnAction(e -> {
-            String newName = tfName.getText().trim();
-            String newDesc = taDesc.getText().trim();
-            String newCat  = cbCat.getValue();
-            String newCond = cbCond.getValue();
-
-            if (newName.isEmpty()) {
-                SceneUtil.showAlert("Thiếu thông tin", "Tên sản phẩm không được để trống.");
-                return;
-            }
-            if (newCat == null) {
-                SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn danh mục.");
-                return;
-            }
-            if (newCond == null) {
-                SceneUtil.showAlert("Thiếu thông tin", "Vui lòng chọn tình trạng.");
-                return;
-            }
-
-            btnSave.setDisable(true);
-            btnSave.setText("Đang lưu...");
-
-            new Thread(() -> {
-                ApiResponse<Void> res = itemApi.updateItem(item.getId(), newName, newDesc, newCat, newCond);
-                Platform.runLater(() -> {
-                    btnSave.setDisable(false);
-                    btnSave.setText("💾 Lưu thay đổi");
-                    if (res != null && res.getStatus() == 200) {
-                        // Update the in-memory model so the card reflects changes immediately
-                        item.setName(newName);
-                        item.setDescription(newDesc);
-                        item.setCategory(newCat);
-                        item.setCondition(newCond);
-                        renderInventoryCards(masterData);
-                        setupCategoryPieChart();
-                        editStage.close();
-                        SceneUtil.showAlert("Thành công", "Sản phẩm đã được cập nhật.");
-                    } else {
-                        String msg = res != null ? res.getMessage() : "Mất kết nối";
-                        SceneUtil.showAlert("Cập nhật thất bại", msg);
-                    }
-                });
-            }).start();
-        });
-
-        Button btnCancelEdit = new Button("Hủy");
-        btnCancelEdit.setMaxWidth(Double.MAX_VALUE);
-        btnCancelEdit.setStyle("-fx-background-color: transparent; -fx-text-fill: #6B7280; " +
-                "-fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand; " +
-                "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
-        btnCancelEdit.setOnAction(e -> editStage.close());
-
-        VBox btnBox = new VBox(8, btnSave, btnCancelEdit);
-        btnBox.setPadding(new Insets(4, 28, 24, 28));
-
-        VBox root = new VBox(header, form, btnBox);
-        root.setStyle("-fx-background-color: #f8fafc;");
-
-        editStage.setScene(new Scene(root, 420, 530));
-        editStage.showAndWait();
-    }
-
-    // ── Seller Auction Detail Popup ──
-    private void showSellerAuctionDetail(Auction auction) {
-        Stage popup = new Stage();
-        popup.initModality(Modality.APPLICATION_MODAL);
-        popup.initOwner(mainTabPane.getScene().getWindow());
-        popup.setTitle("Chi tiết phiên đấu giá #" + auction.getId());
-        popup.setResizable(false);
-
-        // Look up associated item from masterData for name / category
-        Item item = masterData.stream()
-                .filter(i -> i.getId() == auction.getItemId())
-                .findFirst().orElse(null);
-        String itemName = item != null ? item.getName() : "SP #" + auction.getItemId();
-        String category = item != null ? item.getCategory() : "";
-
-        String status    = auction.getStatus() != null ? auction.getStatus().toUpperCase() : "UNKNOWN";
-        String headerBg  = switch (status) {
-            case "ACTIVE"   -> categoryGradient(category);
-            case "UPCOMING" -> "linear-gradient(to bottom, #e0e7ff, #a5b4fc)";
-            case "FINISHED" -> "linear-gradient(to bottom, #f1f5f9, #cbd5e1)";
-            default         -> "linear-gradient(to bottom, #fee2e2, #fca5a5)";
-        };
-        String badgeColor = statusColor(status);
-        String statusText = switch (status) {
-            case "ACTIVE"   -> "● Đang diễn ra";
-            case "UPCOMING" -> "● Sắp diễn ra";
-            case "FINISHED" -> "✓ Đã kết thúc";
-            default         -> "✕ Đã hủy";
-        };
-
-        // ── Header ──
-        Label iconLabel = new Label(categoryEmoji(category));
-        iconLabel.setStyle("-fx-font-size: 52;");
-
-        Label titleLabel = new Label(itemName);
-        titleLabel.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
-        titleLabel.setWrapText(true);
-        titleLabel.setMaxWidth(360);
-
-        Label subLabel = new Label("Phiên đấu giá #" + auction.getId());
-        subLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #475569;");
-
-        Label statusBadge = new Label(statusText);
-        statusBadge.setStyle("-fx-background-color: " + badgeColor + "; -fx-text-fill: white;" +
-                "-fx-font-size: 11; -fx-font-weight: bold; -fx-padding: 3 10; -fx-background-radius: 20;");
-
-        VBox header = new VBox(6, iconLabel, titleLabel, subLabel, statusBadge);
-        header.setAlignment(Pos.CENTER);
-        header.setPadding(new Insets(24, 24, 16, 24));
-        header.setStyle("-fx-background-color: " + headerBg + ";");
-
-        // ── Detail rows ──
-        GridPane grid = new GridPane();
-        grid.setHgap(20);
-        grid.setVgap(12);
-        grid.setPadding(new Insets(20, 28, 16, 28));
-
-        addDetailRow(grid, 0, "💵 Giá khởi điểm", String.format("%,.0f ₫", auction.getStartingPrice()));
-        addDetailRow(grid, 1, "🔥 Giá hiện tại",  String.format("%,.0f ₫", auction.getCurrentPrice()));
-        addDetailRow(grid, 2, "🕐 Bắt đầu",       formatDisplayTime(auction.getStartTime()));
-        addDetailRow(grid, 3, "🕔 Kết thúc",       formatDisplayTime(auction.getEndTime()));
-
-        // ── Divider ──
-        Separator sep = new Separator();
-        sep.setPadding(new Insets(0, 20, 0, 20));
-
-        // ── Action buttons ──
-        VBox btnBox = new VBox(8);
-        btnBox.setPadding(new Insets(14, 28, 24, 28));
-
-        boolean canCancel = "ACTIVE".equals(status) || "UPCOMING".equals(status);
-        if (canCancel) {
-            Button btnCancel = new Button("✕  Hủy phiên đấu giá này");
-            btnCancel.setMaxWidth(Double.MAX_VALUE);
-            btnCancel.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; " +
-                    "-fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand;");
-            btnCancel.setOnAction(e -> {
-                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                confirm.setTitle("Xác nhận hủy");
-                confirm.setHeaderText(null);
-                confirm.setContentText("Bạn có chắc muốn hủy phiên đấu giá #" + auction.getId() + "?");
-                confirm.showAndWait().ifPresent(resp -> {
-                    if (resp == ButtonType.OK) {
-                        new Thread(() -> {
-                            ApiResponse<Void> res = auctionApi.cancelAuction(auction.getId());
-                            Platform.runLater(() -> {
-                                popup.close();
-                                if (res != null && res.getStatus() == 200) {
-                                    // Invalidate any in-flight loadSellerAuctions so a stale
-                                    // ACTIVE response can't restore the just-cancelled auction
-                                    auctionLoadVersion++;
-                                    sellerAuctions.removeIf(a -> a.getId() == auction.getId());
-                                    updateAuctionStats();
-                                    renderAuctionCards(sellerAuctions);
-                                    applyFilter(txtSearch != null ? txtSearch.getText() : "");
-                                    SceneUtil.showAlert("Thành công",
-                                            "Đã hủy phiên đấu giá #" + auction.getId() + ".");
-                                } else {
-                                    String msg = res != null ? res.getMessage() : "Mất kết nối";
-                                    SceneUtil.showAlert("Lỗi hủy", msg);
-                                }
-                            });
-                        }).start();
-                    }
-                });
-            });
-            btnBox.getChildren().add(btnCancel);
-        }
-
-        Button btnClose = new Button("← Quay lại");
-        btnClose.setMaxWidth(Double.MAX_VALUE);
-        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #6B7280; " +
-                "-fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand; " +
-                "-fx-border-color: #D1D5DB; -fx-border-radius: 8; -fx-border-width: 1;");
-        btnClose.setOnAction(e -> popup.close());
-        btnBox.getChildren().add(btnClose);
-
-        VBox root = new VBox(header, grid, sep, btnBox);
-        root.setStyle("-fx-background-color: #f8fafc;");
-
-        popup.setScene(new Scene(root, 420, canCancel ? 490 : 440));
-        popup.showAndWait();
-    }
-
-    private String formatDisplayTime(String timeStr) {
-        if (timeStr == null) return "—";
-        try {
-            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
-            return String.format("%02d/%02d/%d  %02d:%02d",
-                    dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear(),
-                    dt.getHour(), dt.getMinute());
-        } catch (Exception e) {
-            return timeStr;
-        }
-    }
-
-    private void addDetailRow(GridPane grid, int row, String labelText, String value) {
-        Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 12;");
-        Label val = new Label(value != null ? value : "—");
-        val.setStyle("-fx-text-fill: #1e293b; -fx-font-size: 12;");
-        grid.add(lbl, 0, row);
-        grid.add(val, 1, row);
-    }
-
-    private VBox buildItemCard(Item item) {
-        Label iconLabel = new Label(categoryEmoji(item.getCategory()));
-        iconLabel.setStyle("-fx-font-size: 38;");
-
-        StackPane imageArea = new StackPane(iconLabel);
-        imageArea.setPrefSize(160, 110);
-        imageArea.setStyle("-fx-background-color: " + categoryGradient(item.getCategory()) +
-                "; -fx-background-radius: 10 10 0 0;");
-
-        Label priceLabel = new Label(String.format("$ %,.0f", item.getPrice()));
-        priceLabel.setMaxWidth(Double.MAX_VALUE);
-        priceLabel.setAlignment(Pos.CENTER);
-        priceLabel.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;" +
-                "-fx-font-weight: bold; -fx-font-size: 12; -fx-padding: 4 8;");
-
-        Label nameLabel = new Label(item.getName());
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(144);
-        nameLabel.setStyle("-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
-
-        String catColor = switch (item.getCategory() == null ? "" : item.getCategory().toUpperCase()) {
-            case "ELECTRONICS" -> "#3b82f6";
-            case "ART" -> "#ec4899";
-            case "VEHICLE" -> "#10b981";
-            default -> "#9ca3af";
-        };
-        Label catLabel = new Label(item.getCategory() != null ? item.getCategory() : "OTHER");
-        catLabel.setStyle("-fx-background-color: " + catColor + "; -fx-text-fill: white;" +
-                "-fx-font-size: 9; -fx-font-weight: bold; -fx-padding: 2 6; -fx-background-radius: 4;");
-
-        // ── Auction status for this item ──
-        long activeAuctionCount = sellerAuctions.stream()
-                .filter(a -> a.getItemId() == item.getId()
-                        && ("ACTIVE".equalsIgnoreCase(a.getStatus())
-                        || "UPCOMING".equalsIgnoreCase(a.getStatus())))
-                .count();
-        boolean isOnAuction = activeAuctionCount > 0;
-        boolean isActive = sellerAuctions.stream()
-                .anyMatch(a -> a.getItemId() == item.getId()
-                        && "ACTIVE".equalsIgnoreCase(a.getStatus()));
-
-        Label stockLabel = new Label("Kho: " + item.getStock()
-                + (isOnAuction ? "  •  " + activeAuctionCount + " đấu giá" : ""));
-        stockLabel.setStyle("-fx-font-size: 9; -fx-text-fill: #9ca3af;");
-
-        HBox catBox = new HBox(6, catLabel);
-        catBox.setPadding(new Insets(4, 0, 0, 0));
-
-        VBox info = new VBox(3, nameLabel, catBox, stockLabel);
-        info.setPadding(new Insets(7, 8, 10, 8));
-
-        // Auction status overlay on the image area
-        if (isOnAuction) {
-            String overlayColor = isActive ? "#22c55e" : "#3b82f6";
-            String overlayText  = isActive ? "● Đang diễn ra" : "● Sắp diễn ra";
-            Label overlay = new Label(overlayText);
-            overlay.setStyle("-fx-background-color: " + overlayColor + "; -fx-text-fill: white;" +
-                    "-fx-font-size: 9; -fx-font-weight: bold; -fx-padding: 2 7; -fx-background-radius: 0 0 6 0;");
-            StackPane.setAlignment(overlay, javafx.geometry.Pos.TOP_LEFT);
-            imageArea.getChildren().add(overlay);
-        }
-
-        VBox card = new VBox(imageArea, priceLabel, info);
-        card.setPrefWidth(160);
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.10),8,0,0,3); -fx-cursor: hand;");
-        return card;
-    }
-
-    // ── History VBox — shows seller's completed auctions ──
+    // ── History card rendering ────────────────────────────────────────────
     private void renderHistoryCards(List<Auction> auctions) {
         if (historyVBox == null) return;
         historyVBox.getChildren().clear();
@@ -1287,129 +552,9 @@ public class SellerController {
             historyVBox.getChildren().add(empty);
             return;
         }
-        for (Auction a : auctions) historyVBox.getChildren().add(buildHistoryRow(a));
-    }
-
-    /** Row for the History tab — includes status badge, matches the 5-column header. */
-    private HBox buildHistoryRow(Auction a) {
-        Label idLabel = new Label("Phiên #" + a.getId());
-        idLabel.setPrefWidth(80);
-        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
-
-        String itemDisplay = (a.getItemName() != null && !a.getItemName().isBlank())
-                ? a.getItemName() : "Mặt hàng #" + a.getItemId();
-        Label itemLabel = new Label(itemDisplay);
-        itemLabel.setPrefWidth(200);
-        itemLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
-
-        Label endLabel = new Label(formatHistoryTime(a.getEndTime()));
-        endLabel.setPrefWidth(140);
-        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
-
-        Label priceLabel = new Label(String.format("%,.0f ₫", a.getCurrentPrice()));
-        priceLabel.setPrefWidth(150);
-        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a;");
-
-        Label badge = new Label("✓ Kết thúc");
-        badge.setPrefWidth(100);
-        badge.setStyle("-fx-background-color: #6B7280; -fx-text-fill: white;" +
-                "-fx-font-size: 10; -fx-font-weight: bold; -fx-padding: 3 8;" +
-                "-fx-background-radius: 4; -fx-alignment: CENTER;");
-
-        HBox row = new HBox(0, idLabel, itemLabel, endLabel, priceLabel, badge);
-        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        row.setPadding(new Insets(12, 16, 12, 16));
-        row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
-        return row;
-    }
-    private void renderRevenueData(List<Auction> auctions) {
-        // 1. Đổ dữ liệu vào bảng "Phiên đấu giá đã xong"
-        if (finishedAuctionVBox != null) {
-            finishedAuctionVBox.getChildren().clear();
-            if (auctions == null || auctions.isEmpty()) {
-                Label empty = new Label("Chưa có doanh thu từ phiên đấu giá nào.");
-                empty.setStyle("-fx-font-size: 14; -fx-text-fill: #9CA3AF; -fx-padding: 20;");
-                finishedAuctionVBox.getChildren().add(empty);
-            } else {
-                for (Auction a : auctions) {
-                    finishedAuctionVBox.getChildren().add(buildAuctionHistoryRow(a));
-                }
-            }
-        }
-
-        // 2. Tính doanh thu theo tháng rồi đổ vào AreaChart
-        if (chartRevenueArea == null) return;
-
-        double[] monthlyRevenue = new double[12];
         for (Auction a : auctions) {
-            try {
-                if (a.getEndTime() != null) {
-                    java.time.LocalDateTime dt = java.time.LocalDateTime.parse(
-                            a.getEndTime().replace(" ", "T"));
-                    monthlyRevenue[dt.getMonthValue() - 1] += a.getCurrentPrice();
-                }
-            } catch (Exception e) {
-                System.err.println("Lỗi parse thời gian tại Auction ID " + a.getId() + ": " + e.getMessage());
-            }
+            if (chartHelper != null) historyVBox.getChildren().add(chartHelper.buildHistoryRow(a));
         }
-
-        String[] monthLabels = {"T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"};
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        for (int i = 0; i < 12; i++) {
-            series.getData().add(new XYChart.Data<>(monthLabels[i], monthlyRevenue[i]));
-        }
-
-        chartRevenueArea.getData().clear();
-        chartRevenueArea.getData().add(series);
-
-        // Format trục Y
-        if (revenueYAxis != null) {
-            revenueYAxis.setTickLabelFormatter(new javafx.util.StringConverter<Number>() {
-                @Override public String toString(Number n) {
-                    double v = n.doubleValue();
-                    if (v >= 1_000_000) return String.format("%.0fM", v / 1_000_000);
-                    if (v >= 1_000)     return String.format("%.0fK", v / 1_000);
-                    return String.format("%.0f", v);
-                }
-                @Override public Number fromString(String s) { return 0; }
-            });
-        }
-    }
-
-    private HBox buildAuctionHistoryRow(Auction a) {
-        Label idLabel = new Label("Phiên #" + a.getId());
-        idLabel.setPrefWidth(80);
-        idLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #1e293b;");
-
-        String itemDisplay = (a.getItemName() != null && !a.getItemName().isBlank())
-                ? a.getItemName() : "Mặt hàng #" + a.getItemId();
-        Label itemLabel = new Label(itemDisplay);
-        itemLabel.setPrefWidth(200);
-        itemLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #374151;");
-
-        Label priceLabel = new Label(String.format("%,.0f ₫", a.getCurrentPrice()));
-        priceLabel.setPrefWidth(150);
-        priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #16a34a;");
-
-        Label endLabel = new Label(formatHistoryTime(a.getEndTime()));
-        endLabel.setPrefWidth(140);
-        endLabel.setStyle("-fx-font-size: 11; -fx-text-fill: #6B7280;");
-
-        HBox row = new HBox(0, idLabel, itemLabel, priceLabel, endLabel);
-        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        row.setPadding(new Insets(12, 16, 12, 16));
-        row.setStyle("-fx-background-color: white; -fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),6,0,0,2);");
-        return row;
-    }
-
-    private String formatHistoryTime(String timeStr) {
-        if (timeStr == null) return "—";
-        try {
-            java.time.LocalDateTime dt = java.time.LocalDateTime.parse(timeStr.replace(" ", "T"));
-            return String.format("%02d/%02d/%d %02d:%02d", dt.getDayOfMonth(), dt.getMonthValue(), dt.getYear(), dt.getHour(), dt.getMinute());
-        } catch (Exception e) { return timeStr; }
     }
 
     @FXML private void showCancel() { clearFields(); showInventory(); }

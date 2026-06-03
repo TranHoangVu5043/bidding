@@ -2,12 +2,16 @@ package Server.networking.http;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ApiRouter implements HttpHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiRouter.class);
 
     // Exact routes: "METHOD:/path" -> handler
     private final Map<String, Handler> exactRoutes = new HashMap<>();
@@ -47,7 +51,7 @@ public class ApiRouter implements HttpHandler {
         }
 
         if (handler == null) {
-            System.out.println("[Router] 404: " + method + ":" + path);
+            log.warn("404 no route for {} {}", method, path);
             res.send(404, "Route not found");
             return;
         }
@@ -55,7 +59,7 @@ public class ApiRouter implements HttpHandler {
         long start = System.currentTimeMillis();
         handler.handle(req, res);
         long ms = System.currentTimeMillis() - start;
-        System.out.printf("[BENCH] SERVER  %-6s %-40s →  %d ms%n", method, path, ms);
+        log.debug("{} {} → {} ms", method, path, ms);
     }
 
     // ── Pattern route matcher ──────────────────────────────────────

@@ -70,5 +70,11 @@ public class sessionFilter extends Filter {
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         exchange.sendResponseHeaders(status, bytes.length);
+
+        // Write the body — previously missing, which caused the client to receive
+        // an empty response and fail with EOFException when trying to parse it.
+        try (java.io.OutputStream os = exchange.getResponseBody()) {
+            os.write(bytes);
+        }
     }
 }

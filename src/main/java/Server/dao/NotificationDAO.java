@@ -11,31 +11,13 @@ public class NotificationDAO {
 
     public NotificationDAO(DataSource ds) {
         this.dataSource = ds;
-        ensureTable();
-    }
-
-    private void ensureTable() {
-        String sql = """
-            CREATE TABLE IF NOT EXISTS notifications (
-                id         SERIAL PRIMARY KEY,
-                user_id    INT NOT NULL,
-                message    TEXT NOT NULL,
-                is_read    BOOLEAN NOT NULL DEFAULT FALSE,
-                created_at TIMESTAMP NOT NULL DEFAULT NOW()
-            )
-        """;
-        try (Connection c = dataSource.getConnection();
-             Statement s = c.createStatement()) {
-            s.execute(sql);
-        } catch (SQLException e) {
-            System.err.println("[NotificationDAO] ensureTable: " + e.getMessage());
-        }
     }
 
     public void create(int userId, String message) {
         String sql = "INSERT INTO notifications(user_id, message) VALUES (?, ?)";
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setInt(1, userId);
             ps.setString(2, message);
             ps.executeUpdate();
@@ -49,9 +31,13 @@ public class NotificationDAO {
         String sql = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50";
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setInt(1, userId);
+
             ResultSet rs = ps.executeQuery();
+
             while (rs.next()) list.add(map(rs));
+
         } catch (SQLException e) {
             System.err.println("[NotificationDAO] findByUserId: " + e.getMessage());
         }
@@ -60,10 +46,13 @@ public class NotificationDAO {
 
     public void markRead(int notificationId, int userId) {
         String sql = "UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?";
+
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setInt(1, notificationId);
             ps.setInt(2, userId);
+
             ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("[NotificationDAO] markRead: " + e.getMessage());
@@ -72,9 +61,12 @@ public class NotificationDAO {
 
     public void markAllRead(int userId) {
         String sql = "UPDATE notifications SET is_read = TRUE WHERE user_id = ?";
+
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setInt(1, userId);
+
             ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("[NotificationDAO] markAllRead: " + e.getMessage());

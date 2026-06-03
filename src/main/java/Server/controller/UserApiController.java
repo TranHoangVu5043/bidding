@@ -13,10 +13,14 @@ import Server.model.users.User;
 import Server.service.users.UserService;
 
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class UserApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserApiController.class);
 
     private final UserService userService;
     private final Gson gson;
@@ -50,7 +54,7 @@ public class UserApiController {
             res.error(409, e.getMessage());
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] register error: " + e.getMessage());
+            log.error("register failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -83,7 +87,7 @@ public class UserApiController {
             res.error(401, e.getMessage());
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] login error: " + e.getMessage());
+            log.error("login failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -93,7 +97,6 @@ public class UserApiController {
         try {
             String token = extractToken(req);
 
-            // Always log out silently — don't reveal whether token was valid
             userService.logout(token);
 
             res.sendJson(200, gson.toJson(
@@ -101,7 +104,7 @@ public class UserApiController {
             ));
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] logout error: " + e.getMessage());
+            log.error("logout failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -133,7 +136,7 @@ public class UserApiController {
             ));
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] getAllUsers error: " + e.getMessage());
+            log.error("getAllUsers failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -163,7 +166,7 @@ public class UserApiController {
             ));
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] getMe error: " + e.getMessage());
+            log.error("getMe failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -202,7 +205,7 @@ public class UserApiController {
             res.error(400, e.getMessage());
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] changePassword error: " + e.getMessage());
+            log.error("changePassword failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -225,7 +228,7 @@ public class UserApiController {
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Đã khóa tài khoản thành công.", null)));
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] banUser error: " + e.getMessage());
+            log.error("banUser failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -248,7 +251,7 @@ public class UserApiController {
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Đã mở khóa tài khoản thành công.", null)));
 
         } catch (Exception e) {
-            System.err.println("[UserApiController] unbanUser error: " + e.getMessage());
+            log.error("unbanUser failed", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
@@ -317,7 +320,7 @@ public class UserApiController {
         } catch (IllegalArgumentException e) {
             res.error(400, e.getMessage());
         } catch (Exception e) {
-            System.err.println("[UserApiController] deposit error: " + e.getMessage());
+            log.error("deposit failed for user#{}", req.getUser() != null ? req.getUser().getId() : "?", e);
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }

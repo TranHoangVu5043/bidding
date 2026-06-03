@@ -13,12 +13,16 @@ import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
 public class AuctionApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuctionApiController.class);
 
     private final AuctionService auctionService;
     private final UserService    userService;
@@ -74,6 +78,7 @@ public class AuctionApiController {
             res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Auction created", new AuctionDTO(created, userService, itemService))));
 
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -89,6 +94,7 @@ public class AuctionApiController {
             List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -101,6 +107,7 @@ public class AuctionApiController {
             List<AuctionDTO> dtos = auctions.stream().map(a -> new AuctionDTO(a, userService, itemService)).toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -123,6 +130,7 @@ public class AuctionApiController {
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction, userService, itemService))));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -149,6 +157,7 @@ public class AuctionApiController {
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Auction canceled", null)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -166,6 +175,7 @@ public class AuctionApiController {
             auctionService.refreshAuctionStatus(body.auctionId);
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Status refreshed", null)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }

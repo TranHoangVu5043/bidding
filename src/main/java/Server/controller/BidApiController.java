@@ -17,10 +17,14 @@ import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class BidApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(BidApiController.class);
 
     private final BiddingService biddingService;
     private final UserService    userService;
@@ -101,7 +105,7 @@ public class BidApiController {
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("getMyBiddingAuctions failed for user#{}", req.getUser() != null ? req.getUser().getId() : "?", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -152,7 +156,7 @@ public class BidApiController {
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("getMyBidHistory failed for user#{}", req.getUser() != null ? req.getUser().getId() : "?", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }

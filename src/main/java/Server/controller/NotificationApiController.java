@@ -7,9 +7,14 @@ import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
 import Server.service.NotificationService;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class NotificationApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationApiController.class);
+
     private final NotificationService notifService;
     private final Gson gson = new Gson();
 
@@ -25,6 +30,7 @@ public class NotificationApiController {
             List<Notification> list = notifService.getForUser(user.getId());
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", list)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -37,6 +43,7 @@ public class NotificationApiController {
             notifService.markAllRead(user.getId());
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", null)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }

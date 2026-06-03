@@ -55,6 +55,31 @@ public class BiddingServiceTest {
     }
 
     @Test
+    public void testPlaceBid_DeltaCharge() {
+        // The user already bid 200 on this auction in a previous round.
+        // They now raise to 300 — the system should only charge the 100 increment,
+        // not the full 300 again (delta-charge rule in BiddingService.placeBid).
+        Auction sampleAuction = new Auction(0, 1, 1, 100.0, 100,
+                LocalDateTime.now(), LocalDateTime.now().plusDays(9), "ACTIVE") {};
+        fakeAuctionDAO.setSampleAuction(sampleAuction);
+
+        User sampleUser = new Bidder(0, "Huy", "pass123", "huy@gmail.com", 500) {};
+        fakeUserDAO.setSampleUser(sampleUser);
+
+        // Simulate a prior bid of 200 already sitting in the DB
+        fakeBidDAO.setPreviousBid(200.0);
+
+        assertDoesNotThrow(() -> biddingService.placeBid(0, 0, 300.0));
+
+        // Balance should drop by only 100 (the increment), leaving 400
+        assertEquals(400.0, fakeUserDAO.getUpdatedBalance(),
+                "Chỉ trừ 100₫ tiền chênh lệch so với giá cũ, không trừ toàn bộ 300₫");
+        assertEquals(300.0, fakeAuctionDAO.getUpdatedPrice(),
+                "Giá phiên phải được cập nhật lên 300₫");
+        assertTrue(fakeBidDAO.isBidCreated(), "Lịch sử đặt thầu mới phải được tạo");
+    }
+
+    @Test
     public void testPlaceBid_InsufficientBalance() {
         Auction sampleAuction = new Auction(0, 1, 1, 100.0, 1500, LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(9), "ACTIVE") {};
         fakeAuctionDAO.setSampleAuction(sampleAuction);
@@ -123,16 +148,20 @@ class FakeAuctionDAO extends AuctionDAO {
 
 class FakeBidDAO extends BidDAO {
     private boolean bidCreated = false;
-    private Integer highBidder;
+    // Simulates a previous bid the user already placed on this auction.
+    // 0.0 means no prior bid (fresh), anything else means they're raising.
+    private double previousBid = 0.0;
+
     public boolean isBidCreated() { return bidCreated; }
+    public void setPreviousBid(double amount) { this.previousBid = amount; }
 
     public FakeBidDAO(DataSource ds) {
         super(ds);
     }
 
     @Override
-    public Integer findHighestBidder (int auctionId){
-       return null;
+    public Integer findHighestBidder(int auctionId) {
+        return null; // no prior leader → this user is always the first
     }
 
     @Override
@@ -142,9 +171,12 @@ class FakeBidDAO extends BidDAO {
 
     @Override
     public void updateEndtime(Connection conn, int auctionId, LocalDateTime newEndtime) {
+        // no-op in tests
     }
+
     @Override
     public double getMaxBidByUser(Connection conn, int userId, int auctionId) {
-        return 0.0;
+        // Return whatever previous-bid amount was configured for this test
+        return previousBid;
     }
 }

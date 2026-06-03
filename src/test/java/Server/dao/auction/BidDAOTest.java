@@ -108,7 +108,16 @@ public class BidDAOTest {
              var rs = stmt.executeQuery("SELECT end_time FROM auctions WHERE id = " + auctionId)) {
 
             assertTrue(rs.next());
-            assertNotNull(rs.getTimestamp("end_time"));
+            Timestamp stored = rs.getTimestamp("end_time");
+            assertNotNull(stored, "end_time không được null sau khi cập nhật");
+
+            // The stored value must be close to newEndtime (within 1 second) — just
+            // assertNotNull would pass even if the UPDATE never ran and the column kept its
+            // original NOW() value, so we verify the actual content changed.
+            LocalDateTime storedTime = stored.toLocalDateTime();
+            long diffSeconds = Math.abs(java.time.Duration.between(storedTime, newEndtime).getSeconds());
+            assertTrue(diffSeconds < 2,
+                    "end_time phải được cập nhật thành giá trị mới (~2 giờ sau), sai lệch: " + diffSeconds + "s");
         }
     }
 }

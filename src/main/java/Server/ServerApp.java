@@ -24,9 +24,14 @@ import Server.service.users.UserService;
 import Server.websocket.BidWebSocketServer;
 
 import com.sun.net.httpserver.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 
 public class ServerApp {
+
+    private static final Logger log = LoggerFactory.getLogger(ServerApp.class);
+
     public static void main(String[] args) throws Exception {
         DataSource dataSource = DataSourceFactory.getDataSource();
 
@@ -104,7 +109,7 @@ public class ServerApp {
         context.getFilters().add(new sessionFilter(userService));
 
         server.start();
-        System.out.println("[Server] HTTP server listening on :" + httpPort);
+        log.info("HTTP server listening on port {}", httpPort);
 
         // --- WebSocket server for real-time bid updates ---
         BidWebSocketServer wsServer = BidWebSocketServer.getInstance();
@@ -114,6 +119,6 @@ public class ServerApp {
         AuctionExpiryScheduler expiryScheduler = new AuctionExpiryScheduler(auctionDAO, auctionService);
         expiryScheduler.start();
 
-        System.out.println("[Server] Routes registered: users, auctions, bids, items, notifications");
+        log.info("Routes registered: users, auctions, bids, items, notifications");
     }
 }

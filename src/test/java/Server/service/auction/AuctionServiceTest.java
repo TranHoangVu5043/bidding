@@ -9,6 +9,7 @@ import Server.model.auction.Auction;
 import Server.model.auction.Bid;
 import Server.model.auction.items.Art;
 import Server.model.auction.items.Item;
+import Server.model.users.Bidder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,6 +97,30 @@ public class AuctionServiceTest {
         assertEquals("UPCOMING", auc.getStatus(),"HỢP LỆ" );
     }
     @Test
+    public void testCancelAuction_WithBids_RefundsUsers() {
+        // Auction has two bidders: user 10 bid 300, user 11 bid 500.
+        // Cancelling should refund each their highest bid amount.
+        Auction auction = new Auction(1, 1, 1, 100, 100,
+                LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(9), "ACTIVE");
+        fakeAuctionDAO.setSampleAuction(auction);
+
+        // Set up bids in the fake DAO
+        List<Server.model.auction.Bid> bids = new ArrayList<>();
+        bids.add(new Server.model.auction.Bid(1, 10, 1, 300.0, LocalDateTime.now()));
+        bids.add(new Server.model.auction.Bid(2, 11, 1, 500.0, LocalDateTime.now()));
+        fakeBidDAO.setSampleBids(bids);
+
+        boolean cancelled = auctionService.cancelAuction(1, 1);
+        assertTrue(cancelled, "Chủ phiên mới có quyền hủy");
+
+        // Both users must have received their money back
+        assertEquals(300.0, fakeUserDAO.getRefundedAmount(10),
+                "User 10 phải được hoàn 300₫");
+        assertEquals(500.0, fakeUserDAO.getRefundedAmount(11),
+                "User 11 phải được hoàn 500₫");
+    }
+
+    @Test
     public void testCreateAuction_NotTheOwner(){
         Item item = new Art(1, "Hoa", null, 1, null, null, 10, 10);
         fakeItemDAO.setSampleItem(item);
@@ -154,22 +181,47 @@ public class AuctionServiceTest {
             return sampleItem;
         }
     }
-    class FakeUserDAO extends UserDAO{
-        public FakeUserDAO(DataSource ds){
+    class FakeUserDAO extends UserDAO {
+        // Tracks how much each user was refunded via addBalance()
+        private final Map<Integer, Double> refunds = new HashMap<>();
+
+        public FakeUserDAO(DataSource ds) {
             super(ds);
+        }
+
+        /** Returns total amount added back to the given user's balance during this test. */
+        public double getRefundedAmount(int userId) {
+            return refunds.getOrDefault(userId, 0.0);
+        }
+
+        @Override
+        public void addBalance(int userId, double amount) {
+            refunds.merge(userId, amount, Double::sum);
         }
     }
-    class FakeBidDAO extends BidDAO{
-        public FakeBidDAO(DataSource ds){
+
+    class FakeBidDAO extends BidDAO {
+        // Configurable list of bids returned by getBidsByAuction()
+        private List<Bid> sampleBids = new ArrayList<>();
+
+        public FakeBidDAO(DataSource ds) {
             super(ds);
         }
-        @Override
-        public List<Bid> getBidsByAuction(int id){
-            return new ArrayList<>();
+
+        public void setSampleBids(List<Bid> bids) {
+            this.sampleBids = bids;
         }
+
+        @Override
+        public List<Bid> getBidsByAuction(int id) {
+            return sampleBids;
+        }
+
         @Override
         public void deleteByAuctionId(int auctionId) {
+            // no-op in tests
         }
+
         @Override
         public double getMaxBidByUser(int userId, int auctionId) {
             return 0.0;

@@ -79,11 +79,18 @@ public class AuctionDAOTest {
     @Test
     public void testCreateAuction() throws Exception{
         LocalDateTime now = LocalDateTime.now();
-        Auction auc = new Auction(1,1,1,100,100, now,now.plusDays(9), "PENDING" );
-        Auction saveact = auctionDAO.create(auc);
-        assertNotNull(saveact, "Tạo thành công");
-        Auction checkAuc = auctionDAO.findById(1);
-        assertNotNull(checkAuc, "Phải tồn tại");
+        // Pass id=0 so we don't assume a particular DB-generated value
+        Auction auc = new Auction(0, 1, 1, 100, 100, now, now.plusDays(9), "PENDING");
+        Auction saved = auctionDAO.create(auc);
+        assertNotNull(saved, "create() phải trả về đối tượng đã lưu");
+
+        // Use the DB-generated ID from the returned object — don't hardcode 1,
+        // because SERIAL might continue from a previous test in the same JVM session.
+        int savedId = saved.getId();
+        assertTrue(savedId > 0, "DB phải sinh ra ID dương");
+
+        Auction checkAuc = auctionDAO.findById(savedId);
+        assertNotNull(checkAuc, "findById phải tìm thấy phiên vừa tạo");
         assertEquals("PENDING", checkAuc.getStatus());
         assertEquals(100, checkAuc.getCurrentPrice());
     }

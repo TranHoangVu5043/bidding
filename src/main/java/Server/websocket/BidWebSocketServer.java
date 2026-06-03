@@ -7,6 +7,9 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Map;
@@ -26,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BidWebSocketServer extends WebSocketServer {
 
+    private static final Logger log = LoggerFactory.getLogger(BidWebSocketServer.class);
     private static volatile BidWebSocketServer instance;
     private static final int WS_PORT =
             Integer.parseInt(System.getenv().getOrDefault("WS_PORT", "8081"));
@@ -53,13 +57,13 @@ public class BidWebSocketServer extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        System.out.println("[WS] Client connected: " + conn.getRemoteSocketAddress());
+        log.debug("Client connected: {}", conn.getRemoteSocketAddress());
     }
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         rooms.values().forEach(set -> set.remove(conn));
-        System.out.println("[WS] Client disconnected: " + conn.getRemoteSocketAddress());
+        log.debug("Client disconnected: {}", conn.getRemoteSocketAddress());
     }
 
     @Override
@@ -72,27 +76,26 @@ public class BidWebSocketServer extends WebSocketServer {
             if ("subscribe".equals(type)) {
                 rooms.computeIfAbsent(auctionId,
                         k -> Collections.newSetFromMap(new ConcurrentHashMap<>())).add(conn);
-                System.out.println("[WS] Subscribed to auction #" + auctionId
-                        + " (room size: " + rooms.get(auctionId).size() + ")");
+                log.debug("Subscribed to auction #{} (room size: {})",
+                        auctionId, rooms.get(auctionId).size());
             } else if ("unsubscribe".equals(type)) {
                 Set<WebSocket> room = rooms.get(auctionId);
                 if (room != null) room.remove(conn);
             }
         } catch (Exception e) {
-            System.err.println("[WS] Bad message from " + conn.getRemoteSocketAddress()
-                    + ": " + e.getMessage());
+            log.warn("Bad message from {}: {}", conn.getRemoteSocketAddress(), e.getMessage());
         }
     }
 
     @Override
     public void onError(WebSocket conn, Exception ex) {
-        System.err.println("[WS] Error on "
-                + (conn != null ? conn.getRemoteSocketAddress() : "server") + ": " + ex.getMessage());
+        log.error("WebSocket error on {}",
+                conn != null ? conn.getRemoteSocketAddress() : "server", ex);
     }
 
     @Override
     public void onStart() {
-        System.out.println("[WS] Bid WebSocket server listening on ws://localhost:8081");
+        log.info("WebSocket server listening on port {}", WS_PORT);
     }
 
     /**
@@ -119,7 +122,7 @@ public class BidWebSocketServer extends WebSocketServer {
             .filter(WebSocket::isOpen)
             .forEach(c -> c.send(json));
 
-        System.out.println("[WS] Broadcast bid_update → auction #" + auctionId
-                + " price=" + currentPrice + " to " + room.size() + " client(s)");
+        log.info("Broadcast bid_update → auction #{} price={} to {} client(s)",
+                auctionId, currentPrice, room.size());
     }
 }

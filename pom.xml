@@ -98,6 +98,10 @@
           <include>**/*.jpg</include>
         </includes>
       </resource>
+      <!-- picks up simplelogger.properties and any other config files -->
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
     </resources>
     <plugins>
       <plugin>

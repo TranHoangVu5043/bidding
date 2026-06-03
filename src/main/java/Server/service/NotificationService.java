@@ -14,17 +14,23 @@ public class NotificationService {
         this.userDAO = userDAO;
     }
 
-    /**
-     * Sends a notification only if the recipient has auction notifications enabled.
-     * All current notifications (outbid, win) are auction-type, so this single flag covers them.
-     */
     public void send(int userId, String message) {
         UserDAO.NotifPrefs prefs = userDAO.getNotifPrefs(userId);
+
         if (!prefs.notifAuction()) return;  // user opted out
+
         dao.create(userId, message);
     }
 
-    public List<Notification> getForUser(int userId) { return dao.findByUserId(userId); }
-    public void markRead(int notifId, int userId) { dao.markRead(notifId, userId); }
-    public void markAllRead(int userId) { dao.markAllRead(userId); }
+    public List<Notification> getForUser(int userId) {
+        return dao.findByUserId(userId);
+    }
+
+    public void markRead(int notifId, int userId) {
+        dao.markRead(notifId, userId);
+    }
+
+    public void markAllRead(int userId) {
+        dao.markAllRead(userId);
+    }
 }

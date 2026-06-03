@@ -86,23 +86,24 @@ public class UserService {
     }
 
     public void updateNotifPrefs(int userId, boolean notifAuction, boolean notifEmail) {
+
         userDAO.updateNotifPrefs(userId, notifAuction, notifEmail);
     }
 
     public void deleteAccount(int userId) {
         userDAO.deleteAllSessions(userId);
+
         userDAO.deleteUser(userId);
     }
 
-    /**
-     * Adds {@code amount} to the user's balance and returns the new balance.
-     * @throws IllegalArgumentException if amount ≤ 0 or exceeds the single-deposit cap.
-     */
     public double deposit(int userId, double amount) {
         if (amount <= 0) throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0.");
         if (amount > 1_000_000_000) throw new IllegalArgumentException("Số tiền nạp tối đa 1.000.000.000 ₫ mỗi lần.");
+
         userDAO.addBalance(userId, amount);
+
         User updated = userDAO.findById(userId);
+
         return updated != null ? updated.getBalance() : 0;
     }
 
@@ -119,10 +120,13 @@ public class UserService {
 
         BCrypt.Result verified = BCrypt.verifyer()
                 .verify(oldPassword.toCharArray(), stored.getPassword().toCharArray());
+
         if (!verified.verified) return false;
 
         String newHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
+
         userDAO.updatePassword(currentUser.getId(), newHash);
+
         return true;
     }
 }

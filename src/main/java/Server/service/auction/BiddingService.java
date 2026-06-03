@@ -52,7 +52,6 @@ public class BiddingService {
         return notificationService;
     }
 
-    /** Lightweight record carrying per-auction bid summary for one user. */
     public record BidHistoryEntry(Auction auction, double myHighestBid, int myBidCount, boolean won) {}
 
     public List<Auction> getAuctionsForBidder(int userId) {
@@ -155,7 +154,7 @@ public class BiddingService {
                                     auctionId, amount));
                 }
 
-                // Broadcast real-time update (includes new end-time when anti-snipe fired)
+
                 BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, newEndTimeIso);
 
                 if (autoBidConfigService != null)

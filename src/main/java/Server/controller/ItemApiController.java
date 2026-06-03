@@ -11,10 +11,14 @@ import Server.networking.http.ResponseWrapper;
 import Server.service.auction.ItemService;
 
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class ItemApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(ItemApiController.class);
 
     private final ItemService itemService;
     private final Gson gson;
@@ -34,6 +38,7 @@ public class ItemApiController {
             List<Item> items = itemService.getItemsByOwner(user.getId());
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", items)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -48,6 +53,7 @@ public class ItemApiController {
             List<Item> items = itemService.getAllItems();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", items)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -70,6 +76,7 @@ public class ItemApiController {
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", item)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -102,6 +109,7 @@ public class ItemApiController {
 
             res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Item created", created)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -114,6 +122,7 @@ public class ItemApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             UpdateItemRequest body = gson.fromJson(req.getBody(), UpdateItemRequest.class);
+
             if (body == null || body.itemId <= 0) {
                 res.error(400, "Missing required field: itemId");
                 return;
@@ -144,6 +153,7 @@ public class ItemApiController {
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Item updated", null)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }
@@ -181,6 +191,7 @@ public class ItemApiController {
 
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "Item deleted", null)));
         } catch (Exception e) {
+            log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());
         }
     }

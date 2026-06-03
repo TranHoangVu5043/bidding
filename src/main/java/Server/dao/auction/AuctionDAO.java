@@ -201,9 +201,6 @@ public class AuctionDAO {
         return auctions;
     }
 
-    // auctions where the status doesn't match the time anymore:
-    //   UPCOMING but start_time already passed → should be ACTIVE
-    //   ACTIVE but end_time already passed → should be FINISHED
     public List<Auction> findNeedingStatusUpdate() {
         String sql = """
             SELECT * FROM auctions
