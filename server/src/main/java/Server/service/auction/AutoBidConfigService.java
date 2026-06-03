@@ -54,7 +54,10 @@ public class AutoBidConfigService {
                             auctionId, maxBid, increment));
         }
 
-        triggerAutoBidding(auctionId);
+        // Run async so the HTTP response returns immediately (~300ms) instead of
+        // blocking for 10+ sequential DB round-trips (~4s).
+        int aid = auctionId;
+        new Thread(() -> triggerAutoBidding(aid), "autobid-trigger-" + auctionId).start();
 
     }
     public synchronized void triggerAutoBidding(int auctionId){
@@ -163,18 +166,22 @@ public class AutoBidConfigService {
 
                 conn.commit();
 
-                if (winnerBotId != -1 && ( finalPrice > currentPrice ||previousLeader == null)) {
+                if (winnerBotId != -1 && (finalPrice > currentPrice || previousLeader == null)) {
                     log.info("Auto-bid fired — auction #{} winner bot user#{} at price {}", auctionId, winnerBotId, finalPrice);
-                    // Notify the person the auto-bid just outbid
-                    if (previousLeader != null && previousLeader != winnerBotId
-                            && biddingService.getNotificationService() != null) {
-                        double fp = finalPrice;
-                        biddingService.getNotificationService().send(previousLeader,
-                            String.format("📢 Bạn đã bị vượt giá (tự động) trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
-                                auctionId, fp));
+
+                    // Broadcast to all clients so their UI refreshes price + balance
+                    BidWebSocketServer.getInstance().broadcastBidUpdate(
+                            auctionId, finalPrice, winnerBotId, finalPrice, null);
+
+                    if (biddingService.getNotificationService() != null) {
+                        if (previousLeader != null && previousLeader != winnerBotId) {
+                            biddingService.getNotificationService().send(previousLeader,
+                                String.format("📢 Bạn đã bị vượt giá (tự động) trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
+                                    auctionId, finalPrice));
+                        }
                         biddingService.getNotificationService().send(winnerBotId,
-                                String.format("🤖 Hệ thống Auto-bid của bạn đã tự động đè giá thành công trong phiên #%d! Giá hiện tại: %,.0f ₫.",
-                                        auctionId, finalPrice));
+                            String.format("🤖 Hệ thống Auto-bid của bạn đã tự động đè giá thành công trong phiên #%d! Giá hiện tại: %,.0f ₫.",
+                                auctionId, finalPrice));
                     }
                 }
             }catch (Exception e) {
