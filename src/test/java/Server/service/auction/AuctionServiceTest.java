@@ -102,7 +102,7 @@ public class AuctionServiceTest {
         assertNull(auc, "Sai chủ sở hữu");
     }
 
-    class SimpleFakeDataSource implements javax.sql.DataSource {
+    class SimpleFakeDataSource implements DataSource {
         @Override public Connection getConnection() throws SQLException { return null; }
         @Override public Connection getConnection(String u, String p) throws SQLException { return null; }
         @Override public PrintWriter getLogWriter() { return null; }

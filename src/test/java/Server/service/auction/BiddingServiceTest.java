@@ -69,7 +69,7 @@ public class BiddingServiceTest {
         assertTrue(exception.getMessage().contains("Số dư không đủ"));
     }
 }
-class SimpleFakeDataSource implements javax.sql.DataSource {
+class SimpleFakeDataSource implements DataSource {
     @Override
     public Connection getConnection() throws SQLException {
         return (Connection) newProxyInstance(
@@ -78,7 +78,7 @@ class SimpleFakeDataSource implements javax.sql.DataSource {
                 (proxy, method, args) -> null
         );
     }
-    @Override public Connection getConnection(String username, String password) throws java.sql.SQLException { return getConnection(); }
+    @Override public Connection getConnection(String username, String password) throws SQLException { return getConnection(); }
     @Override public PrintWriter getLogWriter() { return null; }
     @Override public void setLogWriter(java.io.PrintWriter out) {}
     @Override public void setLoginTimeout(int seconds) {}
@@ -123,7 +123,6 @@ class FakeAuctionDAO extends AuctionDAO {
 
 class FakeBidDAO extends BidDAO {
     private boolean bidCreated = false;
-    private Integer highBidder;
     public boolean isBidCreated() { return bidCreated; }
 
     public FakeBidDAO(DataSource ds) {

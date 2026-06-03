@@ -1,14 +1,23 @@
 package Server.service.auction;
 
+import Server.dao.auction.BidDAO;
+import Server.dao.users.UserDAO;
+import Server.model.users.Bidder;
+import Server.model.users.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AutoBidConfigServiceTest {
 
@@ -23,7 +32,6 @@ public class AutoBidConfigServiceTest {
 
     @Test
     public void testRegisterAutoBid_Succsess() {
-        // 1. Đăng ký Bot: phòng số 1, ví max 1000, mỗi lần tăng 10
         autoBidConfigService.registerAutoBid(1, 1, 1000, 10);
 
         // 2. Giả lập giá phòng hiện tại là 100.0
@@ -74,14 +82,13 @@ class AFakeBiddingService extends BiddingService {
     int capturedWinnerBotId = -1;
     double capturedFinalPrice = -1.0;
 
-    // 1. Tạo một bản mock BidDAO "xịn" bằng Mockito
-    private final Server.dao.auction.BidDAO mockBidDAO = org.mockito.Mockito.mock(Server.dao.auction.BidDAO.class);
-
+    private final BidDAO mockBidDAO = mock(BidDAO.class);
+    private final UserDAO mockUserDAO = mock(UserDAO.class);
     public AFakeBiddingService() {
         super(new PGSimpleDataSource() {
             @Override
             public Connection getConnection() throws SQLException {
-                return (Connection) java.lang.reflect.Proxy.newProxyInstance(
+                return (Connection) Proxy.newProxyInstance(
                         Connection.class.getClassLoader(),
                         new Class<?>[] { Connection.class },
                         (proxy, method, args) -> null
@@ -90,12 +97,18 @@ class AFakeBiddingService extends BiddingService {
         }, null, null, null);
 
         // 2. Cấu hình mặc định cho bản mock: Khi gọi tìm người đặt giá cao nhất, trả về null (chưa có ai đặt)
-        org.mockito.Mockito.when(mockBidDAO.findHighestBidder(org.mockito.Mockito.anyInt())).thenReturn(null);
+        when(mockBidDAO.findHighestBidder(anyInt())).thenReturn(null);
+        try {
+            User fakeUser = new Bidder(1, "a", "123", "12", 100000);
+            // Cứ gọi tìm User với bất kỳ ID nào (anyInt) thì Mockito đều trả về User 100 triệu này
+            org.mockito.Mockito.when(mockUserDAO.findById(any(), anyInt())).thenReturn(fakeUser);
+        }catch (Exception e){
+            e.getMessage();
+        }
     }
 
-    // 3. IMPORTANT: Override lại hàm getBidDAO để cứu hệ thống khỏi lỗi NullPointerException
     @Override
-    public Server.dao.auction.BidDAO getBidDAO() {
+    public BidDAO getBidDAO() {
         return this.mockBidDAO;
     }
 
@@ -117,4 +130,6 @@ class AFakeBiddingService extends BiddingService {
         // Cập nhật luôn giá hiện tại để vòng lặp của Bot nhận biết được giá mới đang tăng lên
         this.mockCurrentPrice = price;
     }
+    @Override
+    public UserDAO getUserDAO(){return this.mockUserDAO;}
 }
