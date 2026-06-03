@@ -33,11 +33,11 @@ public class ServerApp {
     private static final Logger log = LoggerFactory.getLogger(ServerApp.class);
 
     public static void main(String[] args) throws Exception {
-        DataSource dataSource = DataSourceFactory.getDataSource();
-
         int httpPort = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         ServerConnection server = ServerConnection.getInstance();
         server.init(httpPort);
+
+        DataSource dataSource = DataSourceFactory.getDataSource();
 
         // DAOs
         UserDAO userDAO = new UserDAO(dataSource);

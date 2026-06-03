@@ -12,10 +12,10 @@ public final class ServerConfig {
 
     // ── Active URLs (defaults to localhost for local dev) ─────────────────
     public static final String HTTP_BASE =
-            System.getProperty("server.http", LOCAL_HTTP);
+            System.getProperty("server.http", RAILWAY_HTTP);
 
     public static final String WS_URL =
-            System.getProperty("server.ws", LOCAL_WS);
+            System.getProperty("server.ws", RAILWAY_WS);
 
     private ServerConfig() {}
 }

@@ -3,18 +3,11 @@ package Client.util;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 
-/**
- * Shared helpers used by all the popup dialog classes.
- * Keeps the same formatting logic in one place instead of duplicated
- * across every controller that needs a detail row or a timestamp.
- */
 public final class DialogUtil {
 
     private DialogUtil() {}
 
-    // ── Grid helper ──────────────────────────────────────────────────────────
-
-    /** Appends a bold label + plain value pair as a new row in a GridPane. */
+    // Grid helper
     public static void addDetailRow(GridPane grid, int row, String labelText, String value) {
         Label lbl = new Label(labelText);
         lbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 12;");
@@ -24,9 +17,6 @@ public final class DialogUtil {
         grid.add(val, 1, row);
     }
 
-    // ── Time formatting ───────────────────────────────────────────────────────
-
-    /** Converts an ISO datetime string to "dd/MM/yyyy HH:mm" for display. */
     public static String formatDisplayTime(String timeStr) {
         if (timeStr == null) return "—";
         try {
@@ -40,7 +30,7 @@ public final class DialogUtil {
         }
     }
 
-    // ── Category helpers ─────────────────────────────────────────────────────
+    // Category helpers
 
     public static String categoryEmoji(String cat) {
         if (cat == null) return "📦";
@@ -72,7 +62,7 @@ public final class DialogUtil {
         };
     }
 
-    // ── Status helpers ───────────────────────────────────────────────────────
+    // Status helper
 
     public static String statusColor(String status) {
         if (status == null) return "#9ca3af";
