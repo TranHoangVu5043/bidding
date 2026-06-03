@@ -191,6 +191,13 @@ public class BiddingService {
             if (price <= auction.getCurrentPrice()) {
                 throw new RuntimeException("Giá đặt phải lớn hơn giá hiện tại của " + auction.getCurrentPrice());
             }
+            if (previousLeader != userId) {
+                User oldLeader = userDAO.findById(conn, previousLeader);
+                if (oldLeader != null) {
+                    double oldLeaderBid = bidDAO.getMaxBidByUser(conn, previousLeader, auctionId);
+                    userDAO.updateBalance(conn, previousLeader, oldLeader.getBalance() + oldLeaderBid);
+                }
+            }
         }
 
         // Read the bidder's current balance inside the same transaction.

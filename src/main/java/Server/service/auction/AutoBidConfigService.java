@@ -37,7 +37,10 @@ public class AutoBidConfigService {
             if (maxBid <= currentPrice) {
                 throw new RuntimeException("Hạn mức tối đa của Bot phải lớn hơn giá hiện tại của phòng đấu giá!");
             }
-
+            Integer currentLeader = biddingService.getBidDAO().findHighestBidder(auctionId);
+            if (currentLeader != null && currentLeader == userId) {
+                throw new RuntimeException("Bạn đang là người dẫn đầu phiên đấu giá! Không thể cấu hình lại Bot lúc này.");
+            }
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
