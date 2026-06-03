@@ -35,7 +35,7 @@ Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép 
 
 Dự án **hỗ trợ đầy đủ trên Windows, Linux và macOS**. Không có code platform-specific, JavaFX Maven tự động tải driver phù hợp.
 
-#### 🐧 Linux (Ubuntu/Debian)
+#### Linux (Ubuntu/Debian)
 
 Cần cài đặt thêm các thư viện GTK + OpenGL:
 
@@ -56,7 +56,7 @@ cd client
 mvn javafx:run -Dfile.encoding=UTF-8
 ```
 
-#### 🍎 macOS
+#### macOS
 
 - **Intel Macs**: Chạy ngay được, JavaFX 25 hỗ trợ x86-64
 - **Apple Silicon (M1/M2/M3/...)**: Chạy ngay được, JavaFX 25 hỗ trợ ARM64 natively (không cần Rosetta)
@@ -66,7 +66,7 @@ Nếu macOS chặn bởi **Gatekeeper** (do app không ký):
 2. Cuộn xuống tìm app JavaFX vừa chạy
 3. Nhấn **Open** để mở khoá thủ công
 
-#### 🪟 Windows
+####  Windows
 
 Chạy bình thường, không cần cài thêm gì.
 
@@ -121,7 +121,7 @@ bidding/
 
 ---
 
-### 🌐 Tuỳ chọn kết nối Server
+###  Tuỳ chọn kết nối Server
 
 Server đã được **deploy sẵn trên Railway** — có thể chạy Client mà không cần khởi động Server cục bộ.
 
