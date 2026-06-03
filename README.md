@@ -27,9 +27,48 @@ Hệ thống đấu giá trực tuyến theo mô hình Client-Server, cho phép 
 ### Yêu Cầu Cài Đặt
 
 - **Java JDK 25** (bắt buộc — project dùng `--release 25`)
+  - Tải từ [Oracle JDK 25](https://www.oracle.com/java/technologies/javase/jdk25-archive-downloads.html) hoặc [Adoptium](https://adoptium.net)
 - **Maven 3.9+**
 - Kết nối Internet (để kết nối database Supabase)
-- Hệ điều hành: Windows, Linux, macOS
+
+### Khả năng chạy trên các Hệ Điều Hành
+
+Dự án **hỗ trợ đầy đủ trên Windows, Linux và macOS**. Không có code platform-specific, JavaFX Maven tự động tải driver phù hợp.
+
+#### 🐧 Linux (Ubuntu/Debian)
+
+Cần cài đặt thêm các thư viện GTK + OpenGL:
+
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y libgtk-3-0 libgl1-mesa-glx libcanberra-gtk-module
+
+# Fedora / RHEL
+sudo dnf install gtk3 mesa-libGL
+
+# Arch
+sudo pacman -S gtk3 libgl
+```
+
+Khi chạy client nếu có lỗi encoding tiếng Việt, thêm flag:
+```bash
+cd client
+mvn javafx:run -Dfile.encoding=UTF-8
+```
+
+#### 🍎 macOS
+
+- **Intel Macs**: Chạy ngay được, JavaFX 25 hỗ trợ x86-64
+- **Apple Silicon (M1/M2/M3/...)**: Chạy ngay được, JavaFX 25 hỗ trợ ARM64 natively (không cần Rosetta)
+
+Nếu macOS chặn bởi **Gatekeeper** (do app không ký):
+1. Mở **System Settings → Privacy & Security**
+2. Cuộn xuống tìm app JavaFX vừa chạy
+3. Nhấn **Open** để mở khoá thủ công
+
+#### 🪟 Windows
+
+Chạy bình thường, không cần cài thêm gì.
 
 ---
 
@@ -80,6 +119,27 @@ bidding/
 > **Lưu ý:** Luôn khởi động **Server trước**, sau đó mới khởi động **Client**.  
 > Để chạy nhiều client cùng lúc, mở nhiều terminal và lặp lại Bước 3.
 
+---
+
+### 🌐 Tuỳ chọn kết nối Server
+
+Server đã được **deploy sẵn trên Railway** — có thể chạy Client mà không cần khởi động Server cục bộ.
+
+| Chế độ | HTTP | WebSocket |
+|---|---|---|
+| **Railway (mặc định)** | `https://bidding-production-3e9a.up.railway.app` | `ws://roundhouse.proxy.rlwy.net:43153` |
+| **Local** | `http://localhost:8080` | `ws://localhost:8081` |
+
+Client mặc định kết nối đến **Local**. Để kết nối Railway, chỉnh trực tiếp trong `client/src/main/java/Client/networking/ServerConfig.java`:
+
+```java
+// Đổi từ LOCAL_HTTP/LOCAL_WS sang RAILWAY_HTTP/RAILWAY_WS
+public static final String HTTP_BASE = RAILWAY_HTTP;    // thay vì LOCAL_HTTP
+public static final String WS_URL    = RAILWAY_WS;      // thay vì LOCAL_WS
+```
+
+---
+
 ### Bước 1 — Clone và build project
 
 ```bash
@@ -88,7 +148,7 @@ cd bidding
 mvn clean package -DskipTests
 ```
 
-### Bước 2 — Khởi động Server
+### Bước 2 — Khởi động Server (bỏ qua nếu dùng Railway)
 
 ```bash
 cd server
@@ -182,5 +242,5 @@ cd server && mvn test
 
 ## Liên Kết
 
-- 📄 [Báo cáo PDF](#) *(cập nhật link trước khi nộp)*
-- 🎥 [Video demo](#) *(cập nhật link trước khi nộp)*
+- 📄 [Báo cáo PDF](#https://drive.google.com/drive/folders/16cftHFUyfJl7-3pUtZXcW43sfaiBrmI0?usp=drive_link) *(cập nhật link trước khi nộp)*
+- 🎥 [Video demo](#https://drive.google.com/drive/folders/1t3Sj_45-YMpP5J1TCMBcTH0JYpKzMD_t?fbclid=IwY2xjawSNMDZleHRuA2FlbQIxMABicmlkETFVNVpZdExUWGd6SGpRdWllc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHjZMae6K2RAl6NzKqfat2X4p-cDFWOl1deHSaexvFt8mHTxAsx1Ja94NzHBe_aem_a8nWmMld7TStk7BpZJysfw) *(cập nhật link trước khi nộp)*

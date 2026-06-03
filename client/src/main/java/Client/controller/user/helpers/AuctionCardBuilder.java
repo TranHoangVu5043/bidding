@@ -97,8 +97,11 @@ public final class AuctionCardBuilder {
         Label lblStartPrice = new Label("Khởi điểm: " + String.format("%,.0f ₫", auction.getStartingPrice()));
         lblStartPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #9CA3AF;");
 
-        Label lblCurrentPrice = new Label("Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
-        lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #D32F2F;");
+        boolean isFinished = "FINISHED".equals(status) || "CANCELLED".equals(status);
+        String priceLabel = isFinished ? "Giá cuối cùng: " : "Giá hiện tại: ";
+        String priceColor = isFinished ? "#6B7280" : "#16A34A";
+        Label lblCurrentPrice = new Label(priceLabel + String.format("%,.0f ₫", auction.getCurrentPrice()));
+        lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: " + priceColor + ";");
 
         String bidderText = auction.getHighestBidderName() != null
                 ? "🏆 " + auction.getHighestBidderName() : "🏆 Chưa có";
