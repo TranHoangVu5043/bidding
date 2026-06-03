@@ -303,43 +303,22 @@
                                 <Label style="-fx-font-weight: bold; -fx-font-size: 18;" text="⚙ Cài Đặt" textFill="#dc7272" />
 
                                 <VBox spacing="14" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
-                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Thông báo" textFill="#560000" />
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Thông báo" />
                                     <Separator />
                                     <HBox alignment="CENTER_LEFT" spacing="10">
                                         <Label style="-fx-text-fill: #374151;" text="Thông báo đấu giá" HBox.hgrow="ALWAYS" />
-                                        <Button fx:id="toggleAuctionNotif" onAction="#handleToggleNotification" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Bật" />
-                                    </HBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="10">
-                                        <Label style="-fx-text-fill: #374151;" text="Thông báo đơn hàng" HBox.hgrow="ALWAYS" />
-                                        <Button fx:id="toggleOrderNotif" onAction="#handleToggleNotification" style="-fx-background-color: #16A34A; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Bật" />
+                                        <Button fx:id="toggleAuctionNotif" onAction="#handleToggleNotification" style="-fx-background-color: #16A34A; -fx-text-fill: white; -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Bật" />
                                     </HBox>
                                     <HBox alignment="CENTER_LEFT" spacing="10">
                                         <Label style="-fx-text-fill: #374151;" text="Email thông báo" HBox.hgrow="ALWAYS" />
-                                        <Button fx:id="toggleEmailNotif" onAction="#handleToggleNotification" style="-fx-background-color: #9CA3AF; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Tắt" />
+                                        <Button fx:id="toggleEmailNotif" onAction="#handleToggleNotification" style="-fx-background-color: #9CA3AF; -fx-text-fill: white; -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Tắt" />
                                     </HBox>
                                 </VBox>
 
                                 <VBox spacing="14" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
-                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Ngôn ngữ &amp; Hiển thị" />
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Tài khoản" />
                                     <Separator />
-                                    <HBox alignment="CENTER_LEFT" spacing="10">
-                                        <Label style="-fx-text-fill: #374151;" text="Ngôn ngữ" HBox.hgrow="ALWAYS" />
-                                        <ComboBox fx:id="cmbLanguage" prefWidth="160" style="-fx-background-radius: 8;" />
-                                    </HBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="10">
-                                        <Label style="-fx-text-fill: #374151;" text="Đơn vị tiền tệ" HBox.hgrow="ALWAYS" />
-                                        <ComboBox fx:id="cmbCurrency" prefWidth="160" style="-fx-background-radius: 8;" />
-                                    </HBox>
-                                </VBox>
-
-                                <VBox spacing="14" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
-                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #1e293b;" text="Bảo mật" />
-                                    <Separator />
-                                    <HBox alignment="CENTER_LEFT" spacing="10">
-                                        <Label style="-fx-text-fill: #374151;" text="Xác thực 2 bước (2FA)" HBox.hgrow="ALWAYS" />
-                                        <Button fx:id="toggle2FA" onAction="#handleToggleNotification" style="-fx-background-color: #9CA3AF; -fx-text-fill: white;                                                        -fx-background-radius: 12; -fx-padding: 4 12; -fx-cursor: hand;" text="Tắt" />
-                                    </HBox>
-                                    <Button fx:id="btnDeleteAccount" maxWidth="Infinity" onAction="#handleDeleteAccount" style="-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C;                                                    -fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand;" text="Xóa tài khoản" />
+                                    <Button fx:id="btnDeleteAccount" maxWidth="Infinity" onAction="#handleDeleteAccount" style="-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-background-radius: 8; -fx-padding: 10; -fx-cursor: hand;" text="Xóa tài khoản" />
                                 </VBox>
 
                             </children>

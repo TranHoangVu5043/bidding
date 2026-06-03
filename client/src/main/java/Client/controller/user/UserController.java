@@ -107,13 +107,9 @@ public class UserController {
     @FXML private PasswordField txtConfirmPassword;
     @FXML private Button        btnChangePassword;
     //FXML — Tab Settings
-    @FXML private Button           toggleAuctionNotif;
-    @FXML private Button           toggleOrderNotif;
-    @FXML private Button           toggleEmailNotif;
-    @FXML private Button           toggle2FA;
-    @FXML private ComboBox<String> cmbLanguage;
-    @FXML private ComboBox<String> cmbCurrency;
-    @FXML private Button           btnDeleteAccount;
+    @FXML private Button toggleAuctionNotif;
+    @FXML private Button toggleEmailNotif;
+    @FXML private Button btnDeleteAccount;
     //  Tab Bid History 
     @FXML private ComboBox<String> cmbBidHistoryFilter;
     @FXML private VBox             bidHistoryList;
@@ -240,8 +236,6 @@ public class UserController {
                     "Tất cả", "Đã thắng", "Đã thua"));
             cmbBidHistoryFilter.getSelectionModel().selectFirst();
         }
-        cmbLanguage.setItems(FXCollections.observableArrayList("Tiếng Việt", "English"));
-        cmbCurrency.setItems(FXCollections.observableArrayList("VNĐ", "USD"));
     }
     //Sidebar Navigation
     @FXML private void handleDashBoard()    { switchTab(tabDashboard,   btnDashBoard);   loadMyBiddingAuctions(); }
@@ -331,6 +325,7 @@ public class UserController {
                     } else {
                         renderAuctionCards(currentDisplayList);
                     }
+                    updateAuctionStats();
                     connectWebSocket();
                     if (countdownTicker == null || countdownTicker.getStatus() != javafx.animation.Animation.Status.RUNNING) {
                         startCountdownTicker();
@@ -567,14 +562,19 @@ public class UserController {
 
     /** Updates the dashboard stat cards with live counts. */
     private void updateAuctionStats() {
-        long active = liveAuctions.stream()
+        String myName = SessionManager.getCurrentUser() != null
+                ? SessionManager.getCurrentUser().getUsername() : null;
+
+        long active = myBiddingAuctions.stream()
                 .filter(a -> "ACTIVE".equalsIgnoreCase(a.getStatus()))
                 .count();
-        long finished = liveAuctions.stream()
-                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus()))
+        long won = myName == null ? 0 : myBiddingAuctions.stream()
+                .filter(a -> "FINISHED".equalsIgnoreCase(a.getStatus())
+                        && myName.equals(a.getHighestBidderName()))
                 .count();
+
         if (lblActiveBids  != null) lblActiveBids.setText(active + " phiên");
-        if (lblWonAuctions != null) lblWonAuctions.setText(finished + " phiên");
+        if (lblWonAuctions != null) lblWonAuctions.setText(won + " phiên");
     }
 
     //Bidding callbacks
