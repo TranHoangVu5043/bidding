@@ -43,12 +43,14 @@ public class AuctionWebSocketClient extends WebSocketClient {
             JsonObject json = JsonParser.parseString(message).getAsJsonObject();
             if (!"bid_update".equals(json.get("type").getAsString())) return;
 
-            int    auctionId  = json.get("auctionId").getAsInt();
-            double newPrice   = json.get("currentPrice").getAsDouble();
-            String newEndTime = json.has("newEndTime") && !json.get("newEndTime").isJsonNull()
+            int    auctionId          = json.get("auctionId").getAsInt();
+            double newPrice           = json.get("currentPrice").getAsDouble();
+            String newEndTime         = json.has("newEndTime") && !json.get("newEndTime").isJsonNull()
                     ? json.get("newEndTime").getAsString() : null;
+            String highestBidderName  = json.has("highestBidderName") && !json.get("highestBidderName").isJsonNull()
+                    ? json.get("highestBidderName").getAsString() : null;
 
-            Platform.runLater(() -> onBidUpdate.accept(new BidUpdate(auctionId, newPrice, newEndTime)));
+            Platform.runLater(() -> onBidUpdate.accept(new BidUpdate(auctionId, newPrice, newEndTime, highestBidderName)));
         } catch (Exception e) {
             System.err.println("[WS] Parse error: " + e.getMessage());
         }

@@ -8,7 +8,9 @@ import Server.model.auction.Auction;
 import Server.model.users.User;
 import Server.networking.http.RequestWrapper;
 import Server.networking.http.ResponseWrapper;
+import Server.dao.auction.BidDAO;
 import Server.service.auction.AuctionService;
+import Server.service.auction.BiddingService;
 import Server.service.auction.ItemService;
 import Server.service.users.UserService;
 
@@ -32,12 +34,14 @@ public class AuctionApiController {
     private final AuctionService auctionService;
     private final UserService    userService;
     private final ItemService    itemService;
+    private final BidDAO         bidDAO;
     private final Gson gson;
 
-    public AuctionApiController(AuctionService auctionService, UserService userService, ItemService itemService) {
+    public AuctionApiController(AuctionService auctionService, UserService userService, ItemService itemService, BiddingService biddingService) {
         this.auctionService = auctionService;
         this.userService    = userService;
         this.itemService    = itemService;
+        this.bidDAO         = biddingService.getBidDAO();
         this.gson = new Gson();
     }
 
@@ -113,12 +117,17 @@ public class AuctionApiController {
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
             List<Auction> auctions = auctionService.getAllAuctions();
-            Map<Integer, User> sellerMap = userService.getAllUsers().stream()
+            Map<Integer, User> userMap = userService.getAllUsers().stream()
                     .collect(Collectors.toMap(User::getId, u -> u));
             Map<Integer, Item> itemMap = itemService.getAllItems().stream()
                     .collect(Collectors.toMap(Item::getId, i -> i));
+            List<Integer> auctionIds = auctions.stream().map(Auction::getId).toList();
+            Map<Integer, Integer> highestBidderIds = bidDAO.findHighestBidders(auctionIds);
             List<AuctionDTO> dtos = auctions.stream()
-                    .map(a -> new AuctionDTO(a, sellerMap.get(a.getOwnerId()), itemMap.get(a.getItemId())))
+                    .map(a -> {
+                        Integer bidderId = highestBidderIds.get(a.getId());
+                        return new AuctionDTO(a, userMap.get(a.getOwnerId()), itemMap.get(a.getItemId()), bidderId != null ? userMap.get(bidderId) : null);
+                    })
                     .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
         } catch (Exception e) {
@@ -143,7 +152,11 @@ public class AuctionApiController {
                 return;
             }
 
-            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction, userService, itemService))));
+            User seller = userService.getUserById(auction.getOwnerId());
+            Item item   = itemService.getItemDetail(auction.getItemId());
+            Integer bidderId = bidDAO.findHighestBidder(auction.getId());
+            User highestBidder = bidderId != null ? userService.getUserById(bidderId) : null;
+            res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", new AuctionDTO(auction, seller, item, highestBidder))));
         } catch (Exception e) {
             log.error("Unhandled exception", e);
             res.error(500, "Server error: " + e.getMessage());

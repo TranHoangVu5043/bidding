@@ -153,7 +153,7 @@ public class BiddingService {
                     }
                 }).start();
 
-                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, endTime);
+                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, endTime, user.getUsername());
 
                 if (autoBidConfigService != null) {
                     new Thread(() -> autoBidConfigService.triggerAutoBidding(auctionId)).start();

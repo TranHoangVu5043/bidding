@@ -139,6 +139,8 @@ public class UserController {
     private final Map<Integer, Button>    liveAutoBidBtns  = new ConcurrentHashMap<>();
     /** auctionId → price updater for the currently open AuctionDetailDialog (if any) */
     private final Map<Integer, Consumer<Double>> liveDialogPriceUpdaters = new ConcurrentHashMap<>();
+    /** auctionId → the highest-bidder Label on the card */
+    private final Map<Integer, Label> liveHighestBidderLabels = new ConcurrentHashMap<>();
     /** Ticks every second to keep countdown labels fresh and flip expired cards to FINISHED state. */
     private Timeline countdownTicker;
     /** Single persistent WebSocket connection for the auction floor */
@@ -168,7 +170,7 @@ public class UserController {
                 bidApi,
                 livePriceLabels, liveStatusLabels, liveTimeLabels,
                 liveBidButtons, liveAutoBidBtns,
-                liveDialogPriceUpdaters,
+                liveDialogPriceUpdaters, liveHighestBidderLabels,
                 this::onBidSuccess,
                 this::formatTimeRemaining));
 
@@ -287,6 +289,7 @@ public class UserController {
                     liveStatusLabels.clear();
                     liveBidButtons.clear();
                     liveAutoBidBtns.clear();
+                    liveHighestBidderLabels.clear();
                     currentDisplayList = liveAuctions;
                     currentPage = 0;
                     renderAuctionCards(currentDisplayList);
@@ -365,9 +368,10 @@ public class UserController {
         if (wsClient != null && !wsClient.isClosed()) wsClient.closeConnection();
 
         wsClient = new AuctionWebSocketClient(update -> {
-            int    auctionId  = update.auctionId();
-            double newPrice   = update.newPrice();
-            String newEndTime = update.newEndTime();
+            int    auctionId          = update.auctionId();
+            double newPrice           = update.newPrice();
+            String newEndTime         = update.newEndTime();
+            String highestBidderName  = update.highestBidderName();
 
             // Update the in-memory auction object in both lists
             Stream.concat(liveAuctions.stream(), myBiddingAuctions.stream())
@@ -382,6 +386,15 @@ public class UserController {
             if (priceLabel != null) {
                 priceLabel.setText("Giá hiện tại: " + String.format("%,.0f ₫", newPrice));
                 priceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #16A34A;");
+            }
+
+            // Update highest bidder label on the card
+            if (highestBidderName != null) {
+                Label bidderLabel = liveHighestBidderLabels.get(auctionId);
+                if (bidderLabel != null) bidderLabel.setText("🏆 " + highestBidderName);
+                Stream.concat(liveAuctions.stream(), myBiddingAuctions.stream())
+                        .filter(a -> a.getId() == auctionId)
+                        .forEach(a -> a.setHighestBidderName(highestBidderName));
             }
 
             // Update the open detail dialog for this auction (if any)
@@ -566,12 +579,12 @@ public class UserController {
 
     //Bidding callbacks
 
-    /** Called by PlaceBidDialog after a successful bid — updates balance and refreshes the floor. */
+    /** Called by PlaceBidDialog after a successful bid — updates balance; WebSocket handles price/bidder updates. */
     private void onBidSuccess(double newBalance) {
         User u = SessionManager.getCurrentUser();
         if (u != null) u.setBalance(newBalance);
         updateBalanceLabel(newBalance);
-        loadAuctions();
+        updateAuctionStats();
     }
 
     // (handlePlaceBid, handleAutoBid, showBidHistory, showAuctionDetail

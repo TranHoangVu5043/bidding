@@ -29,6 +29,7 @@ public final class AuctionCardBuilder {
             Map<Integer, Button>         liveBidButtons,
             Map<Integer, Button>         liveAutoBidBtns,
             Map<Integer, Consumer<Double>> liveDialogPriceUpdaters,
+            Map<Integer, Label>          liveHighestBidderLabels,
             Consumer<Double>             onBidSuccess,
             Function<String, String>     formatTimeRemaining
     ) {}
@@ -99,10 +100,16 @@ public final class AuctionCardBuilder {
         Label lblCurrentPrice = new Label("Giá hiện tại: " + String.format("%,.0f ₫", auction.getCurrentPrice()));
         lblCurrentPrice.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #D32F2F;");
 
+        String bidderText = auction.getHighestBidderName() != null
+                ? "🏆 " + auction.getHighestBidderName() : "🏆 Chưa có";
+        Label lblHighestBidder = new Label(bidderText);
+        lblHighestBidder.setStyle("-fx-font-size: 11; -fx-text-fill: #7C3AED;");
+
         // Register for live WebSocket price/status updates
         if ("ACTIVE".equals(status)) {
             cfg.livePriceLabels().put(auction.getId(), lblCurrentPrice);
             cfg.liveStatusLabels().put(auction.getId(), lblStatus);
+            cfg.liveHighestBidderLabels().put(auction.getId(), lblHighestBidder);
         }
 
         //  Countdown label 
@@ -144,7 +151,7 @@ public final class AuctionCardBuilder {
 
         //  Assemble 
         VBox card = new VBox(8, lblStatus, imgPane, lblTitle, lblSeller,
-                lblStartPrice, lblCurrentPrice, lblTime,
+                lblStartPrice, lblCurrentPrice, lblHighestBidder, lblTime,
                 btnBid, btnAutoBid, btnHistory);
         card.setPrefWidth(210);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +

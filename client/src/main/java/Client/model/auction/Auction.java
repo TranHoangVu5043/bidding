@@ -41,4 +41,8 @@ public class Auction {
     private String itemName;
     public String getItemName() { return itemName; }
     public void setItemName(String itemName) { this.itemName = itemName; }
+
+    private String highestBidderName;
+    public String getHighestBidderName() { return highestBidderName; }
+    public void setHighestBidderName(String highestBidderName) { this.highestBidderName = highestBidderName; }
 }

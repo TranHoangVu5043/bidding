@@ -7,4 +7,4 @@ package Client.websocket;
  * @param newPrice   the new current price after the bid
  * @param newEndTime ISO-8601 string of the reset end-time when anti-snipe fired, or {@code null}
  */
-public record BidUpdate(int auctionId, double newPrice, String newEndTime) {}
+public record BidUpdate(int auctionId, double newPrice, String newEndTime, String highestBidderName) {}

@@ -12,6 +12,7 @@ public class AuctionDTO {
     public String startTime, endTime, status;
     public String sellerName;
     public String itemName;
+    public String highestBidderName;
 
     /** Backwards-compatible constructor — itemName will be null. */
     public AuctionDTO(Auction a, UserService userService) {
@@ -25,17 +26,23 @@ public class AuctionDTO {
              itemService != null ? itemService.getItemDetail(a.getItemId()) : null);
     }
 
-    /** Batch-friendly constructor — caller pre-fetches seller and item to avoid N+1 queries. */
+    /** Batch-friendly constructor — caller pre-fetches seller, item and highest bidder to avoid N+1 queries. */
+    public AuctionDTO(Auction a, User seller, Item item, User highestBidder) {
+        id                 = a.getId();
+        itemId             = a.getItemId();
+        ownerId            = a.getOwnerId();
+        startingPrice      = a.getStartingPrice();
+        currentPrice       = a.getCurrentPrice();
+        startTime          = a.getStartTime() != null ? a.getStartTime().toString() : null;
+        endTime            = a.getEndTime()   != null ? a.getEndTime().toString()   : null;
+        status             = a.getStatus();
+        sellerName         = seller != null ? seller.getUsername() : "Seller #" + a.getOwnerId();
+        itemName           = item   != null ? item.getName()       : null;
+        highestBidderName  = highestBidder != null ? highestBidder.getUsername() : null;
+    }
+
+    /** Backwards-compatible 3-arg constructor — no highest bidder. */
     public AuctionDTO(Auction a, User seller, Item item) {
-        id            = a.getId();
-        itemId        = a.getItemId();
-        ownerId       = a.getOwnerId();
-        startingPrice = a.getStartingPrice();
-        currentPrice  = a.getCurrentPrice();
-        startTime     = a.getStartTime() != null ? a.getStartTime().toString() : null;
-        endTime       = a.getEndTime()   != null ? a.getEndTime().toString()   : null;
-        status        = a.getStatus();
-        sellerName    = seller != null ? seller.getUsername() : "Seller #" + a.getOwnerId();
-        itemName      = item   != null ? item.getName()       : null;
+        this(a, seller, item, null);
     }
 }

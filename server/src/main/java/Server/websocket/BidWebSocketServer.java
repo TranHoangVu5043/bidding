@@ -95,16 +95,17 @@ public class BidWebSocketServer extends WebSocketServer {
     /**
      * @param newEndTime ISO-8601 string of the reset end-time when anti-snipe fired, or {@code null}.
      */
-    public void broadcastBidUpdate(int auctionId, double currentPrice, int userId, double amount, String newEndTime) {
+    public void broadcastBidUpdate(int auctionId, double currentPrice, int userId, double amount, String newEndTime, String highestBidderName) {
         Set<WebSocket> room = rooms.get(auctionId);
         if (room == null || room.isEmpty()) return;
 
         JsonObject payload = new JsonObject();
-        payload.addProperty("type",         "bid_update");
-        payload.addProperty("auctionId",    auctionId);
-        payload.addProperty("currentPrice", currentPrice);
-        payload.addProperty("userId",       userId);
-        payload.addProperty("amount",       amount);
+        payload.addProperty("type",               "bid_update");
+        payload.addProperty("auctionId",          auctionId);
+        payload.addProperty("currentPrice",       currentPrice);
+        payload.addProperty("userId",             userId);
+        payload.addProperty("amount",             amount);
+        payload.addProperty("highestBidderName",  highestBidderName);
         if (newEndTime != null) payload.addProperty("newEndTime", newEndTime);
         String json = gson.toJson(payload);
 

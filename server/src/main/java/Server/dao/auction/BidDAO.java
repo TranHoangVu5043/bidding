@@ -9,6 +9,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class BidDAO {
 
@@ -52,6 +53,26 @@ public class BidDAO {
         }
 
         return bids;
+    }
+
+    /** Returns a map of auctionId → userId for the highest bidder in each auction. One query, no N+1. */
+    public Map<Integer, Integer> findHighestBidders(List<Integer> auctionIds) {
+        Map<Integer, Integer> result = new java.util.HashMap<>();
+        if (auctionIds == null || auctionIds.isEmpty()) return result;
+
+        String placeholders = auctionIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT DISTINCT ON (auction_id) auction_id, user_id FROM bids " +
+                     "WHERE auction_id IN (" + placeholders + ") ORDER BY auction_id, amount DESC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < auctionIds.size(); i++) stmt.setInt(i + 1, auctionIds.get(i));
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) result.put(rs.getInt("auction_id"), rs.getInt("user_id"));
+        } catch (SQLException e) {
+            log.error("findHighestBidders failed", e);
+        }
+        return result;
     }
 
     public Integer findHighestBidder(int auctionId) {

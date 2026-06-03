@@ -100,8 +100,10 @@ public class AutoBidConfigService {
 
                     biddingService.placeBidInternal(conn, challenger.getUserId(), auctionId, challengePrice);
                     conn.commit();
+                    Server.model.users.User challengerUser = biddingService.getUserDAO().findById(challenger.getUserId());
+                    String challengerName = challengerUser != null ? challengerUser.getUsername() : null;
                     BidWebSocketServer.getInstance().broadcastBidUpdate(
-                            auctionId, challengePrice, challenger.getUserId(), challengePrice, null);
+                            auctionId, challengePrice, challenger.getUserId(), challengePrice, null, challengerName);
 
                     // top1 now responds to the challenge
                     triggerAutoBidding(auctionId);
@@ -170,8 +172,10 @@ public class AutoBidConfigService {
                     log.info("Auto-bid fired — auction #{} winner bot user#{} at price {}", auctionId, winnerBotId, finalPrice);
 
                     // Broadcast to all clients so their UI refreshes price + balance
+                    Server.model.users.User winnerUser = biddingService.getUserDAO().findById(winnerBotId);
+                    String winnerName = winnerUser != null ? winnerUser.getUsername() : null;
                     BidWebSocketServer.getInstance().broadcastBidUpdate(
-                            auctionId, finalPrice, winnerBotId, finalPrice, null);
+                            auctionId, finalPrice, winnerBotId, finalPrice, null, winnerName);
 
                     if (biddingService.getNotificationService() != null) {
                         if (previousLeader != null && previousLeader != winnerBotId) {

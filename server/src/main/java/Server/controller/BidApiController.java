@@ -101,12 +101,18 @@ public class BidApiController {
             if (user == null) { res.error(401, "Unauthorized"); return; }
 
             List<Auction> auctions = biddingService.getAuctionsForBidder(user.getId());
-            Map<Integer, User> sellerMap = userService.getAllUsers().stream()
+            Map<Integer, User> userMap = userService.getAllUsers().stream()
                     .collect(Collectors.toMap(User::getId, u -> u));
             Map<Integer, Item> itemMap = itemService.getAllItems().stream()
                     .collect(Collectors.toMap(Item::getId, i -> i));
+            List<Integer> auctionIds = auctions.stream().map(Auction::getId).toList();
+            Map<Integer, Integer> highestBidderIds = biddingService.getBidDAO().findHighestBidders(auctionIds);
             List<AuctionDTO> dtos = auctions.stream()
-                    .map(a -> new AuctionDTO(a, sellerMap.get(a.getOwnerId()), itemMap.get(a.getItemId())))
+                    .map(a -> {
+                        Integer bidderId = highestBidderIds.get(a.getId());
+                        return new AuctionDTO(a, userMap.get(a.getOwnerId()), itemMap.get(a.getItemId()),
+                                bidderId != null ? userMap.get(bidderId) : null);
+                    })
                     .toList();
             res.sendJson(200, gson.toJson(new ApiResponse<>(200, "OK", dtos)));
 

@@ -58,7 +58,7 @@ public class ServerApp {
 
         // Controllers
         UserApiController userController = new UserApiController(userService);
-        AuctionApiController auctionController = new AuctionApiController(auctionService, userService, itemService);
+        AuctionApiController auctionController = new AuctionApiController(auctionService, userService, itemService, biddingService);
         NotificationApiController notifController = new NotificationApiController(notificationService);
         BidApiController bidController = new BidApiController(biddingService, userService, itemService);
         ItemApiController itemController = new ItemApiController(itemService);
