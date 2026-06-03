@@ -109,11 +109,8 @@ public class SellerController {
     private static final int PAGE_SIZE = 21;
     private int currentAuctionPage = 0;
     private List<Auction> filteredAuctions = List.of();
-    //Hồ sơ người bán & Đổi mật khẩu
+    //Cài đặt
     @FXML private TextField     txtShopName;
-    @FXML private TextField     txtSellerPhone;
-    @FXML private TextArea      txtShopDesc;
-    @FXML private TextField     txtSellerAddress;
     @FXML private PasswordField txtOldPw;
     @FXML private PasswordField txtNewPw;
     @FXML private PasswordField txtConfirmPw;

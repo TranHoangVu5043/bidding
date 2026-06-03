@@ -167,6 +167,14 @@ public final class SellerCardBuilder {
             cfg.liveCancelBtns().put(auction.getId(), btnCancel);
         }
 
+        Button btnDetail = new Button("🔍 Xem chi tiết");
+        btnDetail.setMaxWidth(Double.MAX_VALUE);
+        btnDetail.setStyle("-fx-background-color: #EFF6FF; -fx-text-fill: #0066CC; " +
+                "-fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8;");
+        btnDetail.setOnAction(e -> SellerAuctionDetailDialog.show(
+                cfg.windowSupplier().get(), auction, itemDisplay, category,
+                cfg.auctionApi(), cfg.onActionComplete()));
+
         Button btnHistory = new Button("📋 Lịch sử đấu giá");
         btnHistory.setMaxWidth(Double.MAX_VALUE);
         btnHistory.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #374151; " +
@@ -175,7 +183,7 @@ public final class SellerCardBuilder {
 
         VBox card = new VBox(8, lblStatus, imgPane, lblSeller,
                 lblStartPrice, lblCurrentPrice, lblHighestBidder, lblTime,
-                btnFinish, btnCancel, btnHistory);
+                btnFinish, btnCancel, btnDetail, btnHistory);
         card.setPrefWidth(210);
         card.setStyle("-fx-background-color: white; -fx-background-radius: 12; " +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.09), 10, 0, 0, 3); -fx-padding: 12;");
