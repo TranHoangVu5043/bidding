@@ -6,11 +6,14 @@ import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;
 
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Set;
 
 public class sessionFilter extends Filter {
 
+    private static final Logger log = LoggerFactory.getLogger(sessionFilter.class);
     private final UserService userService;
     private final Gson gson;
 
@@ -26,7 +29,9 @@ public class sessionFilter extends Filter {
 
     @Override
     public void doFilter(HttpExchange exchange, Chain chain) throws IOException {
-        String path = exchange.getRequestURI().getPath();
+        String method = exchange.getRequestMethod();
+        String path   = exchange.getRequestURI().getPath();
+        log.info("→ {} {}", method, path);
 
         if (PUBLIC_PATHS.contains(path)) {
             chain.doFilter(exchange);
@@ -36,6 +41,7 @@ public class sessionFilter extends Filter {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("401 missing/invalid token: {} {}", method, path);
             sendJsonError(exchange, 401, "Token không hợp lệ hoặc bị thiếu.");
             return;
         }
@@ -43,6 +49,7 @@ public class sessionFilter extends Filter {
         String token = authHeader.substring(7).trim();
 
         if (token.isEmpty()) {
+            log.warn("401 empty token: {} {}", method, path);
             sendJsonError(exchange, 401, "Token không được để trống.");
             return;
         }
@@ -50,6 +57,7 @@ public class sessionFilter extends Filter {
         var user = userService.authenticate(token);
 
         if (user == null) {
+            log.warn("401 expired/unknown token: {} {}", method, path);
             sendJsonError(exchange, 401, "Token đã hết hạn hoặc không tồn tại. Vui lòng đăng nhập lại.");
             return;
         }

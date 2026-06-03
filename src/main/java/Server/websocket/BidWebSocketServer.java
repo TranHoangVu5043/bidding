@@ -16,17 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Singleton WebSocket server on port 8081.
- * Clients subscribe to an auction room and receive real-time bid updates.
- *
- * Client → Server messages:
- *   {"type":"subscribe",   "auctionId": 1}
- *   {"type":"unsubscribe", "auctionId": 1}
- *
- * Server → Client broadcasts:
- *   {"type":"bid_update", "auctionId":1, "currentPrice":1500000, "userId":5, "amount":1500000}
- */
+
 public class BidWebSocketServer extends WebSocketServer {
 
     private static final Logger log = LoggerFactory.getLogger(BidWebSocketServer.class);

@@ -59,7 +59,7 @@ public class ApiRouter implements HttpHandler {
         long start = System.currentTimeMillis();
         handler.handle(req, res);
         long ms = System.currentTimeMillis() - start;
-        log.debug("{} {} → {} ms", method, path, ms);
+        log.info("{} {} → {} ms", method, path, ms);
     }
 
     // ── Pattern route matcher ──────────────────────────────────────

@@ -7,7 +7,7 @@ public final class ServerConfig {
     public static final String RAILWAY_WS   = "ws://roundhouse.proxy.rlwy.net:43153";
 
     public static final String LOCAL_HTTP = "http://localhost:8080";
-    public static final String LOCAL_WS = "ws://localhost:8081";
+    public static final String LOCAL_WS = "ws://localhost:8082";
 
 
     // ── Active URLs (defaults to localhost for local dev) ─────────────────
