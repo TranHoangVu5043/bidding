@@ -79,7 +79,7 @@ public class BiddingService {
         return result;
     }
 
-    public void placeBid(int userId, int auctionId, double amount) {
+    public double placeBid(int userId, int auctionId, double amount) {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
 
@@ -120,13 +120,11 @@ public class BiddingService {
                         String.format("Số dư không đủ. Bạn cần thêm %,.0f ₫ để đặt giá này.", extra - user.getBalance()));
                 }
 
-                // All three writes share the same connection and will commit or rollback together.
-
-                userDAO.updateBalance(conn, userId, user.getBalance() - amount);
-
+                // Charge only the increment above the user's existing highest bid.
+                double newBalance = user.getBalance() - extra;
+                userDAO.updateBalance(conn, userId, newBalance);
                 auctionDAO.updateCurrentPrice(conn, auctionId, amount);
                 bidDAO.create(conn, userId, auctionId, amount);
-
 
                 // Anti-sniping: if < 2 minutes remain, reset the timer to exactly now + 2 minutes
                 LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
@@ -139,23 +137,29 @@ public class BiddingService {
 
                 conn.commit();
 
-                // Notify the previous leader that they were outbid (fire-and-forget, outside TX)
-                if (previousLeader != null && previousLeader != userId && notificationService != null) {
-                    notificationService.send(previousLeader,
-                        String.format("📢 Bạn đã bị vượt giá trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
-                            auctionId, amount));
-                }
-                if (notificationService != null) {
-                    notificationService.send(userId,
+                // Notifications and auto-bid are fire-and-forget — don't block the HTTP response
+                final Integer leader = previousLeader;
+                final String endTime = newEndTimeIso;
+                new Thread(() -> {
+                    if (leader != null && leader != userId && notificationService != null) {
+                        notificationService.send(leader,
+                            String.format("📢 Bạn đã bị vượt giá trong phiên đấu giá #%d! Giá hiện tại: %,.0f ₫.",
+                                auctionId, amount));
+                    }
+                    if (notificationService != null) {
+                        notificationService.send(userId,
                             String.format("🎉 Tuyệt vời! Bạn đã đè giá thành công trong phiên #%d! Bạn đang dẫn đầu với mức giá: %,.0f ₫.",
-                                    auctionId, amount));
+                                auctionId, amount));
+                    }
+                }).start();
+
+                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, endTime);
+
+                if (autoBidConfigService != null) {
+                    new Thread(() -> autoBidConfigService.triggerAutoBidding(auctionId)).start();
                 }
 
-
-                BidWebSocketServer.getInstance().broadcastBidUpdate(auctionId, amount, userId, amount, newEndTimeIso);
-
-                if (autoBidConfigService != null)
-                    autoBidConfigService.triggerAutoBidding(auctionId);
+                return newBalance;
 
             } catch (Exception e) {
                 conn.rollback();

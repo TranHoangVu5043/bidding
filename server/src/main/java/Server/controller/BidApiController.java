@@ -59,13 +59,7 @@ public class BidApiController {
                 return;
             }
 
-            biddingService.placeBid(user.getId(), body.auctionId, body.amount);
-
-            // Return the bidder's updated balance so the client can refresh the display instantly
-            double newBalance = 0;
-            Server.model.users.User updated = userService.getUserById(user.getId());
-            if (updated != null) newBalance = updated.getBalance();
-
+            double newBalance = biddingService.placeBid(user.getId(), body.auctionId, body.amount);
             res.sendJson(201, gson.toJson(new ApiResponse<>(201, "Đặt giá thành công!", newBalance)));
 
         } catch (RuntimeException e) {
