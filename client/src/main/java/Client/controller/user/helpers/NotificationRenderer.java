@@ -14,7 +14,7 @@ public final class NotificationRenderer {
 
     private NotificationRenderer() {}
 
-    //  List rendering 
+    //List rendering
 
     public static void render(List<Notification> list, VBox container) {
         if (container == null) return;
@@ -28,7 +28,7 @@ public final class NotificationRenderer {
         for (Notification n : list) container.getChildren().add(buildRow(n));
     }
 
-    //  Single row 
+    //Single row
 
     public static HBox buildRow(Notification n) {
         Label icon = new Label(n.getMessage().contains("hủy") ? "🚫" : "🔔");
@@ -53,9 +53,9 @@ public final class NotificationRenderer {
         return row;
     }
 
-    //  Utilities ─
+    //Utilities
 
-    /** Returns true if the notification message is auction-related. */
+    /** Tra ve true neu thong bao lien quan den phien dau gia */
     public static boolean isAuctionNotif(String msg) {
         if (msg == null) return false;
         String lower = msg.toLowerCase();
@@ -64,7 +64,7 @@ public final class NotificationRenderer {
                 || lower.contains("giá hiện tại") || msg.contains("🎉") || msg.contains("📢");
     }
 
-    /** Converts an ISO creation timestamp to human-readable relative time. */
+    /** Chuyen doi chuoi thoi gian tao chuan ISO sang dinh dang thoi gian tuong doi. */
     public static String formatTime(String isoTime) {
         if (isoTime == null) return "";
         try {

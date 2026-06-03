@@ -26,7 +26,7 @@
 
     <children>
 
-        <!-- Centred card: (600 - 440) / 2 = 80 -->
+        <!-- Centred card-->
         <VBox layoutX="80.0" layoutY="20.0" prefWidth="440.0" spacing="10.0"
               style="-fx-background-color: WHITE;
                      -fx-background-radius: 12;
@@ -41,7 +41,6 @@
                 <Label text="Đăng ký để tham gia đấu giá!" textFill="#888888" />
 
                 <!--  Two-tab registration form  -->
-                <!-- TabPane prefWidth=384; two auto-sized tabs fit without overflow arrow -->
                 <TabPane styleClass="seg-tabs" tabClosingPolicy="UNAVAILABLE" prefWidth="384.0">
                     <tabs>
 

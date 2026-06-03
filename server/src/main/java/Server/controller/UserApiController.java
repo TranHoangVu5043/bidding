@@ -30,7 +30,7 @@ public class UserApiController {
         this.gson = new Gson();
     }
 
-    // ===== POST /api/users/register =====
+    // POST /api/users/register
 
     public void register(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -58,8 +58,7 @@ public class UserApiController {
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
-
-    // ===== POST /api/users/login =====
+    // POST /api/users/login
 
     public void login(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -91,7 +90,7 @@ public class UserApiController {
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
-    // ===== POST /api/users/logout =====
+    //  POST /api/users/logout
 
     public void logout(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -141,7 +140,7 @@ public class UserApiController {
         }
     }
 
-    // ===== GET /api/users/me =====
+    //  GET /api/users/me
 
     public void getMe(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -171,7 +170,7 @@ public class UserApiController {
         }
     }
 
-    // ===== POST /api/users/change-password =====
+    //  POST /api/users/change-password
 
     public void changePassword(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -209,7 +208,7 @@ public class UserApiController {
             res.error(500, "Lỗi hệ thống, vui lòng thử lại sau.");
         }
     }
-    // ===== POST /api/users/{id}/ban =====
+    // POST /api/users/{id}/ban
 
     public void banUser(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -233,7 +232,7 @@ public class UserApiController {
         }
     }
 
-    // ===== POST /api/users/{id}/unban =====
+    //  POST /api/users/{id}/unban
 
     public void unbanUser(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -268,7 +267,7 @@ public class UserApiController {
         return -1;
     }
 
-    // ===== POST /api/users/preferences =====
+    //  POST /api/users/preferences
 
     public void updatePreferences(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -286,8 +285,7 @@ public class UserApiController {
         }
     }
 
-    // ===== POST /api/users/delete =====
-
+    //  POST /api/users/delete
     public void deleteAccount(RequestWrapper req, ResponseWrapper res) {
         try {
             User currentUser = req.getUser();
@@ -301,7 +299,7 @@ public class UserApiController {
         }
     }
 
-    // ===== POST /api/users/deposit =====
+    //  POST /api/users/deposit
 
     public void deposit(RequestWrapper req, ResponseWrapper res) {
         try {
@@ -325,7 +323,7 @@ public class UserApiController {
         }
     }
 
-    // ===== HELPER =====
+    //  HELPER
 
     private String extractToken(RequestWrapper req) {
         String header = req.getHeader("Authorization");

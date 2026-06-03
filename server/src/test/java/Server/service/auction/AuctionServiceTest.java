@@ -30,7 +30,7 @@ public class AuctionServiceTest {
 
     private AuctionService auctionService;
 
-    // Đội quân đóng thế cho các DAO
+    // Dao Fake
     private FakeAuctionDAO fakeAuctionDAO;
     private FakeBidDAO fakeBidDAO;
     private FakeItemDAO fakeItemDAO;

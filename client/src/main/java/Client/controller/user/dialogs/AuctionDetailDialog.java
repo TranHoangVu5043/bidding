@@ -53,7 +53,7 @@ public final class AuctionDetailDialog {
             default         -> "✕ Đã hủy";
         };
 
-        //  Header 
+        //Header
         Label iconLabel = new Label("🏷");
         iconLabel.setStyle("-fx-font-size: 52;");
 
@@ -69,7 +69,7 @@ public final class AuctionDetailDialog {
         header.setPadding(new Insets(24, 24, 16, 24));
         header.setStyle("-fx-background-color: " + headerBg + ";");
 
-        //  Detail rows 
+        //Detail rows
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(12);
@@ -80,7 +80,7 @@ public final class AuctionDetailDialog {
         DialogUtil.addDetailRow(grid, 0, "📦 Sản phẩm",     itemDisplay);
         DialogUtil.addDetailRow(grid, 1, "💵 Giá khởi điểm", String.format("%,.0f ₫", auction.getStartingPrice()));
 
-        // Live price row — kept as a field so the WebSocket callback can update it
+        //Gia live -luu lam field de WebSocket callback co the update
         Label priceKey = new Label("🔥 Giá hiện tại");
         priceKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 12;");
         Label priceVal = new Label(String.format("%,.0f ₫", auction.getCurrentPrice()));
@@ -98,7 +98,7 @@ public final class AuctionDetailDialog {
         Separator sep = new Separator();
         sep.setPadding(new Insets(0, 24, 0, 24));
 
-        //  Action buttons 
+        //Action buttons
         boolean canBid = "ACTIVE".equals(status);
 
         Button btnBid = new Button("Đặt giá ngay  💸");

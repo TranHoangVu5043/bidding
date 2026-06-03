@@ -25,13 +25,13 @@ public class ItemApiControllerTest {
 
     @BeforeEach
     public void setUp() {
-        // Giả lập (Mock) các thành phần phụ thuộc
+        // Mock cac thanh phan phu thuoc
         itemService = mock(ItemService.class);
         req = mock(RequestWrapper.class);
         res = mock(ResponseWrapper.class);
         Gson gson = new Gson();
 
-        // Khởi tạo Controller cần test với service giả lập
+        // Khoi tao controller can test voi service gia lap
         controller = new ItemApiController(itemService);
     }
 

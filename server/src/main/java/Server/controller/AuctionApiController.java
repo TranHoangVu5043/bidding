@@ -46,7 +46,6 @@ public class AuctionApiController {
     }
 
     // POST /api/auctions/create
-    // Body: { "itemId": 1, "startingPrice": 100.0, "startTime": "2026-06-01T10:00:00", "endTime": "2026-06-01T12:00:00" }
     public void createAuction(RequestWrapper req, ResponseWrapper res) {
         try {
             User user = req.getUser();
@@ -93,7 +92,6 @@ public class AuctionApiController {
     }
 
     // GET /api/auctions/mine
-    // Returns only auctions owned by the logged-in seller
     public void getMyAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
             User user = req.getUser();
@@ -121,7 +119,6 @@ public class AuctionApiController {
     }
 
     // GET /api/auctions
-    // No body needed — returns all auctions
     public void getAllAuctions(RequestWrapper req, ResponseWrapper res) {
         try {
             List<Auction> auctions = auctionService.getAllAuctions();
@@ -145,7 +142,6 @@ public class AuctionApiController {
     }
 
     // POST /api/auctions/get
-    // Body: { "auctionId": 1 }
     public void getAuction(RequestWrapper req, ResponseWrapper res) {
         try {
             AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);
@@ -202,7 +198,6 @@ public class AuctionApiController {
     }
 
     // POST /api/auctions/cancel
-    // Body: { "auctionId": 1 }
     public void cancelAuction(RequestWrapper req, ResponseWrapper res) {
         try {
             User user = req.getUser();
@@ -229,7 +224,6 @@ public class AuctionApiController {
     }
 
     // POST /api/auctions/refresh
-    // Body: { "auctionId": 1 }
     public void refreshStatus(RequestWrapper req, ResponseWrapper res) {
         try {
             AuctionIdRequest body = gson.fromJson(req.getBody(), AuctionIdRequest.class);

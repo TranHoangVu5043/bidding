@@ -143,7 +143,7 @@ public class AdminDashboardController {
                 btnAuctions, btnSettings
         };
 
-        // Hiển thị tên user đang đăng nhập
+        // Hien thi ten user dang dang nhap
         try {
             ApiResponse<User> meResp = userApi.getMe();
             if (meResp != null && meResp.getStatus() == 200 && meResp.getData() != null) {
@@ -228,7 +228,7 @@ public class AdminDashboardController {
                             (usersResp != null ? usersResp.getStatus() : "null"));
                 }
 
-                // KPI: Auctions + Revenue từ FINISHED auctions + Donut chart + Activity feed
+                // KPI: Auctions + Revenue tu FINISHED auctions + Donut chart + Activity feed
                 if (auctionResp != null && auctionResp.getStatus() == 200 && auctionResp.getData() != null) {
                     cachedAuctions = auctionResp.getData();
 
@@ -252,7 +252,7 @@ public class AdminDashboardController {
         }).start();
     }
 
-    //Vẽ pie chart
+    //Ve pie chart
     private void buildPieChart(List<Auction> auctions) {
         if (chartPie == null || auctions == null) return;
         Map<String, Long> counts = new LinkedHashMap<>();
@@ -338,7 +338,7 @@ public class AdminDashboardController {
             return;
         }
 
-        //Sắp xếp ACTIVE lên đầu, sau đó theo endTime giảm dần
+        //Sap xeo ACTIVE len dau, sau do theo endTime giam dan
         List<Auction> sorted = auctions.stream()
                 .sorted(Comparator
                         .comparing((Auction a) -> !"ACTIVE".equalsIgnoreCase(a.getStatus()))

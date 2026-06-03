@@ -20,7 +20,6 @@
 
     <children>
         <!-- Left panel: background image -->
-        <!-- FIX: removed two broken ImageViews (empty pickOnBounds one + absolute filesystem path one) -->
         <AnchorPane prefHeight="456.0" prefWidth="381.0" style="-fx-background-color: #FFFFFF;">
             <children>
                 <ImageView fitHeight="448.0" fitWidth="381.0" layoutX="1.0" layoutY="3.0">
@@ -80,6 +79,6 @@
                            text="Sign In now" textFill="WHITE" underline="true" />
             </children>
         </Pane>
-        <!-- FIX: removed stray empty <Accordion /> element -->
+
     </children>
 </AnchorPane>

@@ -34,15 +34,10 @@ public class LoginController {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
             return;
         }
-
-        // Disable button and show feedback so the user knows we're working
         btnLogin.setDisable(true);
         btnLogin.setText("Đang đăng nhập...");
 
-        // Run network calls on a background thread — never block the FX thread
         new Thread(() -> {
-
-            // Step 1: authenticate and receive token
             ApiResponse<String> loginResponse = userApi.login(username, password);
 
             if (loginResponse == null || loginResponse.getStatus() != 200) {
@@ -53,8 +48,6 @@ public class LoginController {
                 });
                 return;
             }
-
-            // Step 2: fetch logged-in user to determine role
             ApiResponse<User> meResponse = userApi.getMe();
 
             if (meResponse == null || meResponse.getData() == null) {
@@ -65,10 +58,8 @@ public class LoginController {
                 return;
             }
 
-            // Save user globally so every controller can read it without extra API calls
             SessionManager.setCurrentUser(meResponse.getData());
 
-            // Step 3: back on FX thread — navigate to role-appropriate view
             String role = meResponse.getData().getRole();
             final String fxmlFile;
             final String title;
@@ -84,7 +75,7 @@ public class LoginController {
         }).start();
     }
 
-    // Called when Enter is pressed in the username or password field
+    //Gan nut bam
     @FXML void showUserName(ActionEvent event) { handleLogin(event); }
     @FXML void showPassWord(ActionEvent event) { handleLogin(event); }
 

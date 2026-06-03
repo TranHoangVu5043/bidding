@@ -30,7 +30,7 @@ public final class DialogUtil {
         }
     }
 
-    // Category helpers
+    //Category helpers
 
     public static String categoryEmoji(String cat) {
         if (cat == null) return "📦";
@@ -62,7 +62,7 @@ public final class DialogUtil {
         };
     }
 
-    // Status helper
+    //Status helper
 
     public static String statusColor(String status) {
         if (status == null) return "#9ca3af";
