@@ -37,34 +37,13 @@ Dự án **hỗ trợ đầy đủ trên Windows, Linux và macOS**. Không có 
 
 #### Linux (Ubuntu/Debian)
 
-Cần cài đặt thêm các thư viện GTK + OpenGL:
-
-```bash
-# Ubuntu / Debian
-sudo apt update && sudo apt install -y libgtk-3-0 libgl1-mesa-glx libcanberra-gtk-module
-
-# Fedora / RHEL
-sudo dnf install gtk3 mesa-libGL
-
-# Arch
-sudo pacman -S gtk3 libgl
-```
+Cần cài đặt thêm các thư viện GTK + OpenGL
 
 Khi chạy client nếu có lỗi encoding tiếng Việt, thêm flag:
 ```bash
 cd client
 mvn javafx:run -Dfile.encoding=UTF-8
 ```
-
-#### macOS
-
-- **Intel Macs**: Chạy ngay được, JavaFX 25 hỗ trợ x86-64
-- **Apple Silicon (M1/M2/M3/...)**: Chạy ngay được, JavaFX 25 hỗ trợ ARM64 natively (không cần Rosetta)
-
-Nếu macOS chặn bởi **Gatekeeper** (do app không ký):
-1. Mở **System Settings → Privacy & Security**
-2. Cuộn xuống tìm app JavaFX vừa chạy
-3. Nhấn **Open** để mở khoá thủ công
 
 ####  Windows
 
@@ -242,5 +221,5 @@ cd server && mvn test
 
 ## Liên Kết
 
-- 📄 [Báo cáo PDF](#https://drive.google.com/drive/folders/16cftHFUyfJl7-3pUtZXcW43sfaiBrmI0?usp=drive_link) *(cập nhật link trước khi nộp)*
-- 🎥 [Video demo](#https://drive.google.com/drive/folders/1t3Sj_45-YMpP5J1TCMBcTH0JYpKzMD_t?fbclid=IwY2xjawSNMDZleHRuA2FlbQIxMABicmlkETFVNVpZdExUWGd6SGpRdWllc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHjZMae6K2RAl6NzKqfat2X4p-cDFWOl1deHSaexvFt8mHTxAsx1Ja94NzHBe_aem_a8nWmMld7TStk7BpZJysfw) *(cập nhật link trước khi nộp)*
+- Báo cáo PDF: https://drive.google.com/drive/folders/16cftHFUyfJl7-3pUtZXcW43sfaiBrmI0?usp=drive_link
+- Video demo: https://drive.google.com/drive/folders/1t3Sj_45-YMpP5J1TCMBcTH0JYpKzMD_t?fbclid=IwY2xjawSNOTRleHRuA2FlbQIxMABicmlkETFOZk9RRVlOT3NoS05iTkJOc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHufNYSSN04o0PDWs8OLx-XcL9q1fyey8OVv33flPWZktRQqoaRjlGhQMHBf-_aem_2vjxx5jJx9Yv0S_6hWkeKg
